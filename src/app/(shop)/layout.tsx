@@ -3,6 +3,7 @@ import { CartProvider } from '@/components/shop/CartProvider';
 import { FacebookPixel } from '@/components/shop/FacebookPixel';
 import { Footer } from '@/components/shop/Footer';
 import { Header } from '@/components/shop/Header';
+import { MobileTabBar } from '@/components/shop/MobileTabBar';
 import { getCategories, getSettings, getZones } from '@/lib/catalog';
 
 export default async function ShopLayout({ children }: { children: ReactNode }) {
@@ -16,6 +17,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       <Header settings={settings} categories={categories} zones={zones} />
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} />
+      <MobileTabBar />
     </CartProvider>
   );
 }

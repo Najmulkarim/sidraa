@@ -72,13 +72,22 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden text-white" style={{ background: 'var(--hero)' }}>
-        <span className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-accent/25 blur-3xl" aria-hidden="true" />
-        <span className="pointer-events-none absolute -right-10 bottom-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -left-24 top-10 h-72 w-72 animate-[float_9s_ease-in-out_infinite] rounded-full bg-accent/25 blur-3xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -right-10 bottom-0 h-80 w-80 animate-[float_12s_ease-in-out_infinite_reverse] rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
         <div className="container-page relative grid items-center gap-6 pb-24 pt-10 md:grid-cols-[1.1fr_1fr] md:pb-28 md:pt-14">
           <div className="relative z-10 space-y-5">
-            <span className="inline-block rounded-full border border-white/70 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              {settings.tagline ?? 'New season'}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-block rounded-full border border-white/70 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                {settings.tagline ?? 'New season'}
+              </span>
+              {/* Phones don't show the hero art, so the discount rides here. */}
+              {discount > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase text-brand shadow-lg md:hidden">
+                  <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand/60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-brand" /></span>
+                  Up to {discount}% off
+                </span>
+              )}
+            </div>
             <h1 className="font-display text-[clamp(2.25rem,5.2vw,3.75rem)] font-medium leading-[1.08]">
               Elevate your
               <span className="block text-[color-mix(in_oklab,var(--accent)_35%,white)]">everyday style</span>
@@ -122,7 +131,7 @@ export default async function HomePage() {
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {benefits.map((b) => (
             <li key={b.title}>
-              <Link href={b.href} className="flex h-full items-center gap-3 rounded-xl p-4 text-white shadow-[var(--shadow)] transition hover:-translate-y-0.5" style={{ background: b.bg }}>
+              <Link href={b.href} className="flex h-full items-center gap-3 rounded-xl p-4 text-white shadow-[var(--shadow)] transition hover:-translate-y-0.5 active:scale-[0.97]" style={{ background: b.bg }}>
                 <span className="hidden h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20 sm:grid"><Icon name={b.icon} size={22} /></span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-bold uppercase leading-tight">{b.title}</span>
@@ -136,12 +145,12 @@ export default async function HomePage() {
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="container-page mt-14">
+        <section className="reveal container-page mt-14">
           <SectionHead title="Shop by category" href="/products" />
-          <ul className="flex snap-x justify-start gap-5 overflow-x-auto pb-2 [scrollbar-width:none] md:justify-between">
+          <ul className="-mx-4 flex snap-x scroll-px-4 justify-start gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:mx-0 md:justify-between md:px-0">
             {categories.map((c) => (
               <li key={c.id} className="snap-start">
-                <Link href={`/category/${c.slug}`} className="group flex w-24 flex-col items-center gap-3 text-center sm:w-28">
+                <Link href={`/category/${c.slug}`} className="group flex w-24 flex-col items-center gap-3 text-center transition active:scale-95 sm:w-28">
                   <span className="relative block aspect-square w-full overflow-hidden rounded-full bg-[radial-gradient(circle,white,var(--tint))] ring-2 ring-[color-mix(in_oklab,var(--brand)_18%,white)] transition group-hover:ring-brand">
                     {imageUrl(c.image_path) ? (
                       <img src={imageUrl(c.image_path)!} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
@@ -158,14 +167,14 @@ export default async function HomePage() {
       )}
 
       {featured.length > 0 && (
-        <section className="container-page mt-14">
+        <section className="reveal container-page mt-14">
           <SectionHead title="Trending now" href="/products" />
           <ProductRow products={featured} />
         </section>
       )}
 
       {/* Promo banners */}
-      <section className="container-page mt-14 grid gap-4 md:grid-cols-3">
+      <section className="reveal container-page mt-14 grid gap-4 md:grid-cols-3">
         {promos.map((p) => (
           <Link key={p.title} href={p.href} className="group relative flex min-h-44 items-center overflow-hidden rounded-xl p-6 text-white" style={{ background: p.bg }}>
             <span className="relative z-10 max-w-[55%] space-y-2">
@@ -179,14 +188,14 @@ export default async function HomePage() {
       </section>
 
       {latest.length > 0 && (
-        <section className="container-page mt-14">
+        <section className="reveal container-page mt-14">
           <SectionHead title="New arrivals" href="/products?sort=new" />
           <ProductRow products={latest} badge="New" />
         </section>
       )}
 
       {/* Features strip */}
-      <section className="container-page mt-14">
+      <section className="reveal container-page mt-14">
         <ul className="grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-2 lg:grid-cols-4" style={{ background: 'linear-gradient(110deg,var(--night),var(--plum))' }}>
           {[
             { icon: 'cash' as const, title: 'Cash on delivery', text: 'No card or account needed' },
@@ -206,7 +215,7 @@ export default async function HomePage() {
       </section>
 
       {sale.length > 0 && (
-        <section className="container-page mt-14">
+        <section className="reveal container-page mt-14">
           <SectionHead title="On sale" href="/products?sort=price-asc" />
           <ProductRow products={sale} />
         </section>

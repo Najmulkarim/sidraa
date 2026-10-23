@@ -5,6 +5,7 @@ import type { Category, DeliveryZone, StoreSettings } from '@/lib/types';
 import { Icon } from '../icons';
 import { CartBadge } from './CartBadge';
 import { MainNav } from './MainNav';
+import { MobileMenu } from './MobileMenu';
 
 export function Logo({ settings, variant = 'light', className = 'h-11' }: { settings: StoreSettings; variant?: 'light' | 'dark'; className?: string }) {
   // The seeded logo has a version for dark backgrounds next to it (logo-dark.png).
@@ -19,7 +20,7 @@ export function Logo({ settings, variant = 'light', className = 'h-11' }: { sett
   );
 }
 
-/** Server component. The mobile menu is a <details> element, so it works before JavaScript loads. */
+/** Server component. The mobile menu (MobileMenu) is a <details> element, so it works before JavaScript loads. */
 export function Header({ settings, categories, zones }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[] }) {
   const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
   // The shop's own announcement (Settings → Store) replaces the automatic one.
@@ -37,21 +38,19 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
 
   return (
     <>
-      <p className="bg-night px-4 py-2 text-center text-[11.5px] tracking-wide text-white/90">{announce.join('  •  ')}</p>
-      <header className="sticky top-0 z-30 bg-paper/95 shadow-[0_1px_0_var(--line)] backdrop-blur">
-        <div className="container-page flex h-[72px] items-center gap-4 md:gap-8">
-          <details className="group relative md:hidden">
-            <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full hover:bg-tint" aria-label="Menu">
-              <Icon name="menu" size={22} />
-            </summary>
-            <nav className="absolute left-0 top-12 z-40 w-64 rounded-2xl border border-line bg-card p-2 shadow-[var(--shadow)]">
-              {links.map((l) => (
-                <Link key={l.href} href={l.href} className="block rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-tint hover:text-brand">
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-          </details>
+      {/* One scrolling line on phones (the copy is doubled for a seamless loop), centred text from tablets up. */}
+      <div className="overflow-hidden bg-night py-2 text-[11.5px] tracking-wide text-white/90">
+        <p className="hidden px-4 text-center md:block">{announce.join('  •  ')}</p>
+        <p className="flex w-max animate-[ticker_22s_linear_infinite] whitespace-nowrap motion-reduce:w-full motion-reduce:whitespace-normal motion-reduce:px-4 motion-reduce:text-center md:hidden">
+          <span className="sr-only">{announce.join('. ')}</span>
+          <span aria-hidden="true" className="px-6">{announce.join('  •  ')}</span>
+          <span aria-hidden="true" className="px-6 motion-reduce:hidden">{announce.join('  •  ')}</span>
+        </p>
+      </div>
+      {/* The blur sits on a pseudo-element: backdrop-filter on the header itself would trap the drawer's position: fixed. */}
+      <header className="sticky top-0 z-30 shadow-[0_1px_0_var(--line)] before:absolute before:inset-0 before:-z-10 before:bg-paper/95 before:backdrop-blur">
+        <div className="container-page flex h-16 items-center gap-3 md:h-[72px] md:gap-8">
+          <MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} />
 
           <Link href="/" className="flex shrink-0 items-center" aria-label={`${settings.store_name} home`}>
             <Logo settings={settings} className="h-10 md:h-12" />

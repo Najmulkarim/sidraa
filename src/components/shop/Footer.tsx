@@ -11,8 +11,9 @@ export function Footer({ settings, categories }: { settings: StoreSettings; cate
 
   return (
     <footer className="mt-20 bg-night text-white/80">
-      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
-        <div className="space-y-4">
+      {/* Phones: brand and contact span the width, the two link lists sit side by side. */}
+      <div className="container-page grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:py-14 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+        <div className="col-span-2 space-y-4 lg:col-span-1">
           <Logo settings={settings} variant="dark" className="h-12" />
           <p className="max-w-xs text-[13px] leading-relaxed text-white/65">
             Your destination for everyday fashion. Order in a minute and pay in cash when it reaches your door.
@@ -49,7 +50,7 @@ export function Footer({ settings, categories }: { settings: StoreSettings; cate
           </ul>
         </div>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.12em] text-white">Contact us</p>
           <ul className="space-y-3 text-[13px]">
             {settings.phone && (

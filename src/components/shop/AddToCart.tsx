@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MAX_QTY } from '@/lib/cart';
 import { trackPixel } from '@/lib/facebook/pixel';
 import { formatTaka } from '@/lib/format';
 import { canPick, exists, findVariant, initialSelection, optionGroups, type OptionKey, type OptionLabels, type PickVariant, type Selection } from '@/lib/variations';
+import { Icon } from '../icons';
 import { useCart } from './CartProvider';
 import { ProductImage } from './ProductImage';
 import { useVariantImage } from './VariantImage';
@@ -46,6 +47,37 @@ export function AddToCart({
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Phones: once the buttons scroll off the top, a buy bar takes the bottom of the screen.
+  const top = useRef<HTMLDivElement>(null);
+  const buttons = useRef<HTMLDivElement>(null);
+  const [barVisible, setBarVisible] = useState(false);
+  const [toast, setToast] = useState(0);
+
+  // A scroll check rather than an IntersectionObserver: a fast fling or a
+  // jump can carry the buttons past the screen without ever intersecting.
+  useEffect(() => {
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      const el = buttons.current;
+      if (el) setBarVisible(el.getBoundingClientRect().bottom < 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(0), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const selected = groups.length === 0 ? (variants[0] ?? null) : findVariant(variants, groups, sel);
   const allSoldOut = !variants.some((v) => v.stock > 0);
@@ -100,11 +132,22 @@ export function AddToCart({
     setError(null);
     trackPixel('AddToCart', { content_ids: [productId], content_type: 'product', content_name: productName, value: selected.price * qty, contents: [{ id: productId, quantity: qty, item_price: selected.price }] });
     if (goToCheckout) router.push('/checkout');
-    else setAdded(true);
+    else {
+      setAdded(true);
+      setToast((n) => n + 1);
+    }
   }
 
+  /** From the buy bar: an unpicked option is up the page, so take the shopper there. */
+  function addFromBar(goToCheckout: boolean) {
+    if (!selected || selected.stock <= 0) top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    add(goToCheckout);
+  }
+
+  const chosen = selected ? [selected.color, selected.size, selected.option3].filter(Boolean).join(' / ') : 'Choose your options';
+
   return (
-    <div className="space-y-6">
+    <div ref={top} className="scroll-mt-24 space-y-6">
       <p className="flex items-baseline gap-3">
         <span className="text-2xl font-semibold">{formatTaka(shownPrice)}</span>
         {compareAt !== null && compareAt > shownPrice && (
@@ -160,7 +203,7 @@ export function AddToCart({
 
       {error && <p className="error" role="alert">{error}</p>}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div ref={buttons} className="grid gap-3 sm:grid-cols-2">
         <button type="button" className="btn btn-outline" onClick={() => add(false)} disabled={allSoldOut}>
           {allSoldOut ? 'Sold out' : 'Add to cart'}
         </button>
@@ -173,6 +216,34 @@ export function AddToCart({
         <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok" role="status">
           Added to your cart. <Link href="/cart" className="font-semibold underline">View cart</Link>
         </p>
+      )}
+
+      {/* Phone-only: toast + buy bar fixed to the bottom of the screen. */}
+      {toast > 0 && (
+        <div key={toast} className="fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex animate-[sheet-up_0.35s_cubic-bezier(0.2,0.8,0.2,1)] items-center gap-3 rounded-2xl bg-night px-4 py-3 text-sm text-white shadow-2xl md:hidden" aria-hidden="true">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ok"><Icon name="check" size={16} /></span>
+          <span className="flex-1">Added to your cart</span>
+          <Link href="/cart" className="font-semibold text-accent">View cart</Link>
+        </div>
+      )}
+      {!allSoldOut && (
+        <div
+          className={`fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_30px_-18px_var(--plum)] backdrop-blur transition-transform duration-300 md:hidden ${barVisible ? '' : 'pointer-events-none translate-y-[115%]'}`}
+          aria-hidden={!barVisible}
+        >
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[17px] font-semibold leading-tight">{formatTaka(shownPrice)}</p>
+              <p className="truncate text-[11.5px] text-muted">{chosen}</p>
+            </div>
+            <button type="button" tabIndex={barVisible ? 0 : -1} className="btn btn-outline btn-sm h-11 px-3" onClick={() => addFromBar(false)} aria-label="Add to cart">
+              <Icon name="bag" size={18} />
+            </button>
+            <button type="button" tabIndex={barVisible ? 0 : -1} className="btn btn-primary h-11 px-5" onClick={() => addFromBar(true)}>
+              Buy now
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

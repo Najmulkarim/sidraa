@@ -89,6 +89,7 @@ body {
     white-space: nowrap;
   }
   .btn:disabled, .btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
   .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--brand) 80%, transparent); }
   .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 26px -12px color-mix(in oklab, var(--brand) 90%, transparent); }
   .btn-outline { border: 1.5px solid var(--brand); color: var(--brand); background: #fff; }
@@ -149,6 +150,25 @@ body {
   .eyebrow { font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
   .section-title { font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); }
   .text-grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+}
+
+/* Mobile motion: drawer, bottom bars, badge pop, announcement ticker, hero glow. */
+@keyframes drawer-in { from { transform: translateX(-100%); } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(110%); } }
+@keyframes pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(24px, -18px) scale(1.08); } }
+@keyframes ticker { to { transform: translateX(-50%); } }
+@keyframes reveal { from { opacity: 0; transform: translateY(28px) scale(0.98); } }
+
+/* Sections and grid cards rise in as they scroll into view. Browsers
+   without scroll-driven animations simply show them. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

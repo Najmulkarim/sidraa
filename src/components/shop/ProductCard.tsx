@@ -20,7 +20,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   const choose = hasColor && hasSize ? 'Choose options' : hasColor ? 'Choose colour' : 'Choose size';
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)]">
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)] active:scale-[0.98]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-tint">
         <ProductImage
           path={image?.storage_path}
@@ -80,7 +80,9 @@ export function ProductGrid({ products, priorityCount = 0, badge }: { products: 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
       {products.map((p, i) => (
-        <ProductCard key={p.id} product={p} priority={i < priorityCount} badge={badge} />
+        <div key={p.id} className="reveal">
+          <ProductCard product={p} priority={i < priorityCount} badge={badge} />
+        </div>
       ))}
     </div>
   );
@@ -89,7 +91,7 @@ export function ProductGrid({ products, priorityCount = 0, badge }: { products: 
 /** One row that scrolls sideways on small screens and shows up to 5 cards on wide ones. */
 export function ProductRow({ products, badge }: { products: ProductWithRelations[]; badge?: string }) {
   return (
-    <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:thin] sm:gap-4 md:mx-0 md:px-0">
+    <div className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 [scrollbar-width:none] sm:gap-4 md:mx-0 md:scroll-px-0 md:px-0 md:[scrollbar-width:thin]">
       {products.map((p) => (
         <div key={p.id} className="w-[46%] shrink-0 snap-start sm:w-[31%] lg:w-[calc((100%-4rem)/5)]">
           <ProductCard product={p} badge={badge} />

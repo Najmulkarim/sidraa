@@ -6,6 +6,7 @@ const PATHS = {
   bag: <><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   truck: <><path d="M3 6h11v10H3z" /><path d="M14 9h4l3 3v4h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></>,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  home: <><path d="M3.5 11 12 4l8.5 7" /><path d="M6 9.5V20h4.5v-5h3v5H18V9.5" /></>,
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
   cash: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.6" /><path d="M6.5 9.5v.01M17.5 14.5v.01" /></>,
   return: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4h4" /></>,
