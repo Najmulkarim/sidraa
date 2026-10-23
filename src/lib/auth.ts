@@ -8,24 +8,29 @@ export type { AdminRole } from '@/lib/permissions';
 export type AdminProfile = { user_id: string; full_name: string; role: AdminRole; is_active: boolean };
 
 /**
- * The signed-in admin for this request, or null. getUser() asks Supabase
- * Auth to verify the session (it does not trust the cookie alone).
- * Second wall after src/proxy.ts; RLS and has_permission() are the third.
+ * The signed-in admin for this request, or null. getClaims() verifies the
+ * access token's signature against the project's public signing key (it
+ * does not trust the cookie alone), locally rather than by asking Supabase
+ * Auth. A deactivated or deleted admin still loses access at once: the
+ * profile read below and is_admin() in the database check that on every
+ * request. Second wall after src/proxy.ts; RLS and has_permission() are
+ * the third.
  */
 export const getAdmin = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  const user = { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : undefined };
 
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const needsMfa = aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2';
-
-  const [{ data: profile }, { data: mine }] = await Promise.all([
+  // The assurance level is read from the session already loaded above, so
+  // all three can run together.
+  const [{ data: aal }, { data: profile }, { data: mine }] = await Promise.all([
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
     supabase.from('admin_profiles').select('user_id, full_name, role, is_active').eq('user_id', user.id).maybeSingle<AdminProfile>(),
     supabase.rpc('my_permissions'),
   ]);
+  const needsMfa = aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2';
   const active: AdminProfile | null = profile && profile.is_active && isRole(profile.role) ? (profile as AdminProfile) : null;
   const granted = ((mine as { permissions?: string[] } | null)?.permissions ?? []) as string[];
   const can = active ? capabilitiesFor(active.role, granted) : new Set<Capability>();

@@ -13,6 +13,15 @@ export const revalidate = 300;
 
 type Props = { params: Promise<{ slug: string }> };
 
+/**
+ * No pages at build time; each product page is rendered on its first visit
+ * and then served from the cache (ISR) until it expires or an order / admin
+ * save revalidates it. Without this the route renders on every request.
+ */
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProductBySlug(slug);

@@ -1,6 +1,7 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
+import { CATALOG_TAG } from '@/lib/catalog';
 import { z } from 'zod';
 import { requirePermission, requireSuperAdmin } from '@/lib/auth';
 import { PERMISSIONS, isPermission } from '@/lib/permissions';
@@ -40,6 +41,7 @@ export async function saveSettings(_prev: ActionState, formData: FormData): Prom
     .eq('id', 1);
   if (error) return { ok: false, message: mapDbError(error).message };
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
   return { ok: true, message: 'Settings saved.' };
 }
 
@@ -53,6 +55,7 @@ export async function setLogo(path: string | null): Promise<ActionState> {
   if (error) return { ok: false, message: mapDbError(error).message };
   if (current?.logo_path && current.logo_path !== path) await supabase.storage.from(IMAGE_BUCKET).remove([current.logo_path]);
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
   return { ok: true, message: path ? 'Logo updated.' : 'Logo removed.' };
 }
 
@@ -74,6 +77,7 @@ export async function saveZone(_prev: ActionState, formData: FormData): Promise<
     : await supabase.from('delivery_zones').insert(row);
   if (error) return { ok: false, message: mapDbError(error).message };
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
   return { ok: true, message: z0.id ? 'Delivery area saved.' : 'Delivery area added.' };
 }
 
@@ -83,6 +87,7 @@ export async function deleteZone(formData: FormData): Promise<void> {
   // Past orders keep the zone name they were placed with (orders.zone_name).
   await supabase.from('delivery_zones').delete().eq('id', id);
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
 }
 
 // ------------------------------------------------------------- courier
@@ -146,6 +151,7 @@ export async function saveMarketingSettings(_prev: ActionState, formData: FormDa
     return { ok: false, message: mapped.message, fieldErrors: mapped.field === 'fb_pixel_id' ? { fbPixelId: mapped.message } : undefined };
   }
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
   return { ok: true, message: 'Facebook settings saved.' };
 }
 

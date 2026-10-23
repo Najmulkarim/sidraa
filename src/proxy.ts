@@ -27,11 +27,12 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // Do not put code between createServerClient and getUser(): the call
-  // refreshes an expired access token and writes the new cookies.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not put code between createServerClient and getClaims(): the call
+  // refreshes an expired access token and writes the new cookies. The
+  // project signs tokens with an asymmetric key, so the signature is checked
+  // here without a round trip to Supabase Auth.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims.sub ? data.claims : null;
 
   const path = request.nextUrl.pathname;
   const isLogin = path === '/admin/login' || path.startsWith('/admin/login/');

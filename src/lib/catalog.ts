@@ -2,8 +2,13 @@
  * Public catalogue queries. All go through the cookieless client, so RLS
  * returns only published products, active variants and public categories.
  * React cache() de-duplicates calls within one render.
+ *
+ * Settings, categories and zones are read on every shop page (the layout)
+ * but change rarely, so they also sit in the Next.js data cache under the
+ * CATALOG_TAG tag. Admin actions that change them call updateTag(CATALOG_TAG).
  */
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
 import { toNumber } from '@/lib/format';
 import { sizeRank } from './sizes';
@@ -44,34 +49,52 @@ function sortRelations(p: ProductWithRelations): ProductWithRelations {
 
 export { sizeRank } from './sizes';
 
-export const getSettings = cache(async (): Promise<StoreSettings> => {
+export const CATALOG_TAG = 'catalog';
+
+/** Thrown inside the data cache so a failed read is never stored; the caller falls back. */
+class CatalogReadError extends Error {}
+
+/** Data-cache wrapper for the layout reads: 5 minutes, or until updateTag(CATALOG_TAG). */
+function cachedRead<T>(key: string, read: () => Promise<T>, fallback: T): () => Promise<T> {
+  const cached = unstable_cache(read, ['catalog', key], { tags: [CATALOG_TAG], revalidate: 300 });
+  return cache(async () => {
+    try {
+      return await cached();
+    } catch (e) {
+      console.error(`[catalog] ${key}`, e instanceof Error ? e.message : e);
+      return fallback;
+    }
+  });
+}
+
+export const getSettings = cachedRead('settings', async (): Promise<StoreSettings> => {
   const { data, error } = await createPublicClient()
     .from('store_settings')
     .select('store_name, tagline, logo_path, theme, phone, email, address, social, cod_terms, return_policy_days, order_ref_prefix, low_stock_threshold, fb_pixel_id, announcement, coupons_enabled')
     .eq('id', 1)
     .maybeSingle();
-  if (error) console.error('[catalog] settings', error.message);
-  return (data as StoreSettings | null) ?? FALLBACK_SETTINGS;
-});
+  if (error || !data) throw new CatalogReadError(error?.message ?? 'store_settings row missing');
+  return data as StoreSettings;
+}, FALLBACK_SETTINGS);
 
-export const getCategories = cache(async (): Promise<Category[]> => {
+export const getCategories = cachedRead('categories', async (): Promise<Category[]> => {
   const { data, error } = await createPublicClient()
     .from('categories')
     .select('id, name, slug, description, image_path, sort_order, is_public')
     .order('sort_order')
     .order('name');
-  if (error) console.error('[catalog] categories', error.message);
+  if (error) throw new CatalogReadError(error.message);
   return (data as Category[] | null) ?? [];
-});
+}, []);
 
-export const getZones = cache(async (): Promise<DeliveryZone[]> => {
+export const getZones = cachedRead('zones', async (): Promise<DeliveryZone[]> => {
   const { data, error } = await createPublicClient()
     .from('delivery_zones')
     .select('id, name, charge, free_over, eta_text, sort_order, is_active')
     .order('sort_order');
-  if (error) console.error('[catalog] zones', error.message);
+  if (error) throw new CatalogReadError(error.message);
   return (data as DeliveryZone[] | null) ?? [];
-});
+}, []);
 
 export const getFeaturedProducts = cache(async (limit = 8): Promise<ProductWithRelations[]> => {
   const { data, error } = await createPublicClient()

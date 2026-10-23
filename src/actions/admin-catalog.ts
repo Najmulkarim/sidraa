@@ -1,9 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
+import { CATALOG_TAG } from '@/lib/catalog';
 import { mapDbError } from '@/lib/db-errors';
 import { IMAGE_BUCKET } from '@/lib/env';
 import type { ActionState } from '@/lib/types';
@@ -12,6 +13,7 @@ import { adjustStockSchema, categorySchema, fieldErrors, formToObject, imageMeta
 /** Every catalogue change refreshes the cached storefront pages. */
 function refreshStore() {
   revalidatePath('/', 'layout');
+  updateTag(CATALOG_TAG);
 }
 
 function fail(error: Parameters<typeof mapDbError>[0], context: string): ActionState {
