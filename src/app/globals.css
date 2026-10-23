@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/* Sidraa look: magenta → plum gradients on white, Poppins for text,
+   Playfair Display for hero headlines. --brand and --accent come from
+   store_settings.theme (written onto <html> by the root layout); the
+   other tones are derived from them so a new brand colour carries through. */
+:root {
+  --brand: #e30363;
+  --accent: #ff7aa8;
+  --night: #1a1626;
+  --plum: color-mix(in oklab, var(--brand) 55%, var(--night));
+  --ink: #1f1d2b;
+  --paper: #ffffff;
+  --soft: #faf7fb;
+  --tint: color-mix(in oklab, var(--brand) 7%, white);
+  --card: #ffffff;
+  --muted: #6b6880;
+  --line: #ece9f3;
+  --ok: #15803d;
+  --warn: #b45309;
+  --bad: #e11d48;
+  --hero: linear-gradient(110deg, var(--night) 0%, var(--plum) 38%, var(--brand) 72%, var(--accent) 100%);
+  --grad: linear-gradient(105deg, var(--plum), var(--brand) 55%, var(--accent));
+  --shadow: 0 10px 30px -14px color-mix(in oklab, var(--plum) 55%, transparent);
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-accent: var(--accent);
+  --color-night: var(--night);
+  --color-plum: var(--plum);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-soft: var(--soft);
+  --color-tint: var(--tint);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), Georgia, serif;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 78rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 768px) {
+    .container-page { padding-inline: 1.5rem; }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 1.4rem;
+    border-radius: 0.6rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:disabled, .btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--brand) 80%, transparent); }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 26px -12px color-mix(in oklab, var(--brand) 90%, transparent); }
+  .btn-outline { border: 1.5px solid var(--brand); color: var(--brand); background: #fff; }
+  .btn-outline:hover:not(:disabled) { background: var(--brand); color: #fff; }
+  .btn-ghost { color: var(--ink); background: transparent; text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .btn-ghost:hover:not(:disabled) { background: var(--tint); color: var(--brand); }
+  .btn-light { background: #fff; color: var(--brand); }
+  .btn-light:hover:not(:disabled) { background: var(--tint); }
+  .btn-glass { border: 1.5px solid rgba(255, 255, 255, 0.85); color: #fff; background: transparent; }
+  .btn-glass:hover:not(:disabled) { background: #fff; color: var(--brand); }
+  .btn-danger { background: var(--bad); color: #fff; }
+  .btn-sm { min-height: 2.25rem; padding: 0 0.95rem; font-size: 0.75rem; }
+
+  .field { display: grid; gap: 0.375rem; align-content: start; }
+  .label { font-size: 0.8125rem; font-weight: 600; color: var(--ink); }
+  .hint { font-size: 0.75rem; color: var(--muted); }
+  .error { font-size: 0.8125rem; color: var(--bad); }
+  .input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.875rem;
+    border: 1.5px solid var(--line);
+    border-radius: 0.6rem;
+    background: var(--card);
+    color: var(--ink);
+    font-size: 1rem; /* 16px stops iOS zooming into fields */
+  }
+  @media (min-width: 768px) {
+    .input { font-size: 0.875rem; }
+  }
+  .input:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 15%, transparent); }
+  .input[aria-invalid='true'] { border-color: var(--bad); }
+  textarea.input { min-height: 6rem; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 0.9rem; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: color-mix(in oklab, var(--ink) 7%, transparent);
+    color: var(--ink);
+  }
+  .badge-ok { background: color-mix(in oklab, var(--ok) 13%, transparent); color: var(--ok); }
+  .badge-low { background: color-mix(in oklab, var(--warn) 15%, transparent); color: var(--warn); }
+  .badge-out, .badge-bad { background: color-mix(in oklab, var(--bad) 12%, transparent); color: var(--bad); }
+  .badge-brand { background: var(--tint); color: var(--brand); }
+
+  .table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+  .table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--soft); }
+  .table td { padding: 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .table tr:last-child td { border-bottom: 0; }
+
+  .eyebrow { font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+  .section-title { font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); }
+  .text-grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: #fff; }
+}
