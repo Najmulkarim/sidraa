@@ -138,16 +138,177 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
   redirect(`/admin/products/${productId}?${qs.toString()}`);
 }
 
+type Db = Awaited<ReturnType<typeof requirePermission>>['supabase'];
+
+/** Deletes the product and its photo files. False when RLS refused (the product appears in orders). */
+async function removeProduct(supabase: Db, id: string): Promise<boolean> {
+  const { data: images } = await supabase.from('product_images').select('storage_path').eq('product_id', id);
+  const { error, count } = await supabase.from('products').delete({ count: 'exact' }).eq('id', id);
+  if (error || count === 0) return false;
+  const paths = (images ?? []).map((i: { storage_path: string }) => i.storage_path).filter((p) => !p.startsWith('/'));
+  if (paths.length) await supabase.storage.from(IMAGE_BUCKET).remove(paths);
+  refreshStore();
+  return true;
+}
+
 export async function deleteProduct(formData: FormData): Promise<void> {
   const { supabase } = await requirePermission('catalog');
   const id = z.uuid().parse(formData.get('id'));
-  const { data: images } = await supabase.from('product_images').select('storage_path').eq('product_id', id);
-  const { error, count } = await supabase.from('products').delete({ count: 'exact' }).eq('id', id);
-  if (error || count === 0) redirect(`/admin/products/${id}?error=delete`);
-  const paths = (images ?? []).map((i: { storage_path: string }) => i.storage_path);
-  if (paths.length) await supabase.storage.from(IMAGE_BUCKET).remove(paths);
-  refreshStore();
+  if (!(await removeProduct(supabase, id))) redirect(`/admin/products/${id}?error=delete`);
   redirect('/admin/products?deleted=1');
+}
+
+/** Delete from the product list, staying on the same page. */
+export async function deleteProductFromList(productId: string): Promise<ActionState> {
+  const { supabase } = await requirePermission('catalog');
+  const id = z.uuid().safeParse(productId);
+  if (!id.success) return { ok: false, message: 'Invalid product.' };
+  if (!(await removeProduct(supabase, id.data))) {
+    return { ok: false, message: 'Not deleted: this product appears in orders, so it can only be archived (open it and set Status to Archived).' };
+  }
+  revalidatePath('/admin/products');
+  return { ok: true, message: 'Product deleted.' };
+}
+
+/** The Published and Featured switches on the product list. */
+export async function setProductFlags(productId: string, flags: { published?: boolean; featured?: boolean }): Promise<ActionState> {
+  const { supabase } = await requirePermission('catalog');
+  const id = z.uuid().safeParse(productId);
+  if (!id.success) return { ok: false, message: 'Invalid product.' };
+  const update: { status?: 'published' | 'draft'; is_featured?: boolean } = {};
+  if (typeof flags.published === 'boolean') update.status = flags.published ? 'published' : 'draft';
+  if (typeof flags.featured === 'boolean') update.is_featured = flags.featured;
+  if (!Object.keys(update).length) return { ok: true };
+  const { error } = await supabase.from('products').update(update).eq('id', id.data);
+  if (error) return fail(error, 'product flags');
+  refreshStore();
+  revalidatePath('/admin/products');
+  return { ok: true };
+}
+
+type CopySource = {
+  name: string;
+  slug: string;
+  category_id: string | null;
+  description: string | null;
+  base_price: number | string;
+  compare_at_price: number | string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  color_label: string;
+  size_label: string;
+  option3_label: string | null;
+  images: { storage_path: string; alt: string | null; sort_order: number }[];
+  variants: { sku: string; size: string; color: string; option3: string; image_path: string | null; price: number | string | null; is_active: boolean }[];
+};
+
+/**
+ * Copies a product as a draft: same details and variations with new SKUs
+ * and zero stock (stock only ever arrives through logged movements), and
+ * its own copies of the photo files, so deleting one product's photos
+ * never breaks the other.
+ */
+export async function duplicateProduct(productId: string): Promise<ActionState> {
+  const { supabase } = await requirePermission('catalog');
+  const id = z.uuid().safeParse(productId);
+  if (!id.success) return { ok: false, message: 'Invalid product.' };
+  const { data, error: readError } = await supabase
+    .from('products')
+    .select('name, slug, category_id, description, base_price, compare_at_price, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active)')
+    .eq('id', id.data)
+    .single();
+  if (readError || !data) return { ok: false, message: 'Product not found.' };
+  const src = data as unknown as CopySource;
+
+  // Free slug: name-copy, name-copy-2, …
+  const baseSlug = `${src.slug.slice(0, 70)}-copy`;
+  const { data: taken } = await supabase.from('products').select('slug').like('slug', `${baseSlug}%`);
+  const takenSlugs = new Set((taken ?? []).map((r: { slug: string }) => r.slug));
+  let slug = baseSlug;
+  for (let n = 2; takenSlugs.has(slug); n++) slug = `${baseSlug}-${n}`;
+
+  // Free SKUs: SKU-COPY, SKU-COPY2, …
+  const candidates = src.variants.flatMap((v) => Array.from({ length: 9 }, (_, i) => `${v.sku.slice(0, 54)}-COPY${i ? i + 1 : ''}`));
+  const { data: usedSkus } = candidates.length ? await supabase.from('product_variants').select('sku').in('sku', candidates) : { data: [] };
+  const used = new Set((usedSkus ?? []).map((r: { sku: string }) => r.sku));
+  const skuFor = (sku: string) => {
+    for (let i = 0; i < 9; i++) {
+      const s = `${sku.slice(0, 54)}-COPY${i ? i + 1 : ''}`;
+      if (!used.has(s)) {
+        used.add(s);
+        return s;
+      }
+    }
+    return `${sku.slice(0, 50)}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+  };
+
+  const { data: created, error: insertError } = await supabase
+    .from('products')
+    .insert({
+      name: `${src.name.slice(0, 153)} (copy)`,
+      slug,
+      category_id: src.category_id,
+      description: src.description,
+      base_price: src.base_price,
+      compare_at_price: src.compare_at_price,
+      status: 'draft',
+      is_featured: false,
+      seo_title: src.seo_title,
+      seo_description: src.seo_description,
+      color_label: src.color_label,
+      size_label: src.size_label,
+      option3_label: src.option3_label,
+    })
+    .select('id')
+    .single<{ id: string }>();
+  if (insertError || !created) return fail(insertError, 'duplicate product');
+  const newId = created.id;
+
+  const copied: string[] = [];
+  const undo = async (message: string): Promise<ActionState> => {
+    await supabase.from('products').delete().eq('id', newId);
+    if (copied.length) await supabase.storage.from(IMAGE_BUCKET).remove(copied);
+    return { ok: false, message };
+  };
+
+  // Photos: uploaded files are copied under the new product's folder; site files (/demo/…) are shared as they are.
+  const pathMap = new Map<string, string>();
+  for (const img of src.images) {
+    if (img.storage_path.startsWith('/')) {
+      pathMap.set(img.storage_path, img.storage_path);
+      continue;
+    }
+    const to = `products/${newId}/${img.storage_path.split('/').pop()}`;
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).copy(img.storage_path, to);
+    if (error) return undo(`Could not copy a photo: ${error.message}`);
+    copied.push(to);
+    pathMap.set(img.storage_path, to);
+  }
+  if (src.images.length) {
+    const { error } = await supabase
+      .from('product_images')
+      .insert(src.images.map((img) => ({ product_id: newId, storage_path: pathMap.get(img.storage_path)!, alt: img.alt, sort_order: img.sort_order })));
+    if (error) return undo(fail(error, 'duplicate photos').message ?? 'Could not copy the photos.');
+  }
+  if (src.variants.length) {
+    const { error } = await supabase.from('product_variants').insert(
+      src.variants.map((v) => ({
+        product_id: newId,
+        sku: skuFor(v.sku),
+        size: v.size,
+        color: v.color,
+        option3: v.option3,
+        image_path: v.image_path ? (pathMap.get(v.image_path) ?? null) : null,
+        price: v.price,
+        is_active: v.is_active,
+        stock: 0,
+      })),
+    );
+    if (error) return undo(fail(error, 'duplicate variants').message ?? 'Could not copy the variations.');
+  }
+
+  revalidatePath('/admin/products');
+  return { ok: true, message: `Copied as a draft: ${src.name} (copy). Stock starts at 0.` };
 }
 
 // ----------------------------------------------------------------- images
