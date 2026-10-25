@@ -51,7 +51,9 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
   const slide = settings.slides.find((s) => s.image);
   const heading = slide?.title || title || store.store_name;
   const text = slide?.subtitle || subtitle || '';
-  const image = slide?.image ?? products[0]?.images[0]?.storage_path ?? null;
+  // Only products with a photo can stand in for the hero picture.
+  const pictured = products.filter((p) => p.images[0]);
+  const image = slide?.image ?? pictured[0]?.images[0]?.storage_path ?? null;
   const cta = { label: slide?.button || settings.button || 'Shop now', href: slide?.link || settings.link || '/products' };
   const badge = discount > 0 && (
     <span className="absolute right-3 top-3 z-10 grid h-24 w-24 place-items-center rounded-full bg-brand text-center font-bold leading-none text-white shadow-xl ring-4 ring-white/70 sm:right-6 sm:top-6 sm:h-28 sm:w-28">
@@ -116,7 +118,7 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
   }
 
   // NovaTrend: photo with real product cards floating around it.
-  const floats = products.slice(1, 5);
+  const floats = pictured.slice(1, 5);
   const spots = ['left-0 top-8', 'right-0 top-4', 'left-2 bottom-16', 'right-2 bottom-10'];
   return (
     <section className="relative overflow-hidden">
