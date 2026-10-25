@@ -6,6 +6,7 @@ import { deleteCoupon, saveCoupon } from '@/actions/admin-customers';
 import { formatTaka } from '@/lib/format';
 import type { ActionState } from '@/lib/types';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { notify } from './Toaster';
 
 export type Coupon = {
   code: string; kind: 'percent' | 'fixed'; value: number | string; min_subtotal: number | string; max_discount: number | string | null;
@@ -106,7 +107,7 @@ export function CouponManager({ coupons }: { coupons: Coupon[] }) {
                 disabled={busy}
                 onClick={() => {
                   if (armed !== c.code) return setArmed(c.code);
-                  start(async () => { setMsg(await deleteCoupon(c.code)); setArmed(null); router.refresh(); });
+                  start(async () => { const r = await deleteCoupon(c.code); setMsg(r); notify(r.ok, r.message); setArmed(null); router.refresh(); });
                 }}
               >
                 {armed === c.code ? 'Click again to delete' : 'Delete'}

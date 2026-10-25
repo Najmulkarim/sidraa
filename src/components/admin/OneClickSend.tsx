@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { autoSendToCourier } from '@/actions/admin-courier';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 import { Icon } from '../icons';
+import { notify } from './Toaster';
 
 const KEY = 'sidraa:courier-capacity';
 
@@ -33,6 +34,7 @@ export function OneClickSend({ couriers, defaultCourier, ready }: { couriers: Co
     start(async () => {
       const r = await autoSendToCourier(courier, count);
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
       router.refresh();
     });
   }

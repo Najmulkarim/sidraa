@@ -9,6 +9,7 @@ import type { ActionState } from '@/lib/types';
 import { Icon } from '../icons';
 import type { CourierOptions, OrderRow } from './OrdersTable';
 import { SendCourierDialog } from './SendCourierDialog';
+import { notify } from './Toaster';
 
 /** Courier box on the order page: book the parcel, see and refresh its status. */
 export function CourierPanel({ order, couriers, canSend, open }: { order: OrderRow & { courier_sent_at: string | null; courier_synced_at: string | null; courier_charge: number | string | null }; couriers: CourierOptions | null; canSend: boolean; open: boolean }) {
@@ -34,7 +35,7 @@ export function CourierPanel({ order, couriers, canSend, open }: { order: OrderR
             type="button"
             className="btn btn-outline btn-sm"
             disabled={pending}
-            onClick={() => start(async () => { const r = await refreshCourierStatus(order.id); setMsg(r); router.refresh(); })}
+            onClick={() => start(async () => { const r = await refreshCourierStatus(order.id); setMsg(r); notify(r.ok, r.message); router.refresh(); })}
           >
             <Icon name="refresh" size={14} /> {pending ? 'Checking…' : 'Check status now'}
           </button>
@@ -56,7 +57,7 @@ export function CourierPanel({ order, couriers, canSend, open }: { order: OrderR
       )}
       {msg && <p role="status" className={`text-[12.5px] ${msg.ok ? 'text-ok' : 'text-bad'}`}>{msg.message}</p>}
       {sending && couriers && (
-        <SendCourierDialog order={order} couriers={couriers} onClose={() => setSending(false)} onDone={(r) => { setMsg(r); setSending(false); router.refresh(); }} />
+        <SendCourierDialog order={order} couriers={couriers} onClose={() => setSending(false)} onDone={(r) => { setMsg(r); notify(r.ok, r.message); setSending(false); router.refresh(); }} />
       )}
     </div>
   );

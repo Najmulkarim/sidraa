@@ -6,6 +6,7 @@ import { activateTheme } from '@/actions/admin-home';
 import { THEME_INFO, THEMES, type ThemeKey } from '@/lib/home-sections';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
+import { notify } from './Toaster';
 
 /** Theme cards: preview any theme, edit its sections, make it live in one click. */
 export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing: ThemeKey; photos: string[] }) {
@@ -19,6 +20,7 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
       const r = await activateTheme(t);
       if (r.ok) setCurrent(t);
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
     });
   }
 

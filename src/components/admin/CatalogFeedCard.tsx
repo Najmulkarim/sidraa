@@ -5,6 +5,7 @@ import { refreshCatalogNow, saveCatalogSettings } from '@/actions/admin-catalog-
 import type { ActionState } from '@/lib/types';
 import { CopyField, SecretInput } from './SecretInput';
 import { FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { notify } from './Toaster';
 
 /** Settings → Facebook: product feed link, Refresh now, and the optional feed ID + token for instant updates. */
 export function CatalogFeedCard({ feedUrl, feedId, token, lastAt, lastResult }: { feedUrl: string; feedId: string | null; token: string | null; lastAt: string | null; lastResult: string | null }) {
@@ -20,7 +21,7 @@ export function CatalogFeedCard({ feedUrl, feedId, token, lastAt, lastResult }: 
       </div>
       <CopyField label="Product feed link (Commerce Manager → Data sources → Data feed → Scheduled feed)" value={feedUrl} />
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={pending} onClick={() => start(async () => setRes(await refreshCatalogNow()))} className="btn btn-primary btn-sm">
+        <button type="button" disabled={pending} onClick={() => start(async () => { const r = await refreshCatalogNow(); setRes(r); notify(r.ok, r.message); })} className="btn btn-primary btn-sm">
           {pending ? 'Refreshing…' : 'Refresh catalog now'}
         </button>
         {res && <span role="status" className={res.ok ? 'text-sm text-ok' : 'text-sm text-bad'}>{res.message}</span>}

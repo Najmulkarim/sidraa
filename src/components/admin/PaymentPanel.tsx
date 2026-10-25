@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { verifyPayment } from '@/actions/admin-payments';
 import { formatBdPhone } from '@/lib/phone';
+import { notify } from './Toaster';
 
 const WALLET: Record<string, string> = { bkash: 'bKash', nagad: 'Nagad' };
 const STATUS: Record<string, { text: string; cls: string }> = {
@@ -26,6 +27,7 @@ export function PaymentPanel({ order, canEdit }: {
   const act = (received: boolean) => start(async () => {
     const r = await verifyPayment(order.id, received);
     setMsg({ ok: r.ok, text: r.message ?? '' });
+    notify(r.ok, r.message);
   });
 
   return (

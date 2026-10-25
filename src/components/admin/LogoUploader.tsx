@@ -5,6 +5,7 @@ import { useState, type ChangeEvent } from 'react';
 import { setLogo } from '@/actions/admin-settings';
 import { IMAGE_BUCKET, imageUrl } from '@/lib/env';
 import { getBrowserClient } from '@/lib/supabase/browser';
+import { notify } from './Toaster';
 
 const TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/avif': 'avif' };
 
@@ -35,6 +36,7 @@ export function LogoUploader({ path }: { path: string | null }) {
     const res = await setLogo(newPath);
     setBusy(false);
     setMsg(res.message ?? null);
+    notify(res.ok, res.message);
     router.refresh();
   }
 

@@ -8,6 +8,7 @@ import { formatDateTime, formatTaka } from '@/lib/format';
 import type { ActionState } from '@/lib/types';
 import { Icon } from '../icons';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { notify } from './Toaster';
 
 export type CustomerRow = {
   phone: string; name: string; district: string; orders: number; delivered: number; returned: number; cancelled: number;
@@ -21,7 +22,9 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
   const toggle = (r: CustomerRow) =>
     start(async () => {
       const reason = r.blocked ? null : 'Blocked from the customers list';
-      setMsg(await quickBlock(r.phone, reason, !r.blocked));
+      const res = await quickBlock(r.phone, reason, !r.blocked);
+      setMsg(res);
+      notify(res.ok, res.message);
       router.refresh();
     });
 

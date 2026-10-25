@@ -5,6 +5,7 @@ import { savePaymentSettings, testBkash } from '@/actions/admin-payments';
 import type { ActionState } from '@/lib/types';
 import { SecretInput } from './SecretInput';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { notify } from './Toaster';
 
 /** What the page sends: switches and numbers as they are, secrets only as a masked hint. */
 export type PaymentSettingsView = {
@@ -85,7 +86,7 @@ export function PaymentSettingsForm({ settings: s }: { settings: PaymentSettings
           <SecretInput name="bkashPassword" label="Password" saved={s.bkash_password} state={state} />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className="btn btn-outline btn-sm" disabled={testing} onClick={() => start(async () => setTest(await testBkash()))}>{testing ? 'Testing…' : 'Test bKash connection'}</button>
+          <button type="button" className="btn btn-outline btn-sm" disabled={testing} onClick={() => start(async () => { const r = await testBkash(); setTest(r); notify(r.ok, r.message); })}>{testing ? 'Testing…' : 'Test bKash connection'}</button>
           <span className="text-[12.5px] text-muted">Save first, then test.</span>
           {test && <span role="status" className={test.ok ? 'text-sm text-ok' : 'text-sm text-bad'}>{test.message}</span>}
         </div>

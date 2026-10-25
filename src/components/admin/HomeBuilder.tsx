@@ -7,6 +7,7 @@ import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { useDragSort } from './useDragSort';
+import { notify } from './Toaster';
 
 export type PickProduct = { id: string; name: string; sku: string; image: string | null; status: string };
 export type PickCategory = { id: string; name: string };
@@ -29,7 +30,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
     setItems(next);
     start(async () => {
       const r = await reorderHomeSections(next.map((s) => s.id));
-      if (!r.ok) setMsg({ ok: false, text: r.message ?? 'Could not save the order.' });
+      if (!r.ok) { setMsg({ ok: false, text: r.message ?? 'Could not save the order.' }); notify(false, r.message ?? 'Could not save the order.'); }
     });
   }
   const { list, dragging, handlers } = useDragSort(items, persistOrder);
@@ -49,6 +50,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
       if (!r.ok) {
         setItems((cur) => cur.map((x) => (x.id === s.id ? { ...x, enabled: !enabled } : x)));
         setMsg({ ok: false, text: r.message ?? 'Could not change it.' });
+        notify(false, r.message ?? 'Could not change it.');
       }
     });
   }
@@ -59,6 +61,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
       const r = await deleteHomeSection(s.id);
       if (r.ok) setItems((cur) => cur.filter((x) => x.id !== s.id));
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
     });
   }
 
@@ -66,6 +69,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
     start(async () => {
       const r = await addHomeSection(newType, theme);
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
       if (r.ok && r.id) {
         // The server re-renders the page with the new row; open it once it arrives.
         setOpen(r.id);
@@ -167,6 +171,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
     start(async () => {
       const r = await saveHomeSection({ id: section.id, title, subtitle, enabled, settings });
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
       if (r.ok) onSaved({ ...section, title: title || null, subtitle: subtitle || null, enabled, settings: settings as never });
     });
   }

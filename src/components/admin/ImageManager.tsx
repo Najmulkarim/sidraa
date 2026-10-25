@@ -7,6 +7,7 @@ import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import type { ProductImage as Img } from '@/lib/types';
 import { ProductImage } from '../shop/ProductImage';
 import { useDragSort } from './useDragSort';
+import { notify } from './Toaster';
 
 
 /**
@@ -28,6 +29,7 @@ export function ImageManager({ productId, images, productName }: { productId: st
     startTransition(async () => {
       const res = await reorderImages(productId, next.map((x) => x.id));
       setMessage(res.ok ? 'Photo order saved.' : res.message ?? 'Could not save the order.');
+      notify(res.ok, res.ok ? 'Photo order saved.' : res.message);
       router.refresh();
       setOptimistic(null);
     });
@@ -48,6 +50,7 @@ export function ImageManager({ productId, images, productName }: { productId: st
     }
     setBusy(false);
     setMessage(problems.length ? problems.join(' ') : 'Uploaded.');
+    notify(!problems.length, problems.length ? problems.join(' ') : 'Photos uploaded.');
     router.refresh();
   }
 

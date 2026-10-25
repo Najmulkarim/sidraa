@@ -6,6 +6,7 @@ import { saveCourierSettings } from '@/actions/admin-settings';
 import type { ActionState } from '@/lib/types';
 import { CopyField, SecretInput } from './SecretInput';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { notify } from './Toaster';
 
 export type CourierSettingsView = {
   default_courier: 'steadfast' | 'pathao' | null;
@@ -32,7 +33,7 @@ export function CourierSettingsForm({ settings: c, siteUrl }: { settings: Courie
   const { state, onSubmit, pending } = useKeepValuesAction(saveCourierSettings);
   const [test, setTest] = useState<ActionState | null>(null);
   const [testing, start] = useTransition();
-  const runTest = (courier: 'steadfast' | 'pathao') => start(async () => setTest(await testCourier(courier)));
+  const runTest = (courier: 'steadfast' | 'pathao') => start(async () => { const r = await testCourier(courier); setTest(r); notify(r.ok, r.message); });
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>

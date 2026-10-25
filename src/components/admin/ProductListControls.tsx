@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { deleteProductFromList, duplicateProduct, setProductFlags } from '@/actions/admin-catalog';
 import { Icon } from '../icons';
+import { notify } from './Toaster';
 
 /** Pill switch; the parent decides what a flip does. */
 function Switch({ checked, disabled, onChange, label }: { checked: boolean; disabled?: boolean; onChange: (next: boolean) => void; label: string }) {
@@ -60,7 +61,7 @@ export function ProductCardControls({ id, name, published, featured, archived }:
     startTransition(async () => {
       const res = await action();
       if (!res.ok) undo?.();
-      if (res.message) setMessage({ ok: res.ok, text: res.message });
+      if (res.message) { setMessage({ ok: res.ok, text: res.message }); notify(res.ok, res.message); }
     });
   }
 

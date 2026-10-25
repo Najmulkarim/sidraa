@@ -1,8 +1,9 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { startTransition, useActionState, type FormEvent, type ReactNode } from 'react';
+import { startTransition, useActionState, useEffect, type FormEvent, type ReactNode } from 'react';
 import type { ActionState } from '@/lib/types';
+import { notify } from './Toaster';
 
 /**
  * useActionState for admin forms that must keep what the admin typed when
@@ -37,6 +38,10 @@ export function SubmitButton({ children, pendingText = 'Saving…', className = 
 }
 
 export function FormMessage({ state }: { state: ActionState }) {
+  // A popup for each new result (the state object changes once per submission).
+  useEffect(() => {
+    if (state.message) notify(state.ok, state.message);
+  }, [state]);
   if (!state.message) return null;
   return (
     <p role={state.ok ? 'status' : 'alert'} className={`rounded-xl px-4 py-3 text-sm ${state.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>

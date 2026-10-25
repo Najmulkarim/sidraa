@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { bulkSendToCourier, refreshCourierStatus } from '@/actions/admin-courier';
 import { addNote, assignOrder, bulkStatus, deleteOrder, getOrderLogs, quickStatus, restoreOrder, type OrderLog } from '@/actions/admin-orders';
 import { COURIER_LABEL, courierStatusLabel, type CourierName } from '@/lib/courier/types';
@@ -13,6 +13,7 @@ import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { OrderEditDialog } from './OrderEditDialog';
 import { SendCourierDialog } from './SendCourierDialog';
+import { notify } from './Toaster';
 
 export type OrderRow = {
   id: string;
@@ -95,7 +96,6 @@ export function OrdersTable({
   const blockedSet = new Set(blocked);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, startTransition] = useTransition();
   const [editing, setEditing] = useState<OrderRow | null>(null);
   const [sending, setSending] = useState<OrderRow | null>(null);
@@ -104,16 +104,13 @@ export function OrdersTable({
   const [notesFor, setNotesFor] = useState<OrderRow | null>(null);
   const [armed, setArmed] = useState<string | null>(null); // "fake:<id>" / "delete:<id>" waiting for a second click
   const [bulkTo, setBulkTo] = useState<OrderStatus>('confirmed');
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Selection is per page; drop it when the list changes.
   const ids = orders.map((o) => o.id).join();
   useEffect(() => setSelected(new Set()), [ids]);
 
   const flash = (r: ActionState) => {
-    setToast({ ok: r.ok, text: r.message ?? (r.ok ? 'Saved.' : 'Something went wrong.') });
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setToast(null), 3500);
+    notify(r.ok, r.message ?? (r.ok ? 'Saved.' : 'Something went wrong.'));
   };
   const run = (fn: () => Promise<ActionState>) =>
     startTransition(async () => {
@@ -374,11 +371,6 @@ export function OrdersTable({
         </table>
       </div>
 
-      {toast && (
-        <p role="status" className={`fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl px-4 py-2.5 text-[13px] text-white shadow-xl ${toast.ok ? 'bg-night' : 'bg-bad'}`}>
-          {toast.text}
-        </p>
-      )}
 
       {editing && <OrderEditDialog order={editing} onClose={closeEdit} onSaved={(r) => { flash(r); setEditing(null); router.refresh(); }} />}
       {sending && couriers && <SendCourierDialog order={sending} couriers={couriers} onClose={closeSend} onDone={(r) => { flash(r); setSending(null); router.refresh(); }} />}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { signOut } from '@/actions/auth';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { Toaster } from '@/components/admin/Toaster';
 import { Icon } from '@/components/icons';
 import { Logo } from '@/components/shop/Header';
 import { requireAdmin } from '@/lib/auth';
@@ -53,6 +54,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </div>
         </header>
         <main className="px-4 py-6 lg:px-8">{children}</main>
+        <Toaster />
       </div>
     </div>
   );
