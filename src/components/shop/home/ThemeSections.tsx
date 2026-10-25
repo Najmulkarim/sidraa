@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Icon, type IconName } from '../../icons';
-import { ProductGrid } from '../ProductCard';
 import { ProductImage } from '../ProductImage';
 import { NewsletterForm } from '../NewsletterForm';
 import { AutoScroll } from './AutoScroll';
@@ -449,20 +448,64 @@ export function ReviewCards({ theme, title, settings }: { theme: ShopTheme; titl
 
 // --------------------------------------------------------- product grid
 
-/** A grid of products (e.g. "All products", 20 of them) with a View all button under it. */
-export function ProductGridSection({ theme, title, subtitle, link, button, products }: { theme: ThemeKey; title: string | null; subtitle: string | null; link: string; button: string; products: ProductWithRelations[] }) {
+/** Boutique card for the "All products" grid: tall photo, second photo on hover, quiet details. */
+function GridCard({ product, serif }: { product: ProductWithRelations; serif: boolean }) {
+  const d = info(product);
+  const second = product.images[1]?.storage_path;
+  const colours = new Set(product.variants.filter((v) => v.is_active && v.color).map((v) => v.color)).size;
+  return (
+    <article className="group">
+      <Link href={`/product/${product.slug}`} className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-soft">
+        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 19vw, (min-width: 640px) 31vw, 48vw" className={`transition duration-700 ${second ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`} />
+        {second && <ProductImage path={second} alt="" sizes="(min-width: 1024px) 19vw, 48vw" className="opacity-0 transition duration-700 group-hover:scale-105 group-hover:opacity-100" />}
+        {d.badge && d.stock > 0 && <span className="absolute left-2.5 top-2.5 rounded-full bg-brand px-2.5 py-1 text-[10.5px] font-bold tracking-wide text-white shadow">{d.badge}</span>}
+        {d.stock <= 0 && <span className="absolute inset-x-0 bottom-0 bg-night/75 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-white">Sold out</span>}
+        {d.stock > 0 && (
+          <span className="absolute inset-x-3 bottom-3 hidden translate-y-2 rounded-full bg-white/95 py-2.5 text-center text-[11.5px] font-semibold uppercase tracking-[0.16em] text-night opacity-0 shadow-lg backdrop-blur transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 md:block">
+            Choose options
+          </span>
+        )}
+      </Link>
+      <div className="mt-3 space-y-0.5 px-0.5">
+        {product.category && <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-ink/45">{product.category.name}</p>}
+        <Link href={`/product/${product.slug}`} className={`line-clamp-1 text-night transition hover:text-brand ${serif ? 'font-display text-[1.12rem] font-semibold' : 'text-[14.5px] font-medium'}`}>{product.name}</Link>
+        <p className="flex items-baseline gap-2">
+          <span className="text-[15px] font-semibold text-night">{formatTaka(d.min)}</span>
+          {d.badge && <s className="text-[12.5px] text-ink/40">{formatTaka(d.compare)}</s>}
+          {colours > 1 && <span className="ml-auto text-[11.5px] text-ink/50">{colours} colours</span>}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+/** "All products": centred heading, category chips, five-to-a-line boutique grid and a View all button. */
+export function ProductGridSection({ theme, title, subtitle, link, button, products, categories = [] }: {
+  theme: ThemeKey; title: string | null; subtitle: string | null; link: string; button: string; products: ProductWithRelations[]; categories?: Category[];
+}) {
   if (!products.length) return null;
   const serif = theme === 'luxora' || theme === 'luxe';
   return (
-    <section className="reveal container-page mt-14">
-      <div className="mb-6 text-center">
-        <h2 className={`font-display text-night ${serif ? 'text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold' : 'text-[1.6rem] font-bold tracking-tight sm:text-[1.9rem]'}`}>{title ?? 'All products'}</h2>
-        {subtitle && <p className="mt-1.5 text-[14.5px] text-ink/65">{subtitle}</p>}
+    <section className="reveal container-page mt-16">
+      <div className="mb-8 text-center">
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.28em] text-brand">Shop the collection</p>
+        <h2 className={`mt-1.5 font-display text-night ${serif ? 'text-[clamp(2rem,3.6vw,2.8rem)] font-semibold' : 'text-[1.7rem] font-bold tracking-tight sm:text-[2rem]'}`}>{title ?? 'All products'}</h2>
+        {subtitle && <p className="mx-auto mt-2 max-w-xl text-[14.5px] text-ink/65">{subtitle}</p>}
+        <span className="mx-auto mt-4 block h-px w-16 bg-brand/40" aria-hidden="true" />
+        {categories.length > 1 && (
+          <nav aria-label="Categories" className="-mx-4 mt-5 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:flex-wrap sm:justify-center [&::-webkit-scrollbar]:hidden">
+            <Link href={link || '/products'} className="shrink-0 snap-start rounded-full bg-night px-4 py-2 text-[12.5px] font-semibold text-white">All</Link>
+            {categories.map((c) => (
+              <Link key={c.id} href={`/category/${c.slug}`} className="shrink-0 snap-start rounded-full px-4 py-2 text-[12.5px] font-semibold text-ink ring-1 ring-line transition hover:bg-tint hover:text-brand-ink hover:ring-brand/40">{c.name}</Link>
+            ))}
+          </nav>
+        )}
       </div>
-      {/* Five to a line on wide screens: 20 products fill four even rows. */}
-      <ProductGrid products={products} priorityCount={0} wide />
-      <div className="mt-8 text-center">
-        <Link href={link || '/products'} className="btn btn-primary px-8">{button} <Icon name="arrow" size={16} /></Link>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 md:grid-cols-4 lg:grid-cols-5">
+        {products.map((p) => <GridCard key={p.id} product={p} serif={serif} />)}
+      </div>
+      <div className="mt-10 text-center">
+        <Link href={link || '/products'} className="btn btn-dark-outline rounded-full px-9">{button} <Icon name="arrow" size={16} /></Link>
       </div>
     </section>
   );
