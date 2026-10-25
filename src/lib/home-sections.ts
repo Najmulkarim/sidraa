@@ -9,13 +9,15 @@ import { z } from 'zod';
 export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery', 'deal', 'newsletter'] as const;
 
 /** Home page themes: each has its own sections; store_settings.home_theme picks the live one. */
-export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market', 'mega'] as const;
+export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market', 'mega', 'topdeal', 'urban'] as const;
 export type ThemeKey = (typeof THEMES)[number];
 export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[] }> = {
   luxora: { name: 'Luxora', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
   shopease: { name: 'ShopEase', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
   luxe: { name: 'Luxe Fashion', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
   novatrend: { name: 'NovaTrend', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  topdeal: { name: 'TopDeal', tagline: 'Deals store: navy header, banner with six tiles, round categories, side lists.', swatches: ['#1f2a44', '#fbbf24', 'var(--brand)'] },
+  urban: { name: 'Urban', tagline: 'Clean city look: full-width photo hero, photo category tiles, trust badges.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
   mega: { name: 'Mega', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
   market: { name: 'Market', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
   chic: { name: 'Chic', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },

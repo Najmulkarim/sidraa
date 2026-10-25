@@ -51,8 +51,8 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
   const icon = 'grid h-10 w-10 place-items-center rounded-full text-night transition hover:bg-white/70 hover:text-brand';
 
   // Market theme: help links on top, a big search box with a category picker, the phone number, and a category bar.
-  if (theme === 'market' || theme === 'mega') {
-    const dark = theme === 'mega';
+  if (theme === 'market' || theme === 'mega' || theme === 'topdeal') {
+    const dark = theme === 'mega' || theme === 'topdeal';
     const bar = [{ href: '/', label: 'Home' }, { href: '/products', label: 'Shop all' }, { href: '/products?sort=new', label: 'New arrivals' }, ...categories.slice(0, 8).map((c) => ({ href: `/category/${c.slug}`, label: c.name }))];
     return (
       <>

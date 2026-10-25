@@ -117,6 +117,33 @@ function ThemeThumb({ theme, photos }: { theme: ThemeKey; photos: string[] }) {
       </div>
     );
   }
+  if (theme === 'topdeal') {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {bar(true)}
+        <div className="mx-1.5 mt-1 grid grid-cols-[1.4fr_1fr] gap-1">
+          <span className="relative h-16 overflow-hidden rounded bg-[#fbbf24]"><Pic i={0} className="absolute inset-y-0 right-0 w-1/2" /></span>
+          <span className="grid grid-cols-2 gap-0.5">{[1, 2, 3, 4, 5, 6].map((n) => <Pic key={n} i={n} className="rounded-sm" />)}</span>
+        </div>
+        <span className="flex justify-around px-1.5 py-1.5">{[1, 2, 3, 4, 5, 6].map((n) => <Pic key={n} i={n} className="h-6 w-6 rounded-full" />)}</span>
+        <div className="grid flex-1 grid-cols-[28%_1fr] gap-1 px-1.5 pb-1.5">
+          <span className="flex flex-col gap-0.5 rounded bg-soft p-1">{[0, 1, 2, 3].map((n) => <span key={n} className="h-1.5 rounded-sm bg-night/20" />)}</span>
+          <span className="grid grid-cols-4 gap-0.5">{[3, 4, 5, 6].map((n) => <Pic key={n} i={n} className="rounded-sm" />)}</span>
+        </div>
+      </div>
+    );
+  }
+  if (theme === 'urban') {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {bar()}
+        <span className="relative h-16 bg-night"><Pic i={0} className="absolute inset-0 opacity-60" /><span className="absolute left-2 top-4 h-2 w-16 rounded-sm bg-white" /><span className="absolute left-2 top-8 h-2 w-10 rounded-sm bg-brand" /></span>
+        <span className="mx-auto mt-1.5 h-1.5 w-16 rounded-sm bg-night" />
+        <span className="grid grid-cols-4 gap-1 px-3 pt-1.5">{[1, 2, 3, 4].map((n) => <Pic key={n} i={n} className="aspect-square" />)}</span>
+        <span className="grid grid-cols-4 gap-1 px-3 pt-1">{[5, 6, 7, 1].map((n) => <span key={n} className="relative aspect-[4/3] bg-night"><Pic i={n} className="absolute inset-0 opacity-60" /></span>)}</span>
+      </div>
+    );
+  }
   if (theme === 'mega') {
     return (
       <div className="flex h-full flex-col bg-white">

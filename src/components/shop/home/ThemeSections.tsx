@@ -364,7 +364,7 @@ export function Deal({ theme, title, subtitle, settings, product }: { theme: Sho
 // ------------------------------------------------------------ newsletter
 
 export function NewsletterBand({ theme, title, subtitle, settings }: { theme: ThemeKey; title: string | null; subtitle: string | null; settings?: SectionSettings['newsletter'] }) {
-  const dark = theme === 'shopease' || theme === 'novatrend' || theme === 'luxora';
+  const dark = theme === 'shopease' || theme === 'novatrend' || theme === 'luxora' || theme === 'topdeal' || theme === 'urban';
   return (
     <section className="container-page mt-14">
       <div className={`grid items-center gap-5 rounded-2xl px-6 py-7 sm:px-10 md:grid-cols-[1.2fr_1fr] ${dark ? 'bg-night text-white' : 'bg-[linear-gradient(105deg,var(--cream),color-mix(in_oklab,var(--accent)_25%,white))] text-night'}`}>
