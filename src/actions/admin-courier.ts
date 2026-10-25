@@ -99,6 +99,38 @@ export async function bulkSendToCourier(ids: string[], courier: string): Promise
   };
 }
 
+/**
+ * One click: books the oldest orders that are ready to ship (Confirmed or
+ * Processing, not yet with a courier), up to `max` — the number you can
+ * hand over today. One by one, like bulk send.
+ */
+export async function autoSendToCourier(courier: string, max: number): Promise<ActionState & { sent?: number; left?: number }> {
+  const { supabase } = await requirePermission('courier');
+  const parsed = z.object({ courier: courierSchema, max: z.number().int().min(1).max(50) }).safeParse({ courier, max });
+  if (!parsed.success) return { ok: false, message: 'Choose how many to send (1–50).' };
+  const ready = () =>
+    supabase.from('orders').select('id', { count: 'exact' }).in('status', ['confirmed', 'processing']).is('courier_consignment_id', null).is('deleted_at', null);
+  const { data: rows, error } = await ready().order('created_at', { ascending: true }).limit(parsed.data.max);
+  if (error) return { ok: false, message: mapDbError(error).message };
+  if (!rows?.length) return { ok: false, message: 'No confirmed orders are waiting to be sent.', sent: 0, left: 0 };
+  let sent = 0;
+  const failed: string[] = [];
+  for (const { id } of rows as { id: string }[]) {
+    const r = await sendOne(supabase, id, parsed.data.courier, {});
+    if (r.ok) sent++;
+    else failed.push(r.message ?? id);
+  }
+  const { count } = await ready().limit(1);
+  refresh();
+  const notSent = failed.length ? ` ${failed.length} not sent: ${failed.slice(0, 3).join(' · ')}${failed.length > 3 ? ' …' : ''}` : '';
+  return {
+    ok: sent > 0,
+    sent,
+    left: count ?? 0,
+    message: `${sent} sent to ${COURIER_LABEL[parsed.data.courier]}.${notSent}${count ? ` ${count} still waiting.` : ''}`,
+  };
+}
+
 /** "Refresh" on a parcel: asks the courier now instead of waiting for the webhook/cron. */
 export async function refreshCourierStatus(orderId: string): Promise<ActionState> {
   const { supabase } = await requirePermission('courier');
