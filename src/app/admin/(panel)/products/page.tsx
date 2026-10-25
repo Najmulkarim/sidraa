@@ -146,7 +146,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
           {q || status ? <>No products match. <Link href="/admin/products" className="text-brand underline">Show all</Link></> : <>No products yet. <Link href="/admin/products/new" className="text-brand underline">Add one</Link>.</>}
         </div>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {rows.map((p) => {
             const active = p.variants.filter((v) => v.is_active);
             const stock = active.reduce((n, v) => n + v.stock, 0);
@@ -157,32 +157,32 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
             const sku = [...p.variants].sort((a, b) => a.sku.localeCompare(b.sku))[0]?.sku;
             return (
               <li key={p.id} className="card flex flex-col overflow-hidden transition hover:shadow-[var(--shadow)]">
-                <Link href={`/admin/products/${p.id}`} className="relative block aspect-[4/3] overflow-hidden bg-soft">
-                  <ProductImage path={img?.storage_path} alt={p.name} sizes="(min-width: 1536px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw" />
-                  <span title={p.status} className={`absolute right-3 top-3 h-3 w-3 rounded-full ring-[3px] ring-white ${STATUS_DOT[p.status]}`} />
-                  {p.is_featured && <span className="absolute left-3 top-3 rounded-md bg-brand px-2 py-0.5 text-[10.5px] font-bold uppercase text-white">Featured</span>}
+                <Link href={`/admin/products/${p.id}`} className="relative block aspect-square overflow-hidden bg-soft">
+                  <ProductImage path={img?.storage_path} alt={p.name} sizes="(min-width: 1280px) 15vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 48vw" />
+                  <span title={p.status} className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full ring-2 ring-white ${STATUS_DOT[p.status]}`} />
+                  {p.is_featured && <span className="absolute left-2 top-2 rounded bg-brand px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-white">Featured</span>}
                 </Link>
-                <div className="flex flex-1 flex-col gap-1.5 p-4">
-                  <h2 className={`line-clamp-2 text-[13.5px] font-semibold leading-snug ${p.status === 'published' ? '' : 'text-muted'}`}>
+                <div className="flex flex-1 flex-col gap-1 p-2.5">
+                  <h2 className={`line-clamp-2 min-h-[2.5em] text-[12.5px] font-semibold leading-tight ${p.status === 'published' ? '' : 'text-muted'}`}>
                     <Link href={`/admin/products/${p.id}`} className="hover:text-brand">{p.name}</Link>
                   </h2>
                   {sku ? (
-                    <p className="flex items-center gap-1.5 text-[11.5px] text-muted">
-                      SKU: <span className="font-semibold text-brand">{sku}</span>
+                    <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted">
+                      <span className="truncate font-semibold text-brand" title={p.variants.length > 1 ? `${sku} +${p.variants.length - 1} more` : sku}>{sku}</span>
                       <CopySku sku={sku} />
-                      {p.variants.length > 1 && <span>+{p.variants.length - 1} more</span>}
+                      {p.variants.length > 1 && <span className="shrink-0">+{p.variants.length - 1}</span>}
                     </p>
                   ) : (
-                    <p className="text-[11.5px] text-muted">No variations yet</p>
+                    <p className="text-[11px] text-muted">No variations yet</p>
                   )}
-                  <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-                    <p className="flex items-baseline gap-2">
-                      <span className="text-[17px] font-bold">{formatTaka(price)}</span>
-                      {compare !== null && compare > price && <s className="text-[12px] text-muted">{formatTaka(compare)}</s>}
-                    </p>
-                    <span className={`badge ${stock === 0 ? 'badge-bad' : stock <= 3 ? 'badge-low' : 'badge-ok'}`}>{stock === 0 ? 'Out of stock' : `${stock} in stock`}</span>
-                  </div>
-                  {p.category && <p className="text-[11px] text-muted">{p.category.name}</p>}
+                  <p className="mt-auto flex flex-wrap items-baseline gap-x-1.5 pt-0.5">
+                    <span className="text-[15px] font-bold">{formatTaka(price)}</span>
+                    {compare !== null && compare > price && <s className="text-[11px] text-muted">{formatTaka(compare)}</s>}
+                  </p>
+                  <p className="flex items-center justify-between gap-1">
+                    <span className={`badge !px-2 !text-[10px] ${stock === 0 ? 'badge-bad' : stock <= 3 ? 'badge-low' : 'badge-ok'}`}>{stock === 0 ? 'Out of stock' : `${stock} in stock`}</span>
+                    {p.category && <span className="truncate text-[10.5px] text-muted">{p.category.name}</span>}
+                  </p>
                 </div>
                 <ProductCardControls id={p.id} name={p.name} published={p.status === 'published'} featured={p.is_featured} archived={p.status === 'archived'} />
               </li>

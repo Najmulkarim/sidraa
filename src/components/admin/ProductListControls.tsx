@@ -41,9 +41,9 @@ export function CopySku({ sku }: { sku: string }) {
           // Clipboard blocked (insecure origin or permissions): nothing to do.
         }
       }}
-      className="grid h-6 w-6 place-items-center rounded-md border border-line text-brand hover:bg-tint"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded border border-line text-brand hover:bg-tint"
     >
-      <Icon name={copied ? 'check' : 'copy'} size={13} />
+      <Icon name={copied ? 'check' : 'copy'} size={12} />
     </button>
   );
 }
@@ -65,8 +65,8 @@ export function ProductCardControls({ id, name, published, featured, archived }:
   }
 
   return (
-    <div className="border-t border-line px-3 py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <div className="space-y-2.5 border-t border-line p-2.5">
+      <div className="flex flex-col gap-1.5">
         <Switch
           checked={isPublished}
           disabled={pending}
@@ -85,11 +85,12 @@ export function ProductCardControls({ id, name, published, featured, archived }:
             run(() => setProductFlags(id, { featured: next }), () => setFeatured(!next));
           }}
         />
-        <div className="ml-auto flex gap-1.5">
-          <Link href={`/admin/products/${id}`} title="Edit" aria-label={`Edit ${name}`} className="grid h-8 w-8 place-items-center rounded-lg border border-line hover:border-brand hover:text-brand">
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+          <Link href={`/admin/products/${id}`} title="Edit" aria-label={`Edit ${name}`} className="grid h-8 place-items-center rounded-lg border border-line hover:border-brand hover:text-brand">
             <Icon name="pencil" size={15} />
           </Link>
-          <button type="button" disabled={pending} title="Duplicate" aria-label={`Duplicate ${name}`} onClick={() => run(() => duplicateProduct(id))} className="grid h-8 w-8 place-items-center rounded-lg border border-line hover:border-brand hover:text-brand disabled:opacity-50">
+          <button type="button" disabled={pending} title="Duplicate" aria-label={`Duplicate ${name}`} onClick={() => run(() => duplicateProduct(id))} className="grid h-8 place-items-center rounded-lg border border-line hover:border-brand hover:text-brand disabled:opacity-50">
             <Icon name="copy" size={15} />
           </button>
           <button
@@ -100,14 +101,13 @@ export function ProductCardControls({ id, name, published, featured, archived }:
             onClick={() => {
               if (window.confirm(`Delete "${name}"? Its photos are deleted too. This cannot be undone.`)) run(() => deleteProductFromList(id));
             }}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-line text-bad hover:border-bad hover:bg-bad/5 disabled:opacity-50"
+            className="grid h-8 place-items-center rounded-lg border border-line text-bad hover:border-bad hover:bg-bad/5 disabled:opacity-50"
           >
             <Icon name="trash" size={15} />
           </button>
-        </div>
       </div>
       {message && (
-        <p role="status" className={`mt-2 rounded-lg px-2.5 py-1.5 text-[11.5px] ${message.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>
+        <p role="status" className={`rounded-lg px-2 py-1.5 text-[11px] leading-snug ${message.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>
           {message.text}
         </p>
       )}
