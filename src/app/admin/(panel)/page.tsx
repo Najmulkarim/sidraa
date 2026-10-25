@@ -5,7 +5,8 @@ import { StatusBadge } from '@/components/admin/StatusBadge';
 import { ProductImage } from '@/components/shop/ProductImage';
 import { requireAdmin } from '@/lib/auth';
 import { PERMISSION_LABEL, isPermission } from '@/lib/permissions';
-import { formatDate, formatDateTime, formatTaka, resolveRange } from '@/lib/format';
+import { DateRangePicker } from '@/components/admin/DateRangePicker';
+import { dhakaToday, formatDate, formatDateTime, formatTaka, resolveRange } from '@/lib/format';
 import { ORDER_STATUSES, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 import { maskBdPhone } from '@/lib/phone';
 import type { Order } from '@/lib/types';
@@ -47,14 +48,6 @@ type Report = {
     orders: number; value: Money; cancelled: number; cancelled_value: Money; pending: number; pending_value: Money;
   }[];
 };
-
-const PRESETS = [
-  { value: 'today', label: 'Today' },
-  { value: '7d', label: '7 days' },
-  { value: '30d', label: '30 days' },
-  { value: 'this-month', label: 'This month' },
-  { value: 'last-month', label: 'Last month' },
-];
 
 /** One colour per order status, used by the donut and its legend. */
 const STATUS_COLOR: Record<OrderStatus, string> = {
@@ -204,22 +197,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {formatDate(range.from)} – {formatDate(range.to)} · orders placed in this period (Dhaka time)
           </p>
         </div>
-        <form className="flex flex-wrap items-center gap-1.5" action="/admin">
-          {PRESETS.map((p) => (
-            <Link
-              key={p.value}
-              href={`/admin?range=${p.value}`}
-              aria-current={range.preset === p.value ? 'page' : undefined}
-              className={`rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition ${range.preset === p.value ? 'bg-[linear-gradient(105deg,var(--brand),var(--plum))] text-white shadow' : 'bg-card text-ink ring-1 ring-line hover:ring-brand'}`}
-            >
-              {p.label}
-            </Link>
-          ))}
-          <input type="hidden" name="range" value="custom" />
-          <input name="from" type="date" defaultValue={range.from} aria-label="From" className="input !min-h-8 w-[8.5rem] !py-1 !text-[12.5px]" />
-          <input name="to" type="date" defaultValue={range.to} aria-label="To" className="input !min-h-8 w-[8.5rem] !py-1 !text-[12.5px]" />
-          <button className="btn btn-sm btn-outline !min-h-8">Go</button>
-        </form>
+        <DateRangePicker basePath="/admin" preset={range.preset} from={range.from} to={range.to} today={dhakaToday()} />
       </header>
 
       {sp.denied && (

@@ -59,7 +59,7 @@ export function isYmd(value: unknown): value is string {
   return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
 }
 
-export type RangePreset = 'today' | '7d' | '30d' | 'this-month' | 'last-month' | 'custom';
+export type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'this-month' | 'last-month' | 'this-year' | 'custom';
 
 /** Resolves a preset (or custom from/to) to an inclusive Dhaka date range. */
 export function resolveRange(
@@ -74,8 +74,16 @@ export function resolveRange(
   switch (preset) {
     case 'today':
       return { preset: 'today', from: today, to: today };
+    case 'yesterday': {
+      const d = addDays(today, -1);
+      return { preset: 'yesterday', from: d, to: d };
+    }
     case '30d':
       return { preset: '30d', from: addDays(today, -29), to: today };
+    case '90d':
+      return { preset: '90d', from: addDays(today, -89), to: today };
+    case 'this-year':
+      return { preset: 'this-year', from: `${y}-01-01`, to: today };
     case 'this-month':
       return { preset: 'this-month', from: monthStart, to: today };
     case 'last-month': {

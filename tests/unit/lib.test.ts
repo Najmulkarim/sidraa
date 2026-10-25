@@ -53,6 +53,9 @@ describe('format', () => {
     expect(resolveRange('custom', '2026-10-20', '2026-10-01', now)).toEqual({ preset: 'custom', from: '2026-10-01', to: '2026-10-20' });
     expect(resolveRange('custom', '2020-01-01', '2026-10-01', now).from).toBe('2025-09-30');
     expect(resolveRange('custom', 'bad', '2026-10-01', now).preset).toBe('7d');
+    expect(resolveRange('yesterday', undefined, undefined, now)).toMatchObject({ from: '2026-10-22', to: '2026-10-22' });
+    expect(resolveRange('this-year', undefined, undefined, now)).toMatchObject({ from: '2026-01-01', to: '2026-10-23' });
+    expect(resolveRange('90d', undefined, undefined, now).from).toBe('2026-07-26');
   });
 });
 
