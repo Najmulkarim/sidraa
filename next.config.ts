@@ -43,6 +43,8 @@ const nextConfig: NextConfig = {
     ],
     // Allow next/image to optimise from a local Supabase stack in development.
     dangerouslyAllowLocalIP: isDev,
+    // 90 for hero banners (HD), 75 everywhere else.
+    qualities: [75, 90],
   },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

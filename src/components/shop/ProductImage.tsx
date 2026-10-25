@@ -11,12 +11,15 @@ export function ProductImage({
   sizes,
   priority = false,
   className = '',
+  quality,
 }: {
   path: string | null | undefined;
   alt: string;
   sizes: string;
   priority?: boolean;
   className?: string;
+  /** 90 for big banners; 75 (the default) otherwise. */
+  quality?: 75 | 90;
 }) {
   const src = imageUrl(path);
   if (!src) {
@@ -38,5 +41,5 @@ export function ProductImage({
   }
   // SVG illustrations and files under /public are served as they are.
   const unoptimized = src.startsWith('/') || src.endsWith('.svg');
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={unoptimized} className={`object-cover ${className}`} />;
+  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} quality={quality} unoptimized={unoptimized} className={`object-cover ${className}`} />;
 }

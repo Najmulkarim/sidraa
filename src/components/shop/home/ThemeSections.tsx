@@ -86,7 +86,7 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
             <Link href={cta.href} className="btn mt-1 bg-brand text-white hover:bg-white hover:text-night">{cta.label} <Icon name="arrow" size={16} /></Link>
           </div>
           <div className="relative min-h-72 md:min-h-full">
-            <ProductImage path={image} alt="" sizes="(min-width: 768px) 45vw, 100vw" priority className="object-contain! p-6" />
+            <ProductImage path={image} alt="" sizes="(min-width: 768px) 45vw, 100vw" priority quality={90} className="object-contain! p-6" />
             {badge}
           </div>
         </div>
@@ -113,7 +113,7 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
           </div>
         </div>
         <div className="relative order-1 aspect-[4/3] overflow-hidden rounded-3xl bg-cream md:order-2">
-          <ProductImage path={image} alt="" sizes="(min-width: 768px) 55vw, 100vw" priority />
+          <ProductImage path={image} alt="" sizes="(min-width: 768px) 55vw, 100vw" priority quality={90} />
           {badge}
         </div>
       </section>
@@ -138,7 +138,7 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
         </div>
         <div className="relative mx-auto aspect-square w-full max-w-lg">
           <div className="absolute inset-[8%] overflow-hidden rounded-[2.5rem] bg-cream">
-            <ProductImage path={image} alt="" sizes="(min-width: 768px) 45vw, 90vw" priority />
+            <ProductImage path={image} alt="" sizes="(min-width: 768px) 45vw, 90vw" priority quality={90} />
           </div>
           {floats.map((p, i) => {
             const d = info(p);

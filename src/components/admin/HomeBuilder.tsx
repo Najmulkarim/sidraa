@@ -12,7 +12,7 @@ import { notify } from './Toaster';
 export type PickProduct = { id: string; name: string; sku: string; image: string | null; status: string };
 export type PickCategory = { id: string; name: string };
 
-type Ctx = { products: PickProduct[]; categories: PickCategory[] };
+type Ctx = { products: PickProduct[]; categories: PickCategory[]; theme: string };
 
 /**
  * Home page builder: every section of the shop's home page in order. Drag
@@ -123,7 +123,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
               <SectionEditor
                 key={s.id}
                 section={s}
-                ctx={{ products, categories }}
+                ctx={{ products, categories, theme }}
                 onSaved={(saved) => setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x)))}
                 onDelete={() => remove(s)}
                 onMove={(d) => move(i, d)}
@@ -227,7 +227,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
         </div>
       )}
 
-      {t === 'hero' && <HeroEditor settings={settings as SectionSettings['hero']} set={set} />}
+      {t === 'hero' && <HeroEditor settings={settings as SectionSettings['hero']} set={set} theme={ctx.theme} />}
       {t === 'quick_links' && (
         <ListEditor
           title="Links"
@@ -374,18 +374,34 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
   );
 }
 
-function HeroEditor({ settings, set }: { settings: SectionSettings['hero']; set: (p: Record<string, unknown>) => void }) {
+/** Where each theme puts the hero photo, and the size that looks sharp there (2× for HD screens). */
+const HERO_SIZE: Record<string, { w: number; h: number; aspect: string; where: string }> = {
+  luxora: { w: 1600, h: 2000, aspect: 'aspect-[4/5]', where: 'tall photo on the right half' },
+  shopease: { w: 1600, h: 1600, aspect: 'aspect-square', where: 'square, on the dark card (a product on a plain or transparent background looks best)' },
+  luxe: { w: 2000, h: 1500, aspect: 'aspect-[4/3]', where: 'landscape photo with rounded corners' },
+  novatrend: { w: 1600, h: 1600, aspect: 'aspect-square', where: 'square photo in the middle of the floating cards' },
+};
+
+function HeroEditor({ settings, set, theme }: { settings: SectionSettings['hero']; set: (p: Record<string, unknown>) => void; theme: string }) {
+  const size = HERO_SIZE[theme] ?? HERO_SIZE.luxora!;
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-3 rounded-xl border border-brand/30 bg-tint/60 p-4 text-[13px]">
+        <Icon name="note" size={18} className="mt-0.5 shrink-0 text-brand" />
+        <div className="space-y-1">
+          <p className="font-semibold text-night">Banner size for this theme: <span className="font-mono">{size.w} × {size.h} px</span> ({size.where})</p>
+          <p className="text-ink/70">For HD: use the full size or bigger, JPG or WebP under 5 MB, a real photo (not a screenshot). {theme === 'luxora' ? 'Every slide shows, one after another.' : 'This theme shows the first slide that has a photo.'}</p>
+        </div>
+      </div>
       <ListEditor
-        title="Slides (photos). Without any, the brand gradient with the heading above is shown."
+        title="Banner photos (slides). Without any, a product photo is shown."
         items={settings.slides}
         max={8}
         blank={{ image: null, title: '', subtitle: '', button: '', link: '' }}
         onChange={(slides) => set({ slides })}
         render={(s, update) => (
-          <div className="grid flex-1 gap-3 md:grid-cols-[12rem_1fr]">
-            <ImageField value={s.image} onChange={(image) => update({ ...s, image })} aspect="aspect-[21/8]" hint="Wide photo, about 2100 × 800" />
+          <div className="grid flex-1 gap-3 md:grid-cols-[16rem_1fr]">
+            <ImageField value={s.image} onChange={(image) => update({ ...s, image })} aspect={size.aspect} hint={`${size.w} × ${size.h} px`} min={{ w: Math.round(size.w * 0.6), h: Math.round(size.h * 0.6) }} big />
             <div className="grid gap-2 sm:grid-cols-2">
               <input value={s.title} onChange={(e) => update({ ...s, title: e.target.value })} placeholder="Big text on the photo (optional)" maxLength={120} className="input sm:col-span-2" />
               <input value={s.subtitle} onChange={(e) => update({ ...s, subtitle: e.target.value })} placeholder="Small text (optional)" maxLength={200} className="input" />
@@ -574,14 +590,32 @@ function ListEditor<T>({ title, items, max, blank, onChange, render }: {
   );
 }
 
-function ImageField({ value, onChange, aspect, hint }: { value: string | null; onChange: (v: string | null) => void; aspect: string; hint?: string }) {
+/** Pixel size of a picked file (null if the browser cannot read it). */
+function imageSize(file: File): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { resolve({ w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(url); };
+    img.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
+    img.src = url;
+  });
+}
+
+function ImageField({ value, onChange, aspect, hint, min, big }: { value: string | null; onChange: (v: string | null) => void; aspect: string; hint?: string; min?: { w: number; h: number }; big?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
   async function pick(file: File | undefined) {
     if (!file) return;
-    setBusy(true);
     setErr(null);
+    setWarn(null);
+    // A small photo is stretched on big screens and looks blurry: say so (it still uploads).
+    if (min) {
+      const d = await imageSize(file);
+      if (d && (d.w < min.w || d.h < min.h)) setWarn(`This photo is ${d.w} × ${d.h} px — it may look blurry. Use at least ${hint ?? `${min.w} × ${min.h} px`} for HD.`);
+    }
+    setBusy(true);
     const r = await uploadHomeImage(file);
     setBusy(false);
     if ('error' in r) setErr(r.error);
@@ -590,7 +624,15 @@ function ImageField({ value, onChange, aspect, hint }: { value: string | null; o
   return (
     <div className="space-y-1.5">
       <button type="button" onClick={() => input.current?.click()} className={`relative block w-full overflow-hidden rounded-lg bg-soft ring-1 ring-line hover:ring-brand ${aspect}`}>
-        {value ? <ProductImage path={value} alt="" sizes="200px" /> : <span className="grid h-full place-items-center text-[12px] text-muted"><span className="flex flex-col items-center gap-1"><Icon name="plus" size={18} />{busy ? 'Uploading…' : 'Upload photo'}</span></span>}
+        {value ? <ProductImage path={value} alt="" sizes={big ? '320px' : '200px'} /> : (
+          <span className={`grid h-full place-items-center text-muted ${big ? 'border-2 border-dashed border-brand/40 text-[13px]' : 'text-[12px]'}`}>
+            <span className="flex flex-col items-center gap-1 px-2 text-center">
+              <Icon name="plus" size={big ? 24 : 18} />
+              <b className="text-night">{busy ? 'Uploading…' : big ? 'Upload banner photo' : 'Upload photo'}</b>
+              {big && hint && <span className="font-mono text-[12px]">{hint}</span>}
+            </span>
+          </span>
+        )}
         {busy && value && <span className="absolute inset-0 grid place-items-center bg-white/70 text-[12px]">Uploading…</span>}
       </button>
       <input ref={input} type="file" accept={PHOTO_ACCEPT} className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
@@ -599,6 +641,7 @@ function ImageField({ value, onChange, aspect, hint }: { value: string | null; o
         {value && <button type="button" onClick={() => onChange(null)} className="text-muted hover:underline">Remove</button>}
         {hint && <span className="text-muted">{hint}</span>}
       </div>
+      {warn && <p className="rounded-md bg-warn/10 px-2 py-1.5 text-[12px] text-warn">{warn}</p>}
       {err && <p className="error">{err}</p>}
     </div>
   );

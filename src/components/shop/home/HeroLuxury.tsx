@@ -45,7 +45,7 @@ export function HeroLuxury({ slides, eyebrow, secondary }: { slides: HeroSlide[]
               </div>
             </div>
             <div className="relative order-1 -mx-4 aspect-[4/5] max-h-[26rem] overflow-hidden md:order-2 md:mx-0 md:max-h-none md:self-stretch md:aspect-auto md:min-h-[30rem] lg:min-h-[34rem]">
-              <ProductImage path={s.image} alt={s.title} sizes="(min-width: 768px) 50vw, 100vw" priority={n === 0} className="object-[center_20%]" />
+              <ProductImage path={s.image} alt={s.title} sizes="(min-width: 768px) 50vw, 100vw" priority={n === 0} quality={90} className="object-[center_20%]" />
               <span className="absolute inset-0 bg-[linear-gradient(90deg,var(--cream),transparent_25%)] max-md:bg-[linear-gradient(0deg,var(--cream),transparent_30%)]" aria-hidden="true" />
             </div>
           </div>
