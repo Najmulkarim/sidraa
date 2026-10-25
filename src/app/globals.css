@@ -55,7 +55,13 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Display serif: only the real weights (500–700), never a faked bold. */
+/* Fonts per home theme (variables come from next/font in app/layout.tsx). */
+:root, [data-theme='luxora'] { --font-heading: var(--f-cormorant); --font-body: var(--f-jost); }
+[data-theme='shopease'] { --font-heading: var(--f-poppins); --font-body: var(--f-poppins); }
+[data-theme='luxe'] { --font-heading: var(--f-playfair); --font-body: var(--f-inter); }
+[data-theme='novatrend'] { --font-heading: var(--f-jakarta); --font-body: var(--f-jakarta); }
+
+/* Display face: only the real weights, never a faked bold. */
 .font-display { font-synthesis: none; }
 
 body {

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
 import { CATALOG_TAG } from '@/lib/catalog';
 import { mapDbError } from '@/lib/db-errors';
-import { SECTION_TYPES, SETTINGS_SCHEMA, sectionInputSchema, type SectionType } from '@/lib/home-sections';
+import { SECTION_TYPES, SETTINGS_SCHEMA, THEMES, sectionInputSchema, type SectionType } from '@/lib/home-sections';
 import type { ActionState } from '@/lib/types';
 
 /** Home page builder. Every change refreshes the cached home page at once. */
@@ -63,15 +63,27 @@ export async function reorderHomeSections(ids: string[]): Promise<ActionState> {
   return { ok: true };
 }
 
-/** Adds a section at the bottom, switched off so it can be filled in first. */
-export async function addHomeSection(type: string): Promise<ActionState & { id?: string }> {
+/** Makes a theme the live home page (one click in Admin › Homepage). */
+export async function activateTheme(theme: string): Promise<ActionState> {
+  const { supabase } = await requirePermission('store_settings');
+  const parsed = z.enum(THEMES).safeParse(theme);
+  if (!parsed.success) return { ok: false, message: 'Unknown theme.' };
+  const { error } = await supabase.from('store_settings').update({ home_theme: parsed.data }).eq('id', 1);
+  if (error) return fail(error, 'activate theme');
+  refresh();
+  return { ok: true, message: 'Done — this theme is now your live home page.' };
+}
+
+/** Adds a section at the bottom of a theme, switched off so it can be filled in first. */
+export async function addHomeSection(type: string, theme: string): Promise<ActionState & { id?: string }> {
   const { supabase } = await requirePermission('store_settings');
   const parsed = z.enum(SECTION_TYPES).safeParse(type);
-  if (!parsed.success) return { ok: false, message: 'Choose a section type.' };
-  const { data: last } = await supabase.from('home_sections').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle<{ sort_order: number }>();
+  const th = z.enum(THEMES).safeParse(theme);
+  if (!parsed.success || !th.success) return { ok: false, message: 'Choose a section type.' };
+  const { data: last } = await supabase.from('home_sections').select('sort_order').eq('theme', th.data).order('sort_order', { ascending: false }).limit(1).maybeSingle<{ sort_order: number }>();
   const { data, error } = await supabase
     .from('home_sections')
-    .insert({ type: parsed.data, enabled: false, sort_order: (last?.sort_order ?? 0) + 10, settings: SETTINGS_SCHEMA[parsed.data].parse({}) })
+    .insert({ theme: th.data, type: parsed.data, enabled: false, sort_order: (last?.sort_order ?? 0) + 10, settings: SETTINGS_SCHEMA[parsed.data].parse({}) })
     .select('id')
     .single<{ id: string }>();
   if (error || !data) return fail(error, 'add');

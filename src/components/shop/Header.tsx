@@ -21,7 +21,8 @@ export function Logo({ settings, variant = 'light', className = 'h-11' }: { sett
 }
 
 /** Server component. The mobile menu (MobileMenu) is a <details> element, so it works before JavaScript loads. */
-export function Header({ settings, categories, zones }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[] }) {
+export function Header({ settings, categories, zones, theme = 'luxora' }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[]; theme?: string }) {
+  const cream = theme === 'luxora';
   // The shop's own announcement (Settings → Store) replaces the automatic one.
   const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
   const announce = settings.announcement ?? [
@@ -61,7 +62,7 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
           backdrop-filter on the header itself would trap the drawer's position: fixed. */}
       {/* Logo left, menu centred, icons right, on the blush cream. The blur sits on a pseudo-element:
           backdrop-filter on the header itself would trap the drawer's position: fixed. */}
-      <header className="sticky top-0 z-30 shadow-[0_1px_0_color-mix(in_oklab,var(--brand)_10%,var(--line))] before:absolute before:inset-0 before:-z-10 before:bg-cream/95 before:backdrop-blur">
+      <header className={`sticky top-0 z-30 shadow-[0_1px_0_color-mix(in_oklab,var(--brand)_10%,var(--line))] before:absolute before:inset-0 before:-z-10 ${cream ? 'before:bg-cream/95' : 'before:bg-paper/95'} before:backdrop-blur`}>
         <div className="container-page flex h-16 items-center gap-2 md:h-[76px]">
           <MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} />
 
@@ -69,7 +70,7 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
             <Logo settings={settings} className="h-10 md:h-11" />
           </Link>
 
-          <div className="mx-auto hidden self-stretch lg:block"><MainNav links={barLinks} /></div>
+          <div className="mx-auto hidden self-stretch lg:block"><MainNav links={barLinks} look={theme === 'luxe' ? 'pill' : theme === 'novatrend' ? 'color' : 'underline'} /></div>
 
           <div className="ml-auto flex items-center gap-0.5 lg:ml-0 lg:gap-1.5">
             {/* Search opens a small box under the icon (works without JavaScript). */}
@@ -92,6 +93,7 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
               </a>
             )}
             <CartBadge />
+            {theme === 'shopease' && <Link href="/products" className="btn btn-sm ml-2 hidden bg-brand text-white hover:bg-night sm:inline-flex">Shop now</Link>}
           </div>
         </div>
       </header>

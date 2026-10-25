@@ -6,7 +6,20 @@ import { z } from 'zod';
  * are stored as JSON in public.home_sections.settings.
  */
 
-export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery'] as const;
+export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery', 'deal', 'newsletter'] as const;
+
+/** Home page themes: each has its own sections; store_settings.home_theme picks the live one. */
+export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend'] as const;
+export type ThemeKey = (typeof THEMES)[number];
+export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[] }> = {
+  luxora: { name: 'Luxora', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
+  shopease: { name: 'ShopEase', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
+  luxe: { name: 'Luxe Fashion', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
+  novatrend: { name: 'NovaTrend', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+};
+export function isTheme(v: unknown): v is ThemeKey {
+  return typeof v === 'string' && (THEMES as readonly string[]).includes(v);
+}
 export type SectionType = (typeof SECTION_TYPES)[number];
 
 export const SECTION_INFO: Record<SectionType, { label: string; hint: string }> = {
@@ -20,6 +33,8 @@ export const SECTION_INFO: Record<SectionType, { label: string; hint: string }> 
   banners: { label: 'Promo banners', hint: 'One to three banner pictures side by side, each with its own link.' },
   about: { label: 'About / brand story', hint: 'A short story about the shop with a photo.' },
   testimonials: { label: 'Customer favourites + reviews', hint: 'A few products on the left and real customer comments on the right (a slider). Only add comments customers actually sent you.' },
+  deal: { label: 'Deal of the day (countdown)', hint: 'One product with its price and a countdown to the end time you set. Without an end time no timer is shown.' },
+  newsletter: { label: 'Newsletter band', hint: 'A wide strip asking visitors for their email (saved in your subscriber list).' },
   gallery: { label: 'Photo gallery (Follow our style)', hint: 'A strip of photos, e.g. from your Facebook or Instagram. Without photos it shows your newest product photos.' },
 };
 
@@ -78,6 +93,13 @@ export const SETTINGS_SCHEMA = {
     items: z.array(z.object({ quote: text(400), name: text(60), place: text(60), rating: z.coerce.number().int().min(1).max(5).default(5) })).max(12).default([]),
   }),
   gallery: z.object({ images: z.array(z.object({ image, link })).max(12).default([]), handle: text(60), handle_link: link }),
+  deal: productList.extend({
+    eyebrow: text(40),
+    link,
+    // When the deal ends (ISO date-time). Empty: no countdown.
+    ends_at: z.string().trim().max(40).nullable().default(null).transform((v) => (v && !Number.isNaN(Date.parse(v)) ? v : null)),
+  }),
+  newsletter: z.object({}),
 } satisfies Record<SectionType, z.ZodType>;
 
 export type SectionSettings = { [K in SectionType]: z.infer<(typeof SETTINGS_SCHEMA)[K]> };

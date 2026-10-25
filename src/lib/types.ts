@@ -23,6 +23,8 @@ export type StoreSettings = {
   fb_pixel_id: string | null;
   announcement: string | null;
   coupons_enabled: boolean;
+  /** Which home page theme is live (luxora, shopease, luxe, novatrend). */
+  home_theme: string;
 };
 
 export type Category = {

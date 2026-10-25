@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
-import { Cormorant_Garamond, Jost } from 'next/font/google';
+import { Cormorant_Garamond, Inter, Jost, Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
+import { isTheme } from '@/lib/home-sections';
 import './globals.css';
 
-// Premium pairing: Cormorant Garamond (high-contrast serif) for display headings, Jost (clean geometric sans) for everything else.
-const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-heading', display: 'swap' });
-const body = Jost({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
+// One pair per home theme (globals.css maps [data-theme] to them). Not preloaded:
+// the browser only downloads the faces the live theme actually uses.
+const cormorant = Cormorant_Garamond({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600', '700'], variable: '--f-cormorant' });
+const jost = Jost({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-jost' });
+const poppins = Poppins({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-poppins' });
+const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600', '700'], variable: '--f-playfair' });
+const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-inter' });
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-jakarta' });
+const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta].map((f) => f.variable).join(' ');
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
@@ -39,7 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   } as CSSProperties;
 
   return (
-    <html lang="en" className={`${heading.variable} ${body.variable}`} style={style}>
+    <html lang="en" data-theme={isTheme(s.home_theme) ? s.home_theme : 'luxora'} className={fontVars} style={style}>
       <body className="antialiased">{children}</body>
     </html>
   );

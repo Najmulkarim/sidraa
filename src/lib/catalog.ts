@@ -37,6 +37,7 @@ const FALLBACK_SETTINGS: StoreSettings = {
   fb_pixel_id: null,
   announcement: null,
   coupons_enabled: true,
+  home_theme: 'luxora',
 };
 
 function sortRelations(p: ProductWithRelations): ProductWithRelations {
@@ -70,7 +71,7 @@ function cachedRead<T>(key: string, read: () => Promise<T>, fallback: T): () => 
 export const getSettings = cachedRead('settings', async (): Promise<StoreSettings> => {
   const { data, error } = await createPublicClient()
     .from('store_settings')
-    .select('store_name, tagline, logo_path, theme, phone, email, address, social, cod_terms, return_policy_days, order_ref_prefix, low_stock_threshold, fb_pixel_id, announcement, coupons_enabled')
+    .select('store_name, tagline, logo_path, theme, phone, email, address, social, cod_terms, return_policy_days, order_ref_prefix, low_stock_threshold, fb_pixel_id, announcement, coupons_enabled, home_theme')
     .eq('id', 1)
     .maybeSingle();
   if (error || !data) throw new CatalogReadError(error?.message ?? 'store_settings row missing');
@@ -167,17 +168,30 @@ export const getCategoryCovers = cache(async (): Promise<Record<string, string |
 
 export type HomeSectionRow ={ id: string; type: string; title: string | null; subtitle: string | null; enabled: boolean; sort_order: number; settings: unknown };
 
-/** Enabled home page sections in order; null when they cannot be read (e.g. before migration 0016), so the page falls back to its default layout. */
-export const getHomeSections = cachedRead('home_sections', async (): Promise<HomeSectionRow[] | null> => {
-  const { data, error } = await createPublicClient()
-    .from('home_sections')
-    .select('id, type, title, subtitle, enabled, sort_order, settings')
-    .eq('enabled', true)
-    .order('sort_order')
-    .order('created_at');
-  if (error) throw new CatalogReadError(error.message);
-  return (data ?? []) as HomeSectionRow[];
-}, null);
+/** A theme's enabled home page sections in order; null when they cannot be read, so the page falls back to its default layout. */
+export const getHomeSections = cache(async (theme: string): Promise<HomeSectionRow[] | null> => {
+  const read = unstable_cache(
+    async () => {
+      const { data, error } = await createPublicClient()
+        .from('home_sections')
+        .select('id, type, title, subtitle, enabled, sort_order, settings')
+        .eq('theme', theme)
+        .eq('enabled', true)
+        .order('sort_order')
+        .order('created_at');
+      if (error) throw new CatalogReadError(error.message);
+      return (data ?? []) as HomeSectionRow[];
+    },
+    ['catalog', 'home_sections', theme],
+    { tags: [CATALOG_TAG], revalidate: 300 },
+  );
+  try {
+    return await read();
+  } catch (e) {
+    console.error('[catalog] home_sections', e instanceof Error ? e.message : e);
+    return null;
+  }
+});
 
 /** Largest real markdown (compare-at vs lowest price), for "up to N% off". */
 export function maxDiscount(products: ProductWithRelations[]): number {

@@ -14,9 +14,9 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
         Skip to content
       </a>
       {settings.fb_pixel_id && <FacebookPixel pixelId={settings.fb_pixel_id} />}
-      <Header settings={settings} categories={categories} zones={zones} />
+      <Header settings={settings} categories={categories} zones={zones} theme={settings.home_theme} />
       <main id="main">{children}</main>
-      <Footer settings={settings} categories={categories} />
+      <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' ? 'dark' : 'light'} />
       <MobileTabBar phone={settings.phone} />
     </CartProvider>
   );

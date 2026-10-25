@@ -18,7 +18,7 @@ type Ctx = { products: PickProduct[]; categories: PickCategory[] };
  * the handle (or use the arrows) to move a section, flip the switch to show
  * or hide it, open it to edit its heading, pictures, links and products.
  */
-export function HomeBuilder({ sections, products, categories }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[] }) {
+export function HomeBuilder({ sections, products, categories, theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; theme: string }) {
   const [items, setItems] = useState(sections);
   const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -64,7 +64,7 @@ export function HomeBuilder({ sections, products, categories }: { sections: Home
 
   function add() {
     start(async () => {
-      const r = await addHomeSection(newType);
+      const r = await addHomeSection(newType, theme);
       setMsg({ ok: r.ok, text: r.message ?? '' });
       if (r.ok && r.id) {
         // The server re-renders the page with the new row; open it once it arrives.
@@ -221,6 +221,25 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
       {(t === 'collection' || t === 'product_row') && (
         <ProductListEditor settings={settings as SectionSettings['collection']} set={set} ctx={ctx} withImage={t === 'collection'} autoplay={t === 'product_row' ? (settings as SectionSettings['product_row']).autoplay : undefined} />
       )}
+      {t === 'deal' && (
+        <div className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextField label="Small text above the heading, e.g. Limited offer" value={(settings as SectionSettings['deal']).eyebrow} onChange={(eyebrow) => set({ eyebrow })} max={40} />
+            <div className="field">
+              <span className="label">Offer ends at (optional)</span>
+              <input
+                type="datetime-local"
+                value={toLocalInput((settings as SectionSettings['deal']).ends_at)}
+                onChange={(e) => set({ ends_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                className="input"
+              />
+              <span className="hint">The countdown shows only until this time. Leave empty for no timer.</span>
+            </div>
+          </div>
+          <ProductListEditor settings={{ ...(settings as SectionSettings['deal']), image: null }} set={set} ctx={ctx} withImage={false} />
+        </div>
+      )}
+      {t === 'newsletter' && <p className="text-[13px] text-muted">Only the heading and small text above are needed. Emails people leave are saved to your subscriber list.</p>}
       {t === 'banners' && (
         <ListEditor
           title="Banners (up to 3, shown side by side)"
@@ -569,4 +588,12 @@ function Switch({ checked, disabled, onChange, label }: { checked: boolean; disa
       <span className={`hidden w-6 text-[12px] font-semibold sm:block ${checked ? 'text-ok' : 'text-muted'}`}>{label}</span>
     </button>
   );
+}
+
+/** ISO time → the value a datetime-local input expects, in the admin's own time zone. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
