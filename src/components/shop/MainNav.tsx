@@ -16,7 +16,7 @@ export function MainNav({ links }: { links: { href: string; label: string }[] })
               <Link
                 href={l.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex items-center whitespace-nowrap text-[13px] font-semibold uppercase tracking-[0.06em] transition-colors hover:text-brand ${
+                className={`relative flex items-center whitespace-nowrap text-[13px] font-medium uppercase tracking-[0.14em] transition-colors hover:text-brand ${
                   active ? 'text-brand after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-brand' : 'text-ink'
                 }`}
               >

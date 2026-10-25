@@ -82,7 +82,7 @@ export default async function ProductPage({ params }: Props) {
           Visit the {product.category.name} collection
         </Link>
       )}
-      <h1 className="text-[1.45rem] font-semibold leading-snug sm:text-[1.7rem]">{product.name}</h1>
+      <h1 className="font-display text-[1.9rem] font-semibold leading-[1.1] sm:text-[2.3rem]">{product.name}</h1>
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
         {product.sku && (
           <span>

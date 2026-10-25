@@ -16,7 +16,7 @@ export function SectionHead({ title, subtitle, href, linkLabel = 'View all' }: {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="font-display text-[1.6rem] uppercase leading-tight tracking-wide sm:text-[1.9rem]">{title}</h2>
+        <h2 className="font-display text-[1.75rem] font-semibold uppercase leading-tight tracking-[0.08em] sm:text-[2.1rem]">{title}</h2>
         <span className="mt-1.5 block h-1 w-12 rounded-full bg-[linear-gradient(90deg,var(--brand),var(--accent))]" aria-hidden="true" />
         {subtitle && <p className="mt-2 text-[14px] text-muted">{subtitle}</p>}
       </div>
@@ -52,7 +52,7 @@ export function HeroSection({ title, subtitle, settings, store, discount, overla
               </span>
             )}
           </div>
-          <h1 className="font-display text-[clamp(2.25rem,5.2vw,3.75rem)] font-medium leading-[1.08]">{title ?? store.store_name}</h1>
+          <h1 className="font-display text-[clamp(2.7rem,6.2vw,4.6rem)] font-semibold leading-[1.02]">{title ?? store.store_name}</h1>
           {subtitle && <p className="max-w-sm text-[15px] text-white/90">{subtitle}</p>}
           <div className="flex flex-wrap gap-3">
             <Link href={settings.link || '/products'} className="btn btn-light">{settings.button || 'Shop now'}</Link>

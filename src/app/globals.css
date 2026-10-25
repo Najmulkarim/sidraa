@@ -43,7 +43,7 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-heading), 'Arial Narrow', sans-serif;
+  --font-display: var(--font-heading), Georgia, serif;
 }
 
 html {
@@ -52,8 +52,8 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Fjalla One has a single weight: never fake a bold version of it. */
-.font-display { font-synthesis: none; letter-spacing: 0.01em; }
+/* Display serif: only the real weights (500–700), never a faked bold. */
+.font-display { font-synthesis: none; }
 
 body {
   font-family: var(--font-sans);
@@ -88,7 +88,7 @@ body {
     border-radius: 0.6rem;
     font-weight: 600;
     font-size: 0.8125rem;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.15s;
     cursor: pointer;

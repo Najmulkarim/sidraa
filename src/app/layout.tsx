@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
-import { Assistant, Fjalla_One } from 'next/font/google';
+import { Cormorant_Garamond, Jost } from 'next/font/google';
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import './globals.css';
 
-// Fjalla One (condensed, one weight) for display headings, Assistant for everything else.
-const heading = Fjalla_One({ subsets: ['latin'], weight: '400', variable: '--font-heading', display: 'swap' });
-const body = Assistant({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
+// Premium pairing: Cormorant Garamond (high-contrast serif) for display headings, Jost (clean geometric sans) for everything else.
+const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-heading', display: 'swap' });
+const body = Jost({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
