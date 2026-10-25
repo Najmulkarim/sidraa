@@ -108,17 +108,19 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
   for (const v of p.variants) {
     // Variation photos must be this product's own photos (the database checks too).
     const imagePath = v.imagePath && photos.has(v.imagePath) ? v.imagePath : null;
-    const fields = { sku: v.sku, size: v.size, color: v.color, option3: v.option3, image_path: imagePath, price: v.price, is_active: v.isActive };
+    // An empty SKU on a new variation is left out, so the database assigns the next SKU000001-style code.
+    const fields = { ...(v.sku ? { sku: v.sku } : {}), size: v.size, color: v.color, option3: v.option3, image_path: imagePath, price: v.price, is_active: v.isActive };
+    const label = v.sku || [v.color, v.size, v.option3].filter(Boolean).join(' / ') || 'New variation';
     if (v.id) {
       const { error } = await supabase.from('product_variants').update(fields).eq('id', v.id);
-      if (error) return bail(`${v.sku}: ${fail(error, 'update variant').message}`);
+      if (error) return bail(`${label}: ${fail(error, 'update variant').message}`);
     } else {
       const { data, error } = await supabase
         .from('product_variants')
         .insert({ ...fields, product_id: productId, stock: 0 })
-        .select('id')
-        .single<{ id: string }>();
-      if (error || !data) return bail(`${v.sku}: ${fail(error, 'insert variant').message}`);
+        .select('id, sku')
+        .single<{ id: string; sku: string }>();
+      if (error || !data) return bail(`${label}: ${fail(error, 'insert variant').message}`);
       if (v.openingStock > 0) {
         const { error: stockError } = await supabase.rpc('adjust_stock', {
           p_variant_id: data.id,
@@ -126,7 +128,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
           p_reason: 'restock',
           p_note: 'Opening stock',
         });
-        if (stockError) notes.push(`${v.sku}: opening stock not saved (${mapDbError(stockError).message})`);
+        if (stockError) notes.push(`${data.sku}: opening stock not saved (${mapDbError(stockError).message})`);
       }
     }
   }
@@ -204,6 +206,7 @@ type CopySource = {
 
 /**
  * Copies a product as a draft: same details and variations with new SKUs
+ * (the next SKU000001-style codes)
  * and zero stock (stock only ever arrives through logged movements), and
  * its own copies of the photo files, so deleting one product's photos
  * never breaks the other.
@@ -226,21 +229,6 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
   const takenSlugs = new Set((taken ?? []).map((r: { slug: string }) => r.slug));
   let slug = baseSlug;
   for (let n = 2; takenSlugs.has(slug); n++) slug = `${baseSlug}-${n}`;
-
-  // Free SKUs: SKU-COPY, SKU-COPY2, …
-  const candidates = src.variants.flatMap((v) => Array.from({ length: 9 }, (_, i) => `${v.sku.slice(0, 54)}-COPY${i ? i + 1 : ''}`));
-  const { data: usedSkus } = candidates.length ? await supabase.from('product_variants').select('sku').in('sku', candidates) : { data: [] };
-  const used = new Set((usedSkus ?? []).map((r: { sku: string }) => r.sku));
-  const skuFor = (sku: string) => {
-    for (let i = 0; i < 9; i++) {
-      const s = `${sku.slice(0, 54)}-COPY${i ? i + 1 : ''}`;
-      if (!used.has(s)) {
-        used.add(s);
-        return s;
-      }
-    }
-    return `${sku.slice(0, 50)}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  };
 
   const { data: created, error: insertError } = await supabase
     .from('products')
@@ -294,7 +282,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
     const { error } = await supabase.from('product_variants').insert(
       src.variants.map((v) => ({
         product_id: newId,
-        sku: skuFor(v.sku),
+        // No sku: the database assigns the next SKU000001-style code.
         size: v.size,
         color: v.color,
         option3: v.option3,

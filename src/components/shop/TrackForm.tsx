@@ -16,8 +16,8 @@ export function TrackForm({ defaultRef = '' }: { defaultRef?: string }) {
     <div className="space-y-8">
       <form action={action} className="card grid gap-4 p-5 sm:grid-cols-[1fr_12rem_auto] sm:items-start sm:p-6" noValidate>
         <div className="field">
-          <label htmlFor="ref" className="label">Order reference</label>
-          <input id="ref" name="ref" required maxLength={20} autoCapitalize="characters" placeholder="SD-7K2M-9QXA" defaultValue={state.values?.ref ?? defaultRef} className="input font-mono uppercase" aria-invalid={!!fe.ref} />
+          <label htmlFor="ref" className="label">Order number</label>
+          <input id="ref" name="ref" required maxLength={20} autoCapitalize="characters" placeholder="Order0001" defaultValue={state.values?.ref ?? defaultRef} className="input font-mono uppercase" aria-invalid={!!fe.ref} />
           {fe.ref && <p className="error">{fe.ref}</p>}
         </div>
         <div className="field">

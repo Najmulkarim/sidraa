@@ -23,7 +23,7 @@ test.describe('customer journey', () => {
     await expect(page.getByRole('button', { name: /Place order · ৳1,420/ })).toBeEnabled();
     await page.getByRole('button', { name: /Place order/ }).click();
 
-    await expect(page).toHaveURL(/\/order\/[A-Z]{2,4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    await expect(page).toHaveURL(/\/order\/Order\d{4,}$/);
     await expect(page.getByText('Thank you, E2E!')).toBeVisible();
     const ref = (await page.locator('.font-mono').first().innerText()).trim();
 

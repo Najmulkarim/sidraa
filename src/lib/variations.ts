@@ -18,6 +18,8 @@ export type PickVariant = {
   image_path: string | null;
   stock: number;
   price: number;
+  /** Shown on the product page for the chosen variation. */
+  sku?: string;
 };
 
 export type OptionValue = { value: string; image: string | null };

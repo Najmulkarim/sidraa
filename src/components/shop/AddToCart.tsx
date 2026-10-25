@@ -187,8 +187,15 @@ export function AddToCart({
       ))}
 
       {selected && (
-        <p className={`text-sm ${selected.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
-          {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left` : 'In stock'}
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className={selected.stock <= 3 ? 'text-warn' : 'text-ok'}>
+            {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left` : 'In stock'}
+          </span>
+          {selected.sku && (
+            <span className="text-muted">
+              SKU: <span className="font-mono font-semibold text-ink">{selected.sku}</span>
+            </span>
+          )}
         </p>
       )}
 

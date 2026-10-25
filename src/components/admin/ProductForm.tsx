@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { saveProduct } from '@/actions/admin-catalog';
 import { slugify } from '@/lib/slug';
 import type { Category, Product, ProductImage as ProductImageRow, Variant } from '@/lib/types';
-import { combinations, splitValues, suggestSku } from '@/lib/variations';
+import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
@@ -82,7 +82,6 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
 
   /** Adds every missing colour × size × option combination. */
   function createCombinations() {
-    const base = (slug || slugify(name) || 'SKU').toUpperCase().split('-').map((w) => w[0]).join('').slice(0, 6) || 'SKU';
     const combos = combinations(splitValues(gen.colors), splitValues(gen.sizes), splitValues(gen.options));
     setRows((rs) => {
       const keep = rs.filter((r) => r.id || r.sku || r.color || r.size || r.option3);
@@ -91,7 +90,8 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
         .map((c) => {
           // Re-use the photo already chosen for this colour, if any.
           const photo = keep.find((r) => r.color && r.color.toLowerCase() === c.color.toLowerCase() && r.imagePath)?.imagePath ?? null;
-          return { ...blankRow(), ...c, sku: suggestSku(base, c), imagePath: photo };
+          // SKU left empty: assigned on save (SKU000001, SKU000002, …).
+          return { ...blankRow(), ...c, imagePath: photo };
         });
       return [...keep, ...added];
     });
@@ -207,7 +207,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
               <thead>
                 <tr>
                   <th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
-                  <th>SKU</th><th>Price ৳</th><th>Stock</th><th>Active</th><th></th>
+                  <th title="Leave empty on a new row for the next SKU000001-style code">SKU</th><th>Price ৳</th><th>Stock</th><th>Active</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -257,7 +257,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
                       </td>
                       {showOption3 && <td className="min-w-36"><input aria-label={labels.option3 || 'Type 3'} value={r.option3} onChange={(e) => update(r.key, { option3: e.target.value })} className="input" maxLength={30} /></td>}
                       <td className="min-w-44">
-                        <input aria-label="SKU" value={r.sku} onChange={(e) => update(r.key, { sku: e.target.value })} className="input font-mono text-sm" maxLength={64} />
+                        <input aria-label="SKU" value={r.sku} onChange={(e) => update(r.key, { sku: e.target.value })} placeholder={r.id ? undefined : 'Auto'} className="input font-mono text-sm" maxLength={64} />
                         {fe[`variants.${i}.sku`] && <p className="error">{fe[`variants.${i}.sku`]}</p>}
                       </td>
                       <td className="min-w-24">

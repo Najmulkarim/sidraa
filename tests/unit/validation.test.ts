@@ -90,6 +90,13 @@ describe('trackSchema', () => {
     expect(trackSchema.safeParse({ ref: 'SD-7K2M-9QXA', phoneLast4: '345' }).success).toBe(false);
     expect(trackSchema.safeParse({ ref: 'SD', phoneLast4: '3456' }).success).toBe(false);
   });
+
+  it('accepts sequential order numbers, with or without the word Order', () => {
+    for (const ref of ['Order0001', 'order 12', 'ORDER-0012', '0012', '7']) {
+      expect(trackSchema.safeParse({ ref, phoneLast4: '3456' }).success).toBe(true);
+    }
+    expect(trackSchema.safeParse({ ref: 'Order', phoneLast4: '3456' }).success).toBe(false);
+  });
 });
 
 describe('productSchema', () => {
@@ -136,6 +143,19 @@ describe('productSchema', () => {
     expect(productSchema.safeParse({ ...base, basePrice: '-1' }).success).toBe(false);
     expect(productSchema.safeParse({ ...base, basePrice: '10.555' }).success).toBe(false);
     expect(productSchema.safeParse({ ...base, slug: 'Bad Slug!' }).success).toBe(false);
+  });
+});
+
+describe('variant SKUs', () => {
+  const product = (variants: object[]) => ({
+    name: 'Tee', slug: 'tee', basePrice: '500', status: 'draft', variants: JSON.stringify(variants),
+  });
+  it('lets a new variation leave the SKU empty for the database to fill', () => {
+    expect(productSchema.safeParse(product([{ sku: '', size: 'M', color: '' }, { sku: '', size: 'L', color: '' }])).success).toBe(true);
+  });
+  it('still needs a SKU on saved variations and rejects duplicates', () => {
+    expect(productSchema.safeParse(product([{ id: '0b8f5a2e-1c3d-4e5f-8a9b-0c1d2e3f4a5b', sku: '', size: 'M', color: '' }])).success).toBe(false);
+    expect(productSchema.safeParse(product([{ sku: 'SKU000001', size: 'M', color: '' }, { sku: 'sku000001', size: 'L', color: '' }])).success).toBe(false);
   });
 });
 

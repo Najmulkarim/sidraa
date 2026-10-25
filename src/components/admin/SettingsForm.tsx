@@ -57,7 +57,6 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
           <FieldError state={state} name="codTerms" />
         </div>
         <Text name="returnPolicyDays" label="Return window (days)" type="number" defaultValue={settings.return_policy_days} state={state} />
-        <Text name="orderRefPrefix" label="Order reference prefix" defaultValue={settings.order_ref_prefix} state={state} max={4} hint="2–4 capital letters, e.g. SD → SD-7K2M-9QXA" />
         <Text name="lowStockThreshold" label="Low-stock alert at" type="number" defaultValue={settings.low_stock_threshold} state={state} />
         <div className="sm:col-span-2"><Text name="announcement" label="Announcement bar (top of the shop)" defaultValue={settings.announcement} state={state} max={160} hint="Shown in the strip at the top of the shop. Leave empty for the automatic one (COD, free-delivery threshold, return window)." /></div>
         <label className="flex min-h-11 items-center gap-2 self-end text-sm">

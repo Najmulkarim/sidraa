@@ -32,7 +32,7 @@ export async function saveSettings(_prev: ActionState, formData: FormData): Prom
       social,
       cod_terms: s.codTerms,
       return_policy_days: s.returnPolicyDays,
-      order_ref_prefix: s.orderRefPrefix,
+      ...(s.orderRefPrefix ? { order_ref_prefix: s.orderRefPrefix } : {}),
       low_stock_threshold: s.lowStockThreshold,
       announcement: s.announcement ?? null,
       coupons_enabled: s.couponsEnabled,

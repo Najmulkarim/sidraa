@@ -25,7 +25,7 @@ select * from public.place_order(jsonb_build_object(
     jsonb_build_object('variant_id', 'b0000000-0000-4000-8000-000000000102', 'quantity', 1))), 'iphash');
 
 select is((select created from t_result), true, 'order is created');
-select matches((select public_ref from t_result), '^SD-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$', 'reference is PREFIX-XXXX-XXXX in Crockford base32');
+select matches((select public_ref from t_result), '^Order[0-9]{4,}$', 'reference is a sequential order number (Order0001, …)');
 -- 2 × 2450 (M, product price) + 1 × 2550 (XL, variant price) = 7450; free delivery over 3000 inside Dhaka
 select is((select subtotal from public.orders where public_ref = (select public_ref from t_result)), 7450.00::numeric(12,2),
   'subtotal is priced from the database, ignoring the prices sent');

@@ -63,7 +63,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (!allTime) query = query.gte('created_at', dhakaDayStartUtc(range.from)).lt('created_at', dhakaDayStartUtc(addDays(range.to, 1)));
   if (q) {
     const digits = q.replace(/\D/g, '');
-    if (/^[a-z]{2,4}[-\s]?[0-9a-z]{4}/i.test(q)) query = query.ilike('public_ref', `%${escapeLike(q.toUpperCase().replace(/\s/g, '-'))}%`);
+    // "Order12" or "order 0012" finds Order0012.
+    const orderNo = /^order[-\s]*(\d{1,12})$/i.exec(q)?.[1]?.replace(/^0+/, '');
+    if (orderNo) query = query.eq('public_ref', `Order${orderNo.padStart(4, '0')}`);
+    else if (/^[a-z]{2,4}[-\s]?[0-9a-z]{4}/i.test(q)) query = query.ilike('public_ref', `%${escapeLike(q.toUpperCase().replace(/\s/g, '-'))}%`);
     else if (digits.length >= 4 && digits.length === q.replace(/[\s+-]/g, '').length) query = query.ilike('customer_phone', `%${digits.slice(-11)}%`);
     else query = query.ilike('customer_name', `%${escapeLike(q)}%`);
   }

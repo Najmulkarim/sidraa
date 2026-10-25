@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: Props) {
   const related = await getRelatedProducts(product.id, product.category_id);
   const variants = product.variants
     .filter((v) => v.is_active)
-    .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock }));
+    .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock, sku: v.sku }));
   const { min, max } = priceRange(product);
   const inStock = totalStock(product) > 0;
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);

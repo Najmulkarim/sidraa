@@ -93,7 +93,7 @@ export const trackSchema = z.object({
     .string()
     .trim()
     .transform((v) => v.toUpperCase().replace(/[^A-Z0-9]/g, ''))
-    .refine((v) => v.length >= 10 && v.length <= 12, 'Enter the order reference, e.g. SD-7K2M-9QXA'),
+    .refine((v) => /^(ORDER)?\d{1,12}$/.test(v) || (v.length >= 10 && v.length <= 12), 'Enter your order number, e.g. Order0001'),
   phoneLast4: z.string().trim().regex(/^\d{4}$/, 'Enter the last 4 digits of your phone number'),
 });
 
@@ -110,7 +110,8 @@ export const mfaCodeSchema = z.object({
 
 export const variantInputSchema = z.object({
   id: z.preprocess(blankToUndefined, z.uuid().optional()),
-  sku: z.string().trim().min(1, 'SKU is required').max(64).regex(/^[A-Za-z0-9._-]+$/, 'Letters, numbers, . _ - only'),
+  /** Empty on a new variation: the database assigns the next SKU000001-style code. */
+  sku: z.string().trim().max(64).regex(/^[A-Za-z0-9._-]*$/, 'Letters, numbers, . _ - only').default(''),
   size: z.string().trim().max(20, 'Keep it under 20 characters').default(''),
   color: z.string().trim().max(30, 'Keep it under 30 characters').default(''),
   option3: z.string().trim().max(30, 'Keep it under 30 characters').default(''),
@@ -160,7 +161,8 @@ export const productSchema = z
     const combos = new Set<string>();
     p.variants.forEach((v, i) => {
       const sku = v.sku.toUpperCase();
-      if (skus.has(sku)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'sku'], message: 'SKU is used twice' });
+      if (!sku && v.id) ctx.addIssue({ code: 'custom', path: ['variants', i, 'sku'], message: 'SKU is required' });
+      if (sku && skus.has(sku)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'sku'], message: 'SKU is used twice' });
       skus.add(sku);
       const combo = `${v.color.toLowerCase()}|${v.size.toLowerCase()}|${v.option3.toLowerCase()}`;
       if (combos.has(combo)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'size'], message: 'This combination is listed twice' });
@@ -248,7 +250,8 @@ export const settingsSchema = z.object({
   youtube: optionalUrl,
   codTerms: z.string().trim().min(10, 'Describe your cash-on-delivery terms').max(2000),
   returnPolicyDays: z.coerce.number().int().min(0).max(60),
-  orderRefPrefix: z.string().trim().toUpperCase().regex(/^[A-Z]{2,4}$/, '2 to 4 capital letters'),
+  /** Old setting: new orders are numbered Order0001, Order0002, … Kept optional for older forms. */
+  orderRefPrefix: z.preprocess(blankToUndefined, z.string().trim().toUpperCase().regex(/^[A-Z]{2,4}$/, '2 to 4 capital letters').optional()),
   lowStockThreshold: z.coerce.number().int().min(0).max(1000),
   announcement: optionalText(160),
   couponsEnabled: checkbox,
