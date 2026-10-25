@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { mapDbError } from '@/lib/db-errors';
 import { IMAGE_BUCKET } from '@/lib/env';
 import type { ActionState } from '@/lib/types';
-import { courierSettingsSchema, fieldErrors, formToObject, marketingSettingsSchema, settingsSchema, staffSchema, zoneSchema } from '@/lib/validation';
+import { courierSettingsSchema, fieldErrors, formToObject, settingsSchema, staffSchema, zoneSchema } from '@/lib/validation';
 
 /** Needs store_settings (also enforced by RLS on store_settings / delivery_zones). */
 export async function saveSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -131,28 +131,61 @@ export async function saveCourierSettings(_prev: ActionState, formData: FormData
 
 // ----------------------------------------------------------- marketing
 
+/**
+ * Facebook settings. Forgiving with what people paste (spaces in the Pixel ID,
+ * long tokens, a lowercase test code), strict about what is stored, and it
+ * reads everything back so "saved" always means the database has it.
+ */
 export async function saveMarketingSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { supabase } = await requirePermission('marketing');
-  const parsed = marketingSettingsSchema.safeParse(formToObject(formData));
-  if (!parsed.success) return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
-  const m = parsed.data;
-  if (m.capiEnabled && !m.fbPixelId) return { ok: false, message: 'Add the Pixel ID to use the Conversions API.', fieldErrors: { fbPixelId: 'Required for the Conversions API' } };
-  const { error } = await supabase.rpc('save_marketing_settings', {
-    p: {
-      fb_pixel_id: m.fbPixelId ?? '',
-      capi_enabled: m.capiEnabled,
-      capi_token: secretValue(formData, 'capiToken', m.capiToken),
-      capi_test_code: m.capiTestCode ?? '',
-      graph_version: m.graphVersion,
-    },
-  });
-  if (error) {
-    const mapped = mapDbError(error);
-    return { ok: false, message: mapped.message, fieldErrors: mapped.field === 'fb_pixel_id' ? { fbPixelId: mapped.message } : undefined };
+  await requirePermission('marketing');
+  const raw = formToObject(formData);
+  const pixel = String(raw.fbPixelId ?? '').replace(/\D/g, '');
+  const token = String(raw.capiToken ?? '').replace(/\s/g, '');
+  const testCode = String(raw.capiTestCode ?? '').trim().toUpperCase();
+  const graph = String(raw.graphVersion ?? '').trim() || 'v26.0';
+  const capiEnabled = raw.capiEnabled === 'on' || raw.capiEnabled === 'true';
+  const clearToken = formData.get('clear_capiToken') === 'on';
+
+  const errors: Record<string, string> = {};
+  if (pixel && !/^\d{6,20}$/.test(pixel)) errors.fbPixelId = 'The Pixel (Dataset) ID is a number of 6–20 digits.';
+  if (token && !/^[A-Za-z0-9_-]{20,1000}$/.test(token)) errors.capiToken = 'That does not look like a Facebook access token (it starts with EAA…). Paste the whole token.';
+  if (testCode && !/^[A-Z0-9]{1,40}$/.test(testCode)) errors.capiTestCode = 'Letters and numbers only, like TEST12345.';
+  if (!/^v\d{1,3}\.\d$/.test(graph)) errors.graphVersion = 'Like v26.0';
+  if (Object.keys(errors).length) return { ok: false, message: Object.values(errors)[0]!, fieldErrors: errors };
+
+  const admin = createAdminClient();
+  const { data: before } = await admin.from('marketing_settings').select('capi_token').eq('id', 1).maybeSingle<{ capi_token: string | null }>();
+  const nextToken = clearToken ? null : token || before?.capi_token || null;
+  if (capiEnabled && !pixel) return { ok: false, message: 'Add the Pixel ID to use the Conversions API.', fieldErrors: { fbPixelId: 'Required for the Conversions API' } };
+  if (capiEnabled && !nextToken) return { ok: false, message: 'Add the access token to use the Conversions API.', fieldErrors: { capiToken: 'Required for the Conversions API' } };
+
+  const [a, b] = await Promise.all([
+    admin.from('store_settings').update({ fb_pixel_id: pixel || null }).eq('id', 1),
+    admin.from('marketing_settings').update({ capi_enabled: capiEnabled, capi_token: nextToken, capi_test_code: testCode || null, graph_version: graph }).eq('id', 1),
+  ]);
+  if (a.error || b.error) {
+    console.error('[admin] facebook settings', a.error ?? b.error);
+    return { ok: false, message: 'Could not save the Facebook settings. Please try again.' };
+  }
+
+  // Read back: report exactly what is stored now.
+  const [{ data: s }, { data: m }] = await Promise.all([
+    admin.from('store_settings').select('fb_pixel_id').eq('id', 1).single<{ fb_pixel_id: string | null }>(),
+    admin.from('marketing_settings').select('capi_enabled, capi_token, capi_test_code').eq('id', 1).single<{ capi_enabled: boolean; capi_token: string | null; capi_test_code: string | null }>(),
+  ]);
+  if ((s?.fb_pixel_id ?? '') !== pixel || (m?.capi_token ?? null) !== nextToken || (m?.capi_test_code ?? '') !== testCode) {
+    return { ok: false, message: 'The settings did not stick. Please reload the page and try again.' };
   }
   revalidatePath('/', 'layout');
   updateTag(CATALOG_TAG);
-  return { ok: true, message: 'Facebook settings saved.' };
+  revalidatePath('/admin/settings');
+  const parts = [
+    s?.fb_pixel_id ? `Pixel ID ${s.fb_pixel_id} ✓` : 'Pixel off',
+    m?.capi_token ? `Access token ✓ (ends …${m.capi_token.slice(-4)})` : 'No access token',
+    m?.capi_test_code ? `Test code ${m.capi_test_code} ✓` : null,
+    m?.capi_enabled ? 'Conversions API ON' : 'Conversions API off',
+  ].filter(Boolean);
+  return { ok: true, message: `Saved — ${parts.join(' · ')}` };
 }
 
 // ----------------------------------------------------- staff and roles
@@ -205,4 +238,35 @@ export async function saveRolePermissions(_prev: ActionState, formData: FormData
   if (error) return { ok: false, message: mapDbError(error).message };
   revalidatePath('/admin', 'layout');
   return { ok: true, message: 'Permissions saved. They apply on the next page load.' };
+}
+
+/** "Test connection": sends one PageView through the Conversions API with the saved Pixel ID and token. */
+export async function testFacebookConnection(): Promise<ActionState> {
+  await requirePermission('marketing');
+  const admin = createAdminClient();
+  const [{ data: s }, { data: m }] = await Promise.all([
+    admin.from('store_settings').select('fb_pixel_id').eq('id', 1).single<{ fb_pixel_id: string | null }>(),
+    admin.from('marketing_settings').select('capi_token, capi_test_code, graph_version').eq('id', 1).single<{ capi_token: string | null; capi_test_code: string | null; graph_version: string }>(),
+  ]);
+  if (!s?.fb_pixel_id) return { ok: false, message: 'Save the Pixel ID first.' };
+  if (!m?.capi_token) return { ok: false, message: 'Save the access token first.' };
+  try {
+    const res = await fetch(`https://graph.facebook.com/${m.graph_version}/${s.fb_pixel_id}/events?access_token=${encodeURIComponent(m.capi_token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        data: [{ event_name: 'PageView', event_time: Math.floor(Date.now() / 1000), action_source: 'website', event_source_url: process.env.NEXT_PUBLIC_SITE_URL ?? undefined, user_data: { client_user_agent: 'Sidraa admin connection test' } }],
+        ...(m.capi_test_code ? { test_event_code: m.capi_test_code } : {}),
+      }),
+      signal: AbortSignal.timeout(15_000),
+      cache: 'no-store',
+    });
+    const body = (await res.json().catch(() => null)) as { events_received?: number; error?: { message?: string } } | null;
+    if (res.ok && body?.events_received) {
+      return { ok: true, message: m.capi_test_code ? `Connected ✓ Facebook received the test event — see it under Events Manager → Test events (${m.capi_test_code}).` : 'Connected ✓ Facebook received the test event.' };
+    }
+    return { ok: false, message: `Facebook said: ${body?.error?.message ?? `HTTP ${res.status}`}` };
+  } catch {
+    return { ok: false, message: 'Could not reach Facebook. Try again in a minute.' };
+  }
 }

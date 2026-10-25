@@ -1,6 +1,9 @@
 'use client';
 
-import { saveMarketingSettings } from '@/actions/admin-settings';
+import { useState, useTransition } from 'react';
+import { saveMarketingSettings, testFacebookConnection } from '@/actions/admin-settings';
+import type { ActionState } from '@/lib/types';
+import { notify } from './Toaster';
 import { CopyField, SecretInput } from './SecretInput';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
@@ -8,6 +11,8 @@ export type MarketingView = { fb_pixel_id: string | null; capi_enabled: boolean;
 
 export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: MarketingView; siteUrl: string }) {
   const { state, onSubmit, pending } = useKeepValuesAction(saveMarketingSettings);
+  const [test, setTest] = useState<ActionState | null>(null);
+  const [testing, start] = useTransition();
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <section className="card grid gap-4 p-5 sm:grid-cols-2">
@@ -34,11 +39,12 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
           <input type="checkbox" name="capiEnabled" defaultChecked={m.capi_enabled} className="h-4 w-4 accent-[var(--brand)]" />
           Send Purchase events with the Conversions API
         </label>
-        <SecretInput name="capiToken" label="Access token" saved={m.capi_token} state={state} hint="Events Manager → Settings → Conversions API → Generate access token." />
+        <SecretInput name="capiToken" label="Access token" saved={m.capi_token} state={state} maxLength={1000} hint="Events Manager → Settings → Conversions API → Generate access token. Paste the whole token." />
         <div className="field">
           <label htmlFor="capiTestCode" className="label">Test event code (optional)</label>
           <input id="capiTestCode" name="capiTestCode" defaultValue={m.capi_test_code ?? ''} maxLength={40} placeholder="TEST12345" className="input font-mono" />
           <p className="hint">Events then appear under Test events only. Clear it when you go live.</p>
+          <FieldError state={state} name="capiTestCode" />
         </div>
         <div className="field">
           <label htmlFor="graphVersion" className="label">Graph API version</label>
@@ -53,9 +59,11 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
         <CopyField label="Catalog feed URL" value={`${siteUrl}/feeds/facebook-catalog.csv`} />
       </section>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <PendingButton pending={pending}>Save Facebook settings</PendingButton>
+        <button type="button" disabled={testing} onClick={() => start(async () => { const r = await testFacebookConnection(); setTest(r); notify(r.ok, r.message); })} className="btn btn-outline">{testing ? 'Testing…' : 'Test connection'}</button>
         <FormMessage state={state} />
+        {test && <span role="status" className={test.ok ? 'text-sm text-ok' : 'text-sm text-bad'}>{test.message}</span>}
       </div>
     </form>
   );

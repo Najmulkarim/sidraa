@@ -34,7 +34,7 @@ export function CatalogFeedCard({ feedUrl, feedId, token, lastAt, lastResult }: 
           <label htmlFor="catalogFeedId" className="label">Feed ID</label>
           <input id="catalogFeedId" name="catalogFeedId" defaultValue={feedId ?? ''} inputMode="numeric" className="input font-mono" />
         </div>
-        <SecretInput name="catalogToken" label="Access token" saved={token} state={state} />
+        <SecretInput name="catalogToken" label="Access token" saved={token} state={state} maxLength={600} />
         <div className="space-y-2 sm:col-span-2">
           <FormMessage state={state} />
           <PendingButton pending={saving} className="btn btn-outline btn-sm">Save</PendingButton>

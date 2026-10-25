@@ -8,7 +8,7 @@ import { FieldError } from './ui';
  * A key / password field that never shows the saved value. The server only
  * sends a masked hint (••••1234). Leave empty to keep it; tick Remove to clear.
  */
-export function SecretInput({ name, label, saved, state, hint, generate }: { name: string; label: string; saved: string | null; state: ActionState; hint?: string; generate?: boolean }) {
+export function SecretInput({ name, label, saved, state, hint, generate, maxLength = 300 }: { name: string; label: string; saved: string | null; state: ActionState; hint?: string; generate?: boolean; maxLength?: number }) {
   const [value, setValue] = useState('');
   const [show, setShow] = useState(false);
   return (
@@ -28,7 +28,7 @@ export function SecretInput({ name, label, saved, state, hint, generate }: { nam
           onChange={(e) => setValue(e.target.value)}
           placeholder={saved ? 'Leave empty to keep the saved value' : 'Not set'}
           className="input font-mono"
-          maxLength={300}
+          maxLength={maxLength}
         />
         <button type="button" className="btn btn-ghost btn-sm min-h-11 px-3" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide' : 'Show'}>{show ? 'Hide' : 'Show'}</button>
         {generate && (
