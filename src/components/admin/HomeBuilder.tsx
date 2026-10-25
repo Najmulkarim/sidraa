@@ -25,6 +25,8 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [newType, setNewType] = useState<SectionType>('collection');
+  // The switch asks before saving: { section, the value it would get }.
+  const [ask, setAsk] = useState<{ s: HomeSection; enabled: boolean } | null>(null);
 
   function persistOrder(next: HomeSection[]) {
     setItems(next);
@@ -43,15 +45,17 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
     persistOrder(next);
   }
 
-  function toggle(s: HomeSection, enabled: boolean) {
-    setItems((cur) => cur.map((x) => (x.id === s.id ? { ...x, enabled } : x)));
+  /** Save from the popup: the list shows what the database says afterwards, never a guess. */
+  function confirmToggle() {
+    if (!ask) return;
+    const { s, enabled } = ask;
     start(async () => {
       const r = await setHomeSectionEnabled(s.id, enabled);
-      if (!r.ok) {
-        setItems((cur) => cur.map((x) => (x.id === s.id ? { ...x, enabled: !enabled } : x)));
-        setMsg({ ok: false, text: r.message ?? 'Could not change it.' });
-        notify(false, r.message ?? 'Could not change it.');
-      }
+      const now = typeof r.enabled === 'boolean' ? r.enabled : r.ok ? enabled : s.enabled;
+      setItems((cur) => cur.map((x) => (x.id === s.id ? { ...x, enabled: now } : x)));
+      setMsg({ ok: r.ok, text: r.message ?? (r.ok ? 'Saved.' : 'Could not change it.') });
+      notify(r.ok, r.message ?? (r.ok ? 'Saved.' : 'Could not change it.'));
+      setAsk(null);
     });
   }
 
@@ -103,7 +107,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
                 <span className="block truncate text-[14px] font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
                 <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s)}</span>
               </button>
-              <Switch checked={s.enabled} disabled={pending} onChange={(v) => toggle(s, v)} label={s.enabled ? 'On' : 'Off'} />
+              <Switch checked={s.enabled} disabled={pending} onChange={(v) => setAsk({ s, enabled: v })} label={s.enabled ? 'On' : 'Off'} />
               <div className="hidden gap-1 sm:flex">
                 <IconBtn label="Move up" disabled={i === 0 || pending} onClick={() => move(i, -1)}><Icon name="arrow" size={15} className="-rotate-90" /></IconBtn>
                 <IconBtn label="Move down" disabled={i === items.length - 1 || pending} onClick={() => move(i, 1)}><Icon name="arrow" size={15} className="rotate-90" /></IconBtn>
@@ -125,6 +129,26 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
           </li>
         ))}
       </ol>
+
+      {ask && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="toggle-title" onClick={() => !pending && setAsk(null)}>
+          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <span className={`grid h-12 w-12 place-items-center rounded-full ${ask.enabled ? 'bg-ok/15 text-ok' : 'bg-bad/10 text-bad'}`}><Icon name={ask.enabled ? 'eye' : 'x'} size={22} /></span>
+            <div>
+              <h2 id="toggle-title" className="text-lg font-bold">{ask.enabled ? 'Show this section?' : 'Hide this section?'}</h2>
+              <p className="mt-1 text-sm text-muted">
+                “{ask.s.title || SECTION_INFO[ask.s.type].label}” will be {ask.enabled ? 'shown on' : 'removed from'} the live home page as soon as you save.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" disabled={pending} onClick={() => setAsk(null)} className="btn btn-outline flex-1">Cancel</button>
+              <button type="button" disabled={pending} onClick={confirmToggle} autoFocus className={`btn flex-1 text-white ${ask.enabled ? 'bg-[#16a34a] hover:bg-[#15803d]' : 'bg-bad hover:opacity-90'}`}>
+                {pending ? 'Saving…' : ask.enabled ? 'Save — turn ON' : 'Save — turn OFF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card flex flex-wrap items-end gap-3 p-4">
         <div className="field min-w-56 flex-1">
@@ -159,7 +183,6 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
 }) {
   const [title, setTitle] = useState(section.title ?? '');
   const [subtitle, setSubtitle] = useState(section.subtitle ?? '');
-  const [enabled, setEnabled] = useState(section.enabled);
   const [settings, setSettings] = useState(section.settings as Record<string, unknown>);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -169,10 +192,10 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
   function save() {
     setMsg(null);
     start(async () => {
-      const r = await saveHomeSection({ id: section.id, title, subtitle, enabled, settings });
+      const r = await saveHomeSection({ id: section.id, title, subtitle, enabled: section.enabled, settings });
       setMsg({ ok: r.ok, text: r.message ?? '' });
       notify(r.ok, r.message);
-      if (r.ok) onSaved({ ...section, title: title || null, subtitle: subtitle || null, enabled, settings: settings as never });
+      if (r.ok) onSaved({ ...section, title: title || null, subtitle: subtitle || null, settings: settings as never });
     });
   }
 
@@ -334,7 +357,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
         <button type="button" onClick={save} disabled={pending} className="btn btn-primary">{pending ? 'Saving…' : 'Save section'}</button>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" /> Show on the home page</label>
+        <span className="text-[12.5px] text-muted">On/off: use the switch at the top of this section.</span>
         <div className="flex gap-1 sm:hidden">
           <IconBtn label="Move up" disabled={first} onClick={() => onMove(-1)}><Icon name="arrow" size={15} className="-rotate-90" /></IconBtn>
           <IconBtn label="Move down" disabled={last} onClick={() => onMove(1)}><Icon name="arrow" size={15} className="rotate-90" /></IconBtn>

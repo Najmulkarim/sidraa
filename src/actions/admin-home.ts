@@ -34,21 +34,26 @@ export async function saveHomeSection(input: { id: string; title: string; subtit
   }
   const { error } = await supabase
     .from('home_sections')
-    .update({ title: base.data.title, subtitle: base.data.subtitle, enabled: base.data.enabled, settings: settings.data })
+    // On/off belongs to the switch in the list only, so an open editor can never undo it.
+    .update({ title: base.data.title, subtitle: base.data.subtitle, settings: settings.data })
     .eq('id', base.data.id);
   if (error) return fail(error, 'save');
   refresh();
   return { ok: true, message: 'Saved. The home page shows it now.' };
 }
 
-export async function setHomeSectionEnabled(id: string, enabled: boolean): Promise<ActionState> {
+/** Shows or hides a section, then reads it back: success only when the database really has the new value. */
+export async function setHomeSectionEnabled(id: string, enabled: boolean): Promise<ActionState & { enabled?: boolean }> {
   const { supabase } = await requirePermission('store_settings');
   const parsed = z.uuid().safeParse(id);
-  if (!parsed.success) return { ok: false, message: 'Invalid section.' };
-  const { error } = await supabase.from('home_sections').update({ enabled }).eq('id', parsed.data);
+  if (!parsed.success || typeof enabled !== 'boolean') return { ok: false, message: 'Invalid section.' };
+  const { data, error } = await supabase.from('home_sections').update({ enabled }).eq('id', parsed.data).select('enabled, title, type').maybeSingle<{ enabled: boolean; title: string | null; type: string }>();
   if (error) return fail(error, 'toggle');
+  if (!data) return { ok: false, message: 'That section was not found — reload the page and try again.' };
+  if (data.enabled !== enabled) return { ok: false, message: 'The change did not stick. Please try again.', enabled: data.enabled };
   refresh();
-  return { ok: true };
+  const name = data.title || 'Section';
+  return { ok: true, enabled: data.enabled, message: enabled ? `“${name}” is now ON — it shows on the home page.` : `“${name}” is now OFF — hidden from the home page.` };
 }
 
 /** Saves a new order: the ids from top to bottom. */
