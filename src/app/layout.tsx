@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
-import { Cormorant_Garamond, Inter, Jost, Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
+import { Cormorant_Garamond, Dancing_Script, Inter, Jost, Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import { isTheme } from '@/lib/home-sections';
@@ -16,7 +16,9 @@ const poppins = Poppins({ subsets: ['latin'], display: 'swap', preload: false, w
 const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600', '700'], variable: '--f-playfair' });
 const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-inter' });
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-jakarta' });
-const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta].map((f) => f.variable).join(' ');
+// Handwritten accent lines (Nova).
+const script = Dancing_Script({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600'], variable: '--f-script' });
+const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta, script].map((f) => f.variable).join(' ');
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();

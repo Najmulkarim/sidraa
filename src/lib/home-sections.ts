@@ -8,19 +8,26 @@ import { z } from 'zod';
 
 export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery', 'deal', 'newsletter'] as const;
 
-/** Home page themes: each has its own sections; store_settings.home_theme picks the live one. */
-export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market', 'mega', 'topdeal', 'urban'] as const;
+/** Home page themes: each has its own sections; store_settings.home_theme picks the live one. Listed by group. */
+export const THEMES = ['luxora', 'luxe', 'chic', 'nova', 'shopease', 'novatrend', 'urban', 'market', 'mega', 'topdeal'] as const;
 export type ThemeKey = (typeof THEMES)[number];
-export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[] }> = {
-  luxora: { name: 'Luxora', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
-  shopease: { name: 'ShopEase', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
-  luxe: { name: 'Luxe Fashion', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
-  novatrend: { name: 'NovaTrend', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
-  topdeal: { name: 'TopDeal', tagline: 'Deals store: navy header, banner with six tiles, round categories, side lists.', swatches: ['#1f2a44', '#fbbf24', 'var(--brand)'] },
-  urban: { name: 'Urban', tagline: 'Clean city look: full-width photo hero, photo category tiles, trust badges.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
-  mega: { name: 'Mega', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
-  market: { name: 'Market', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
-  chic: { name: 'Chic', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
+export type ThemeGroup = 'boutique' | 'modern' | 'store';
+export const THEME_GROUPS: { key: ThemeGroup; name: string; hint: string }[] = [
+  { key: 'boutique', name: 'Elegant & boutique', hint: 'Big photos, serif headings, a calm premium feel.' },
+  { key: 'modern', name: 'Modern & bold', hint: 'Clean and punchy, strong buttons and offers.' },
+  { key: 'store', name: 'Big store & deals', hint: 'Search bar, many categories and product rows, like a marketplace.' },
+];
+export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[]; group: ThemeGroup }> = {
+  luxora: { name: 'Luxora', group: 'boutique', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
+  luxe: { name: 'Luxe Fashion', group: 'boutique', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
+  chic: { name: 'Chic', group: 'boutique', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
+  nova: { name: 'Nova', group: 'boutique', tagline: 'Navy and orange editorial: photo hero, split banners, favourites with tabs, complete the look.', swatches: ['#141b2b', '#e2602a', '#f6f3ef'] },
+  shopease: { name: 'ShopEase', group: 'modern', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
+  novatrend: { name: 'NovaTrend', group: 'modern', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  urban: { name: 'Urban', group: 'modern', tagline: 'Clean city look: full-width photo hero, photo category tiles, trust badges.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  market: { name: 'Market', group: 'store', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
+  mega: { name: 'Mega', group: 'store', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
+  topdeal: { name: 'TopDeal', group: 'store', tagline: 'Deals store: navy header, banner with six tiles, round categories, side lists.', swatches: ['#1f2a44', '#fbbf24', 'var(--brand)'] },
 };
 export function isTheme(v: unknown): v is ThemeKey {
   return typeof v === 'string' && (THEMES as readonly string[]).includes(v);
@@ -96,12 +103,13 @@ export const SETTINGS_SCHEMA = {
   // layout 'grid': a plain grid (e.g. "All products", 20 items) with a View all button under it.
   product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid', 'trio']).default('row'), labels }),
   banners: z.object({ items: z.array(z.object({ image, title: text(80), subtitle: text(160), link })).max(3).default([]), labels }),
-  about: z.object({ image, link, link_label: text(40) }),
+  about: z.object({ image, link, link_label: text(40), labels }),
   testimonials: productList.extend({
     products_title: text(80),
     items: z.array(z.object({ quote: text(400), name: text(60), place: text(60), rating: z.coerce.number().int().min(1).max(5).default(5) })).max(12).default([]),
+    labels,
   }),
-  gallery: z.object({ images: z.array(z.object({ image, link })).max(12).default([]), handle: text(60), handle_link: link }),
+  gallery: z.object({ images: z.array(z.object({ image, link })).max(12).default([]), handle: text(60), handle_link: link, labels }),
   deal: productList.extend({
     eyebrow: text(40),
     link,
@@ -112,41 +120,64 @@ export const SETTINGS_SCHEMA = {
   newsletter: z.object({ labels }),
 } satisfies Record<SectionType, z.ZodType>;
 
-/** The texts each section lets the admin rename; "fallback" is what shows when left blank. */
-export const LABEL_FIELDS: Partial<Record<SectionType, { key: string; name: string; fallback: string }[]>> = {
+/** The texts each section lets the admin rename; "fallback" is what shows when left blank; "only" = the themes that use it. */
+export type LabelField = { key: string; name: string; fallback: string; only?: ThemeKey[] };
+const novaBanner = [1, 2, 3].flatMap((i): LabelField[] => [
+  { key: `eyebrow${i}`, name: `Banner ${i} – small line above the title`, fallback: '', only: ['nova'] },
+  { key: `button${i}`, name: `Banner ${i} – button`, fallback: 'Same as the button text', only: ['nova'] },
+]);
+export const LABEL_FIELDS: Partial<Record<SectionType, LabelField[]>> = {
   hero: [
     { key: 'eyebrow', name: 'Small text above the heading', fallback: 'Your shop tagline' },
-    { key: 'button2', name: 'Second button', fallback: 'Explore collection / New arrivals' },
-    { key: 'chip1', name: 'ShopEase point 1', fallback: 'Best prices' },
-    { key: 'chip1_text', name: 'ShopEase point 1 – small text', fallback: 'Every day' },
-    { key: 'chip2', name: 'ShopEase point 2', fallback: 'Cash on delivery' },
-    { key: 'chip2_text', name: 'ShopEase point 2 – small text', fallback: 'Pay at your door' },
-    { key: 'chip3', name: 'ShopEase point 3', fallback: 'Fast delivery' },
-    { key: 'chip3_text', name: 'ShopEase point 3 – small text', fallback: 'All over Bangladesh' },
+    { key: 'button2', name: 'Second button', fallback: 'Explore collection / New arrivals', only: ['luxora', 'luxe', 'novatrend', 'urban', 'chic'] },
+    { key: 'highlight', name: 'Words of the heading shown in colour', fallback: 'The last two words', only: ['nova'] },
+    { key: 'script', name: 'Handwritten line on the photo', fallback: 'Style that feels like you', only: ['nova'] },
+    { key: 'chip1', name: 'Point 1', fallback: 'Best prices', only: ['shopease'] },
+    { key: 'chip1_text', name: 'Point 1 – small text', fallback: 'Every day', only: ['shopease'] },
+    { key: 'chip2', name: 'Point 2', fallback: 'Cash on delivery', only: ['shopease'] },
+    { key: 'chip2_text', name: 'Point 2 – small text', fallback: 'Pay at your door', only: ['shopease'] },
+    { key: 'chip3', name: 'Point 3', fallback: 'Fast delivery', only: ['shopease'] },
+    { key: 'chip3_text', name: 'Point 3 – small text', fallback: 'All over Bangladesh', only: ['shopease'] },
   ],
   benefits: [1, 2, 3, 4, 5].flatMap((i) => [
     { key: `b${i}_title`, name: `Card ${i} – title`, fallback: 'Automatic (from Settings)' },
     { key: `b${i}_text`, name: `Card ${i} – small text`, fallback: 'Automatic (from Settings)' },
   ]),
   category_tiles: [
+    { key: 'eyebrow', name: 'Small line above the heading', fallback: 'Shop by category', only: ['nova'] },
     { key: 'view_all', name: '“View all” link', fallback: 'View all categories' },
     { key: 'tile', name: 'Text under each category', fallback: 'Shop now' },
-    { key: 'style', name: 'Market theme: “mini” for small tiles, empty for the grid', fallback: 'grid' },
+    { key: 'style', name: '“mini” for small tiles, empty for the grid', fallback: 'grid', only: ['market'] },
   ],
   collection: [
     { key: 'view_all', name: '“View all” link', fallback: 'View all' },
-    { key: 'badge', name: 'Badge on each product (NovaTrend)', fallback: 'Bestseller' },
-    { key: 'eyebrow', name: 'Small text on the photo (Luxora)', fallback: 'Collection' },
-    { key: 'button', name: 'Button on the photo (Luxora)', fallback: 'Shop now' },
+    { key: 'badge', name: 'Badge on each product', fallback: 'Bestseller', only: ['novatrend'] },
+    { key: 'eyebrow', name: 'Small line above the heading', fallback: 'Collection / Shop the look', only: ['luxora', 'nova'] },
+    { key: 'button', name: 'Button', fallback: 'Shop now / Explore looks', only: ['luxora', 'nova'] },
   ],
   product_row: [
+    { key: 'eyebrow', name: 'Small line above the heading', fallback: 'Featured products', only: ['nova'] },
     { key: 'view_all', name: '“View all” link (slider)', fallback: 'View all' },
     { key: 'grid_button', name: 'Button under the grid', fallback: 'View all products' },
     { key: 'badge', name: 'Badge on each product', fallback: 'New / Hot' },
+    { key: 'tab1', name: 'Tab 1 (this section’s products)', fallback: 'Best sellers', only: ['nova'] },
+    { key: 'tab2', name: 'Tab 2 (newest products)', fallback: 'New in', only: ['nova'] },
+    { key: 'tab3', name: 'Tab 3 (products on sale)', fallback: 'Special price', only: ['nova'] },
   ],
   banners: [
     { key: 'button', name: 'Button / link text', fallback: 'Shop now' },
-    { key: 'place', name: 'Mega theme: “sidebar” shows the first banner in the left column', fallback: 'main' },
+    { key: 'place', name: '“sidebar” shows the first banner in the left column', fallback: 'main', only: ['mega', 'topdeal'] },
+    { key: 'eyebrow', name: 'Small line above the heading (3 banners)', fallback: 'The style journal', only: ['nova'] },
+    ...novaBanner,
+  ],
+  about: [
+    { key: 'eyebrow', name: 'Small line above the heading', fallback: 'More than fashion', only: ['nova'] },
+    { key: 'script', name: 'Handwritten line on the photo', fallback: 'Fashion · People · Possibilities', only: ['nova'] },
+  ],
+  testimonials: [{ key: 'eyebrow', name: 'Small line above the heading', fallback: 'Customer love', only: ['nova'] }],
+  gallery: [
+    { key: 'eyebrow', name: 'Small line above the heading', fallback: 'Our looks', only: ['nova'] },
+    { key: 'view_all', name: '“View gallery” link', fallback: 'View gallery', only: ['nova'] },
   ],
   deal: [{ key: 'button', name: 'Button text', fallback: 'Shop the deal' }],
   newsletter: [
@@ -154,6 +185,11 @@ export const LABEL_FIELDS: Partial<Record<SectionType, { key: string; name: stri
     { key: 'placeholder', name: 'Text inside the email box', fallback: 'Enter your email' },
   ],
 };
+
+/** The label fields a theme actually shows for a section type. */
+export function labelFieldsFor(type: SectionType, theme: string): LabelField[] {
+  return (LABEL_FIELDS[type] ?? []).filter((f) => !f.only || (f.only as string[]).includes(theme));
+}
 
 /** A section's own wording for `key`, or the default. */
 export function lbl(settings: unknown, key: string, fallback: string): string {

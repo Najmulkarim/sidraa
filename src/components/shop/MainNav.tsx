@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 /** Category links in the header row, next to the logo (wide screens); the current one is underlined. */
-export function MainNav({ links, look = 'underline' }: { links: { href: string; label: string }[]; look?: 'underline' | 'pill' | 'color' }) {
+export function MainNav({ links, look = 'underline' }: { links: { href: string; label: string }[]; look?: 'underline' | 'pill' | 'color' | 'dark' }) {
   const path = usePathname();
   return (
     <nav aria-label="Main" className="h-full">
@@ -17,7 +17,9 @@ export function MainNav({ links, look = 'underline' }: { links: { href: string; 
                 href={l.href}
                 aria-current={active ? 'page' : undefined}
                 className={`relative flex items-center whitespace-nowrap text-[14px] transition-colors ${
-                  look === 'pill'
+                  look === 'dark'
+                    ? `h-full text-[13px] font-medium ${active ? 'text-[var(--nova)]' : 'text-white/80 hover:text-white'}`
+                    : look === 'pill'
                     ? `h-9 rounded-full px-4 font-medium ${active ? 'bg-night text-white' : 'text-ink hover:bg-soft'}`
                     : look === 'color'
                       ? `h-full font-medium ${active ? 'text-brand' : 'text-ink hover:text-brand'}`

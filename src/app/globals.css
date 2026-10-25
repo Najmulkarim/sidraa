@@ -70,6 +70,7 @@ html {
 [data-theme='novatrend'] { --font-heading: var(--f-jakarta); --font-body: var(--f-jakarta); }
 [data-theme='topdeal'] { --font-heading: var(--f-poppins); --font-body: var(--f-inter); }
 [data-theme='urban'] { --font-heading: var(--f-inter); --font-body: var(--f-inter); }
+[data-theme='nova'] { --font-heading: var(--f-playfair); --font-body: var(--f-inter); --nova: #e2602a; --nova-ink: #141b2b; }
 [data-theme='mega'] { --font-heading: var(--f-jakarta); --font-body: var(--f-inter); }
 [data-theme='market'] { --font-heading: var(--f-jakarta); --font-body: var(--f-inter); }
 [data-theme='chic'] { --font-heading: var(--f-playfair); --font-body: var(--f-poppins); }

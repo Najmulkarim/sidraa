@@ -20,7 +20,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       {settings.fb_pixel_id && <FacebookPixel pixelId={settings.fb_pixel_id} />}
       <Header settings={settings} categories={categories} zones={zones} theme={settings.home_theme} />
       <main id="main">{children}</main>
-      <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' ? 'dark' : 'light'} />
+      <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' || settings.home_theme === 'nova' ? 'dark' : 'light'} />
       {layout.bottom_nav && <MobileTabBar phone={settings.phone} />}
       {layout.back_to_top && <BackToTop raised={layout.bottom_nav} />}
       {layout.whatsapp && settings.phone && <WhatsAppButton phone={settings.phone} raised={layout.bottom_nav} />}

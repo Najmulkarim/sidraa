@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { activateTheme } from '@/actions/admin-home';
-import { THEME_INFO, THEMES, type ThemeKey } from '@/lib/home-sections';
+import { THEME_GROUPS, THEME_INFO, THEMES, type ThemeKey } from '@/lib/home-sections';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { notify } from './Toaster';
@@ -25,35 +25,47 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
   }
 
   return (
-    <section className="space-y-3">
-      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {THEMES.map((t) => {
-          const info = THEME_INFO[t];
-          const isLive = current === t;
-          const isEditing = editing === t;
-          return (
-            <li key={t} className={`card flex flex-col overflow-hidden transition ${isEditing ? 'ring-2 ring-brand' : ''}`}>
-              <div className="relative h-44 overflow-hidden border-b border-line" aria-hidden="true">
-                <ThemeThumb theme={t} photos={photos} />
-                {isLive && <span className="absolute right-2 top-2 z-10 rounded-full bg-ok px-2 py-0.5 text-[11px] font-bold text-white shadow">LIVE</span>}
-              </div>
-              <div className="flex flex-1 flex-col gap-2 p-3.5">
-                <p className="font-semibold">{info.name}</p>
-                <p className="flex-1 text-[12.5px] text-muted">{info.tagline}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {isLive ? (
-                    <span className="btn btn-sm flex-1 cursor-default bg-ok/10 text-ok"><Icon name="check" size={14} /> Live now</span>
-                  ) : (
-                    <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm flex-1">{pending ? '…' : 'Activate'}</button>
-                  )}
-                  <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" title="Open a preview in a new tab"><Icon name="eye" size={14} /> Preview</a>
-                  <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} className={`btn btn-sm ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={14} /> Edit</Link>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+    <section className="space-y-6">
+      <p className="flex flex-wrap items-center gap-2 rounded-xl bg-ok/10 px-4 py-3 text-[13.5px] text-ok">
+        <Icon name="check" size={16} /> Live now: <b>{THEME_INFO[current].name}</b>
+        <span className="text-ink/60">· {THEMES.length} themes in {THEME_GROUPS.length} groups — each keeps its own sections.</span>
+      </p>
+      {THEME_GROUPS.map((g) => (
+        <div key={g.key} className="space-y-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-[15px] font-bold">{g.name} <span className="font-normal text-muted">({THEMES.filter((t) => THEME_INFO[t].group === g.key).length})</span></h2>
+            <p className="text-[12.5px] text-muted">{g.hint}</p>
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {THEMES.filter((t) => THEME_INFO[t].group === g.key).map((t) => {
+              const info = THEME_INFO[t];
+              const isLive = current === t;
+              const isEditing = editing === t;
+              return (
+                <li key={t} className={`card flex flex-col overflow-hidden transition ${isEditing ? 'ring-2 ring-brand' : ''}`}>
+                  <div className="relative h-44 overflow-hidden border-b border-line" aria-hidden="true">
+                    <ThemeThumb theme={t} photos={photos} />
+                    {isLive && <span className="absolute right-2 top-2 z-10 rounded-full bg-ok px-2 py-0.5 text-[11px] font-bold text-white shadow">LIVE</span>}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 p-3.5">
+                    <p className="font-semibold">{info.name}</p>
+                    <p className="flex-1 text-[12.5px] text-muted">{info.tagline}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {isLive ? (
+                        <span className="btn btn-sm flex-1 cursor-default bg-ok/10 text-ok"><Icon name="check" size={14} /> Live now</span>
+                      ) : (
+                        <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm flex-1">{pending ? '…' : 'Activate'}</button>
+                      )}
+                      <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" title="Open a preview in a new tab"><Icon name="eye" size={14} /> Preview</a>
+                      <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} className={`btn btn-sm ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={14} /> Edit</Link>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
       {msg && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>{msg.text}</p>}
     </section>
   );
@@ -114,6 +126,18 @@ function ThemeThumb({ theme, photos }: { theme: ThemeKey; photos: string[] }) {
           <Pic i={0} className="h-[88%] rounded-xl" />
         </div>
         <span className="flex justify-around px-2 py-1.5">{[1, 2, 3, 4, 5, 6].map((n) => <Pic key={n} i={n} className="h-6 w-6 rounded-full" />)}</span>
+      </div>
+    );
+  }
+  if (theme === 'nova') {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        <span className="h-1.5 bg-[#e2602a]" />
+        <span className="flex items-center justify-between bg-[#141b2b] px-2.5 py-1.5"><span className="h-[6px] w-8 rounded-sm bg-white" /><span className="flex gap-1.5">{[0, 1, 2, 3].map((n) => <span key={n} className="h-[3px] w-4 rounded-sm bg-white/50" />)}</span><span className="h-2 w-2 rounded-full bg-white/60" /></span>
+        <span className="relative h-16 bg-[#141b2b]"><Pic i={0} className="absolute inset-y-0 right-0 w-[60%] opacity-90" /><span className="absolute inset-y-0 left-0 w-[55%] bg-gradient-to-r from-[#141b2b] to-transparent" /><span className="absolute left-2 top-4 h-2 w-14 rounded-sm bg-white" /><span className="absolute left-2 top-7 h-2 w-9 rounded-sm bg-[#e2602a]" /></span>
+        <span className="flex items-center gap-1.5 px-2 py-1.5"><span className="h-2 w-10 rounded-sm bg-[#141b2b]" />{[1, 2, 3, 4, 5].map((n) => <Pic key={n} i={n} className="h-5 w-5 rounded-full" />)}</span>
+        <span className="grid grid-cols-2 gap-1 px-2"><span className="grid h-7 grid-cols-2 bg-[#141b2b]"><Pic i={2} /></span><span className="relative h-7 bg-[#e2602a]"><Pic i={3} className="absolute inset-0 opacity-70" /></span></span>
+        <span className="grid grid-cols-6 gap-0.5 px-2 py-1.5">{[4, 5, 6, 7, 1, 2].map((n) => <Pic key={n} i={n} className="aspect-[4/5]" />)}</span>
       </div>
     );
   }

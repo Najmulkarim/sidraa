@@ -1,5 +1,6 @@
 import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
+import { NovaBanners, NovaBenefits, NovaCategories, NovaFavourites, NovaGallery, NovaGrid, NovaHero, NovaLook, NovaNewsletter, NovaReviews, NovaStory } from './NovaSections';
 import { TopCircles, TopHero, TopProducts, TopSidebar } from './TopDealSections';
 import { UrbanBanner, UrbanCategories, UrbanHero, UrbanProducts, UrbanTrust } from './UrbanSections';
 import { MegaBanner, MegaDeals, MegaFrame, MegaGrid, MegaMobileCategories, MegaNotice, MegaSidebar } from './MegaSections';
@@ -67,9 +68,10 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
   const mega = theme === 'mega';
   const topdeal = theme === 'topdeal';
   const urban = theme === 'urban';
+  const nova = theme === 'nova';
   // Mega: a banners section marked "sidebar" becomes the tall offer in the left column.
   const sideBanner = mega || topdeal ? sections.find((s) => s.type === 'banners' && lbl(s.settings, 'place', 'main') === 'sidebar') : undefined;
-  const onSale = market && sections.some((s) => s.type === 'product_row' && (s.settings as SectionSettings['product_row']).layout === 'trio') ? await getOnSale(4) : [];
+  const onSale = nova ? await getOnSale(12) : market && sections.some((s) => s.type === 'product_row' && (s.settings as SectionSettings['product_row']).layout === 'trio') ? await getOnSale(4) : [];
   const t = theme as ShopTheme;
 
   return (
@@ -81,6 +83,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
         const products = lists[i]!;
         switch (s.type) {
           case 'hero':
+            if (nova) return <NovaHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} benefits={benefits} />;
             if (topdeal) return <TopHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} categories={categories} covers={covers} />;
             if (urban) return <UrbanHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={latest.length ? latest : featured} />;
             if (market || mega) return <MarketHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} />;
@@ -96,6 +99,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'benefits': {
             // Each card's wording can be renamed in the admin; blank keeps the automatic text.
             const items = benefits.map((b, n) => ({ ...b, title: lbl(s.settings, `b${n + 1}_title`, b.title), text: lbl(s.settings, `b${n + 1}_text`, b.text) }));
+            if (nova) return <NovaBenefits key={key} items={items} />;
             if (chic || topdeal) return <ChicBenefits key={key} items={items} overlap={chic && sections[i - 1]?.type === 'hero'} />;
             if (urban) return <UrbanTrust key={key} title={s.title} items={items} />;
             return lux ? <Benefits key={key} items={items} /> : <ThemeBenefits key={key} theme={t} items={items} />;
@@ -103,6 +107,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'category_tiles': {
             const ids = (s.settings as SectionSettings['category_tiles']).category_ids;
             const chosen = ids.length ? ids.map((id) => categories.find((c) => c.id === id)).filter((c): c is (typeof categories)[number] => !!c) : categories;
+            if (nova) return <NovaCategories key={key} title={s.title} settings={s.settings as SectionSettings['category_tiles']} categories={chosen} covers={covers} />;
             if (topdeal) return <TopCircles key={key} categories={chosen} covers={covers} />;
             if (urban) return <UrbanCategories key={key} title={s.title} categories={chosen} covers={covers} />;
             if (market) {
@@ -116,11 +121,13 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <ThemeCategories key={key} theme={t} title={s.title} categories={chosen} covers={covers} settings={s.settings as SectionSettings['category_tiles']} />;
           }
           case 'collection':
+            if (nova) return <NovaLook key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['collection']} products={products} />;
             return lux || theme !== 'novatrend'
               ? <Collection key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['collection']} products={products} />
               : <BestSellers key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['collection']} products={products} />;
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
+            if (nova) return st.layout === 'grid' ? <NovaGrid key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} /> : <NovaFavourites key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} latest={latest} onSale={onSale} />;
             if (st.layout === 'grid' && !market && !mega && !topdeal && !urban) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
             if (topdeal) return st.layout === 'grid' ? <MarketProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} /> : <TopProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} categories={categories} covers={covers} />;
             if (urban) return <UrbanProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} />;
@@ -139,6 +146,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <ThemeProductRow key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;
           }
           case 'banners':
+            if (nova) return <NovaBanners key={key} title={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             if (topdeal) return s === sideBanner ? null : <MarketBanners key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             if (urban) return <UrbanBanner key={key} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             if (mega) return s === sideBanner ? null : <MegaBanner key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
@@ -148,12 +156,15 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               ? <Banners key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} fallbackImage={photos[1] ?? photos[0] ?? null} />
               : <ThemeBanners key={key} theme={t} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
           case 'testimonials':
+            if (nova) return <NovaReviews key={key} title={s.title} settings={s.settings as SectionSettings['testimonials']} />;
             return lux
               ? <Testimonials key={key} title={s.title} settings={s.settings as SectionSettings['testimonials']} products={products} />
               : <ReviewCards key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['testimonials']} />;
           case 'gallery':
+            if (nova) return <NovaGallery key={key} title={s.title} settings={s.settings as SectionSettings['gallery']} fallback={latest.filter((p) => p.images[0]).map((p) => ({ image: p.images[0]!.storage_path, link: `/product/${p.slug}` }))} />;
             return <Gallery key={key} title={s.title} settings={s.settings as SectionSettings['gallery']} fallback={latest.filter((p) => p.images[0]).map((p) => ({ image: p.images[0]!.storage_path, link: `/product/${p.slug}` }))} />;
           case 'about':
+            if (nova) return <NovaStory key={key} title={s.title} text={s.subtitle} settings={s.settings as SectionSettings['about']} image={photos[3] ?? photos[0] ?? null} />;
             return <About key={key} title={s.title} text={s.subtitle} settings={s.settings as SectionSettings['about']} store={settings} />;
           case 'deal':
             if (topdeal) return <MarketDeals key={key} title={s.title} settings={s.settings as SectionSettings['deal']} products={products.slice(0, (s.settings as SectionSettings['deal']).limit)} />;
@@ -161,6 +172,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
             if (market) return <MarketDeals key={key} title={s.title} settings={s.settings as SectionSettings['deal']} products={products.slice(0, (s.settings as SectionSettings['deal']).limit)} />;
             return <Deal key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['deal']} product={products[0] ?? null} />;
           case 'newsletter':
+            if (nova) return <NovaNewsletter key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['newsletter']} store={settings} />;
             return <NewsletterBand key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['newsletter']} />;
           default:
             return null;

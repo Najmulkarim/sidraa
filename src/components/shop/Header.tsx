@@ -50,6 +50,43 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
   const tel = settings.phone ? settings.phone.replace(/[^\d+]/g, '') : null;
   const icon = 'grid h-10 w-10 place-items-center rounded-full text-night transition hover:bg-white/70 hover:text-brand';
 
+  // Nova: orange announcement bar, then a navy bar with the menu in the middle.
+  if (theme === 'nova') {
+    const light = 'grid h-10 w-10 place-items-center rounded-full text-white transition hover:bg-white/10';
+    return (
+      <>
+        {show.announcement && announce && (
+          <div className="bg-[var(--nova)] text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
+            <div className="container-page flex h-9 items-center gap-4">
+              <p className="min-w-0 flex-1 truncate text-center">{announce}</p>
+              <Link href="/products?sort=new" className="hidden shrink-0 items-center gap-1 hover:underline md:flex">Shop now <Icon name="arrow" size={13} /></Link>
+            </div>
+          </div>
+        )}
+        <header className={`${show.sticky ? 'sticky top-0' : 'relative'} z-30 bg-[var(--nova-ink)] text-white`}>
+          <div className="container-page flex h-16 items-center gap-2 md:h-[70px]">
+            <span className="[&_summary]:text-white"><MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} /></span>
+            <Link href="/" className="flex shrink-0 items-center" aria-label={`${settings.store_name} home`}><Logo settings={settings} variant="dark" className="h-10 md:h-11" /></Link>
+            <div className={`mx-auto hidden self-stretch ${show.menu ? 'lg:block' : ''}`}><MainNav links={barLinks} look="dark" /></div>
+            <div className="ml-auto flex items-center gap-0.5 lg:ml-0 lg:gap-1">
+              {show.search && <details className="group relative">
+                <summary className={`${light} cursor-pointer list-none [&::-webkit-details-marker]:hidden`} aria-label="Search"><Icon name="search" size={20} /></summary>
+                <form action="/products" role="search" className="absolute right-0 top-12 z-40 flex w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-md bg-card text-night shadow-xl ring-1 ring-line">
+                  <label htmlFor="nova-search" className="sr-only">Search products</label>
+                  <input id="nova-search" name="q" type="search" placeholder="Search products…" maxLength={80} autoFocus className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[15px] outline-none" />
+                  <button className="bg-[var(--nova)] px-4 text-white" aria-label="Search"><Icon name="search" size={18} /></button>
+                </form>
+              </details>}
+              {show.track && <Link href="/track" className={light} aria-label="Track your order" title="Track order"><Icon name="truck" size={21} /></Link>}
+              {show.call && tel && <a href={`tel:${tel}`} className={`${light} max-sm:hidden`} aria-label={`Call ${settings.phone}`} title="Call us"><Icon name="phone" size={19} /></a>}
+              <span className="[&>a]:text-white [&>a:hover]:bg-white/10 [&>a:hover]:text-white"><CartBadge /></span>
+            </div>
+          </div>
+        </header>
+      </>
+    );
+  }
+
   // Market theme: help links on top, a big search box with a category picker, the phone number, and a category bar.
   if (theme === 'market' || theme === 'mega' || theme === 'topdeal') {
     const dark = theme === 'mega' || theme === 'topdeal';

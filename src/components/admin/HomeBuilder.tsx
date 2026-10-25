@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition, type ReactNode } from 'react';
 import { addHomeSection, deleteHomeSection, reorderHomeSections, saveHomeSection, setHomeSectionEnabled } from '@/actions/admin-home';
-import { LABEL_FIELDS, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
+import { labelFieldsFor, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
@@ -357,8 +357,8 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
         </div>
       )}
 
-      {LABEL_FIELDS[t] && (
-        <LabelsEditor fields={LABEL_FIELDS[t]!} value={(settings as { labels?: Record<string, string> }).labels ?? {}} onChange={(labels) => set({ labels })} />
+      {labelFieldsFor(t, ctx.theme).length > 0 && (
+        <LabelsEditor fields={labelFieldsFor(t, ctx.theme)} value={(settings as { labels?: Record<string, string> }).labels ?? {}} onChange={(labels) => set({ labels })} />
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
@@ -385,6 +385,7 @@ const HERO_SIZE: Record<string, { w: number; h: number; aspect: string; where: s
   urban: { w: 2400, h: 1200, aspect: 'aspect-[2/1]', where: 'full-width photo behind the text — keep the left side calm so the white text reads well' },
   mega: { w: 1600, h: 1000, aspect: 'aspect-[16/10]', where: 'slide 1 = big banner, slides 2 and 3 = the two small banners beside it; the photo sits on the right half' },
   market: { w: 1600, h: 1000, aspect: 'aspect-[16/10]', where: 'slide 1 = big banner (1600 × 1000), slides 2 and 3 = the two small banners (800 × 500); the photo sits on the right half' },
+  nova: { w: 2400, h: 1000, aspect: 'aspect-[12/5]', where: 'full-width photo; the person on the right half, the left side darker so the white text reads well. Add more slides to make it a slider' },
   chic: { w: 1400, h: 1700, aspect: 'aspect-[14/17]', where: 'portrait photo in an arch on the colour circle (a person facing the camera looks best)' },
 };
 
