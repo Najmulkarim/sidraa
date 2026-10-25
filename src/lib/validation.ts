@@ -375,5 +375,5 @@ export const marketingSettingsSchema = z.object({
   capiEnabled: checkbox,
   capiToken: secret,
   capiTestCode: optionalText(40),
-  graphVersion: z.string().trim().regex(/^v\d{1,3}\.\d$/, 'Like v21.0'),
+  graphVersion: z.string().trim().regex(/^v\d{1,3}\.\d$/, 'Like v26.0'),
 });

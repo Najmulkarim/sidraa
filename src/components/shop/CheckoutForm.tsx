@@ -50,6 +50,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
       num_items: ok.reduce((n, l) => n + l.quantity, 0),
       content_type: 'product',
       content_ids: ok.map((l) => ('product_id' in l ? l.product_id : l.variant_id)),
+      contents: ok.map((l) => ({ id: 'product_id' in l ? l.product_id : l.variant_id, quantity: l.quantity, item_price: 'unit_price' in l ? l.unit_price : 0 })),
     });
   }, [quote]);
 
