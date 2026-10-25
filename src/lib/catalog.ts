@@ -128,6 +128,40 @@ export const getOnSale = cache(async (limit = 10): Promise<ProductWithRelations[
   return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
 });
 
+/** Published products by id, in the order given (ids that are not visible are skipped). */
+export const getProductsByIds = cache(async (ids: string[]): Promise<ProductWithRelations[]> => {
+  if (ids.length === 0) return [];
+  const { data, error } = await createPublicClient().from('products').select(PRODUCT_SELECT).in('id', ids);
+  if (error) console.error('[catalog] by ids', error.message);
+  const byId = new Map(((data as unknown as ProductWithRelations[] | null) ?? []).map((p) => [p.id, sortRelations(p)]));
+  return ids.map((id) => byId.get(id)).filter((p): p is ProductWithRelations => !!p);
+});
+
+export const getCategoryProducts = cache(async (categoryId: string, limit = 8): Promise<ProductWithRelations[]> => {
+  const { data, error } = await createPublicClient()
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('category_id', categoryId)
+    .order('published_at', { ascending: false })
+    .limit(limit);
+  if (error) console.error('[catalog] category products', error.message);
+  return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
+});
+
+export type HomeSectionRow = { id: string; type: string; title: string | null; subtitle: string | null; enabled: boolean; sort_order: number; settings: unknown };
+
+/** Enabled home page sections in order; null when they cannot be read (e.g. before migration 0016), so the page falls back to its default layout. */
+export const getHomeSections = cachedRead('home_sections', async (): Promise<HomeSectionRow[] | null> => {
+  const { data, error } = await createPublicClient()
+    .from('home_sections')
+    .select('id, type, title, subtitle, enabled, sort_order, settings')
+    .eq('enabled', true)
+    .order('sort_order')
+    .order('created_at');
+  if (error) throw new CatalogReadError(error.message);
+  return (data ?? []) as HomeSectionRow[];
+}, null);
+
 /** Largest real markdown (compare-at vs lowest price), for "up to N% off". */
 export function maxDiscount(products: ProductWithRelations[]): number {
   let best = 0;

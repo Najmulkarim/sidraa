@@ -21,6 +21,16 @@ export async function uploadProductPhoto(productId: string, file: File): Promise
   return error ? { error: `${file.name}: upload failed (${error.message}).` } : { path };
 }
 
+/** Home page builder pictures (banners, slides, feature photos) go under home/. */
+export async function uploadHomeImage(file: File): Promise<{ path: string } | { error: string }> {
+  const ext = TYPES[file.type];
+  if (!ext) return { error: `${file.name}: use JPG, PNG, WebP or AVIF.` };
+  if (file.size > MAX_PHOTO_BYTES) return { error: `${file.name}: larger than 5 MB.` };
+  const path = `home/${crypto.randomUUID()}.${ext}`;
+  const { error } = await getBrowserClient().storage.from(IMAGE_BUCKET).upload(path, file, { contentType: file.type, cacheControl: '31536000', upsert: false });
+  return error ? { error: `${file.name}: upload failed (${error.message}).` } : { path };
+}
+
 export async function removeUploadedPhoto(path: string) {
   await getBrowserClient().storage.from(IMAGE_BUCKET).remove([path]);
 }

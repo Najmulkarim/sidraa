@@ -30,6 +30,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: 'Store',
     items: [
+      { href: '/admin/homepage', label: 'Homepage', icon: 'home', need: ['store_settings'] },
       { href: '/admin/settings', label: 'Settings', icon: 'settings', need: ['store_settings', 'courier_settings', 'marketing', 'staff'] },
       { href: '/admin/account', label: 'My account', icon: 'user' },
     ],
