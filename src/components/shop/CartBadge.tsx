@@ -33,9 +33,9 @@ export function CartBadge() {
   const bump = useCartBump();
   const label = ready && count > 0 ? `Cart, ${count} item${count === 1 ? '' : 's'}` : 'Cart';
   return (
-    <Link href="/cart" className="relative flex flex-col items-center gap-0.5 px-1 text-ink hover:text-brand" aria-label={label}>
-      <Icon name="bag" size={23} />
-      <span className="hidden text-[11px] text-muted sm:block">Cart</span>
+    <Link href="/cart" className="relative flex flex-col items-center gap-1 px-1 text-ink hover:text-brand" aria-label={label}>
+      <Icon name="bag" size={22} />
+      <span className="hidden text-[11.5px] font-semibold leading-none sm:block">Cart</span>
       {ready && count > 0 && <CountBadge count={count} bump={bump} className="absolute -right-1 -top-1.5" />}
     </Link>
   );

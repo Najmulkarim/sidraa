@@ -41,7 +41,7 @@ export function MobileMenu({ links, logo }: { links: { href: string; label: stri
   }, []);
 
   return (
-    <details ref={ref} className="group md:hidden">
+    <details ref={ref} className="group lg:hidden">
       <summary
         className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full transition active:scale-90 hover:bg-tint group-open:before:fixed group-open:before:inset-0 group-open:before:z-40 group-open:before:animate-[fade-in_0.25s_ease-out] group-open:before:bg-night/55 group-open:before:backdrop-blur-[2px] [&::-webkit-details-marker]:hidden"
         aria-label="Menu"
