@@ -32,10 +32,14 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
     setItems(next);
     start(async () => {
       const r = await reorderHomeSections(next.map((s) => s.id));
-      if (!r.ok) { setMsg({ ok: false, text: r.message ?? 'Could not save the order.' }); notify(false, r.message ?? 'Could not save the order.'); }
+      if (!r.ok) {
+        setItems(items);
+        setMsg({ ok: false, text: r.message ?? 'Could not save the order.' });
+        notify(false, r.message ?? 'Could not save the order.');
+      } else notify(true, 'New order saved — the home page shows it now.');
     });
   }
-  const { list, dragging, handlers } = useDragSort(items, persistOrder);
+  const { list, dragging, handlers, handleProps, wasDrag } = useDragSort(items, persistOrder, { handleOnlyTouch: true });
 
   function move(i: number, d: -1 | 1) {
     const j = i + d;
@@ -100,15 +104,16 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
       <ol className="space-y-2.5">
         {list.map((s, i) => (
           <li key={s.id} data-sort-index={i} className={`card overflow-hidden transition ${dragging === i ? 'scale-[1.01] shadow-xl ring-2 ring-brand' : ''} ${s.enabled ? '' : 'opacity-75'}`}>
-            <div className="flex items-center gap-2 p-3 sm:gap-3">
-              <span {...handlers(i)} className="grid h-9 w-7 shrink-0 select-none place-items-center rounded-md text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
+            {/* The top row is the grip: mouse anywhere on it, finger on the ⠿ handle. */}
+            <div {...handlers(i)} className="flex select-none items-center gap-2 p-3 sm:gap-3">
+              <span {...handleProps} className="grid h-9 w-8 shrink-0 select-none place-items-center rounded-md text-lg text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-soft text-[12px] font-bold text-muted">{i + 1}</span>
-              <button type="button" onClick={() => setOpen(open === s.id ? null : s.id)} className="min-w-0 flex-1 text-left">
+              <button type="button" data-draggable onClick={() => { if (!wasDrag()) setOpen(open === s.id ? null : s.id); }} className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing">
                 <span className="block truncate text-[14px] font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
                 <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s)}</span>
               </button>
               <Switch checked={s.enabled} disabled={pending} onChange={(v) => setAsk({ s, enabled: v })} label={s.enabled ? 'On' : 'Off'} />
-              <div className="hidden gap-1 sm:flex">
+              <div className="flex gap-1">
                 <IconBtn label="Move up" disabled={i === 0 || pending} onClick={() => move(i, -1)}><Icon name="arrow" size={15} className="-rotate-90" /></IconBtn>
                 <IconBtn label="Move down" disabled={i === items.length - 1 || pending} onClick={() => move(i, 1)}><Icon name="arrow" size={15} className="rotate-90" /></IconBtn>
               </div>
