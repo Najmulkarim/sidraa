@@ -181,7 +181,8 @@ export function ThemeBenefits({ theme, items }: { theme: ShopTheme; items: { ico
 
 export function ThemeCategories({ theme, title, categories, covers }: { theme: ShopTheme; title: string | null; categories: Category[]; covers: Record<string, string | null> }) {
   if (!categories.length) return null;
-  const pic = (c: Category) => c.image_path ?? covers[c.id] ?? null;
+  // A real product photo beats the drawn placeholder pictures of the starter categories.
+  const pic = (c: Category) => (c.image_path && !c.image_path.startsWith('/demo/') ? c.image_path : covers[c.id] ?? c.image_path ?? null);
   if (theme === 'luxe') {
     return (
       <section className="container-page mt-10">
@@ -201,13 +202,13 @@ export function ThemeCategories({ theme, title, categories, covers }: { theme: S
       </section>
     );
   }
-  const cols = theme === 'shopease' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6';
   return (
     <section className="container-page mt-12">
       <Head theme={theme} title={title ?? 'Shop by category'} href={theme === 'novatrend' ? '/products' : null} linkLabel="View all categories" />
-      <ul className={`grid gap-3 sm:gap-4 ${cols}`}>
-        {categories.slice(0, theme === 'shopease' ? 10 : 12).map((c) => (
-          <li key={c.id}>
+      {/* One line; when there are more than fit it slides along by itself. */}
+      <AutoScroll label={title ?? 'Categories'}>
+        {categories.slice(0, 16).map((c) => (
+          <div key={c.id} className={`w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[22%] ${theme === 'shopease' ? 'lg:w-[calc((100%-4*1rem)/5)]' : 'lg:w-[calc((100%-5*1rem)/6)]'}`}>
             <Link href={`/category/${c.slug}`} className="group block overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-line transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)]">
               <span className="relative block aspect-[4/3.4] overflow-hidden bg-cream">
                 {imageUrl(pic(c)) ? <ProductImage path={pic(c)} alt="" sizes="(min-width: 1024px) 18vw, 45vw" className="transition duration-500 group-hover:scale-105" /> : <span className="grid h-full place-items-center font-display text-4xl text-brand/50">{c.name[0]}</span>}
@@ -224,9 +225,9 @@ export function ThemeCategories({ theme, title, categories, covers }: { theme: S
                 )}
               </span>
             </Link>
-          </li>
+          </div>
         ))}
-      </ul>
+      </AutoScroll>
     </section>
   );
 }

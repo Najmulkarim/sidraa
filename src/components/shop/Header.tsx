@@ -40,7 +40,9 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
   const barLinks = [
     { href: '/', label: 'Home' },
     { href: '/products?sort=new', label: 'New arrivals' },
-    ...(categories.length ? categories.slice(0, 4).map((c) => ({ href: `/category/${c.slug}`, label: c.name })) : [{ href: '/products', label: 'Shop all' }]),
+    ...categories.slice(0, 4).map((c) => ({ href: `/category/${c.slug}`, label: c.name })),
+    // With only a few categories the menu also offers the whole shop.
+    ...(categories.length < 4 ? [{ href: '/products', label: 'Shop all' }] : []),
   ];
   const tel = settings.phone ? settings.phone.replace(/[^\d+]/g, '') : null;
   const icon = 'grid h-10 w-10 place-items-center rounded-full text-night transition hover:bg-white/70 hover:text-brand';

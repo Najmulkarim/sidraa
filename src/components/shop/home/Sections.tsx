@@ -110,7 +110,7 @@ export function CategoryTiles({ title, subtitle, categories, images }: { title: 
       <SectionHead title={title ?? 'Find your signature look'} subtitle={subtitle} />
       <ul className="-mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:gap-7 md:mx-0 md:flex-wrap md:justify-center md:px-0">
         {categories.map((c) => {
-          const path = c.image_path ?? images[c.id] ?? null;
+          const path = c.image_path && !c.image_path.startsWith('/demo/') ? c.image_path : images[c.id] ?? c.image_path ?? null;
           return (
             <li key={c.id} className="shrink-0 snap-start">
               <Link href={`/category/${c.slug}`} className="group flex w-28 flex-col items-center gap-3 text-center sm:w-36">

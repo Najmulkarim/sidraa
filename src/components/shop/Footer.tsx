@@ -24,12 +24,13 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
   const light = tone === 'light';
   const social = Object.entries(settings.social ?? {}).filter(([k, v]) => SOCIAL[k] && typeof v === 'string' && v.startsWith('https://'));
   const year = new Date().getFullYear();
+  const hasContact = Boolean(settings.phone || settings.email || settings.address);
   const link = light ? 'text-ink/70 transition hover:text-brand' : 'text-white/65 transition hover:text-white';
 
   return (
     <footer className={`mt-20 ${light ? 'border-t border-line bg-soft text-ink/75 [&_.ft-title]:text-night' : 'bg-night text-white/75 [&_.ft-title]:text-white'}`}>
       {/* Phones: brand and newsletter span the width, link lists two by two. */}
-      <div className="container-page grid grid-cols-2 gap-x-6 gap-y-10 py-14 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1.6fr]">
+      <div className={`container-page grid grid-cols-2 gap-x-6 gap-y-10 py-14 ${hasContact ? 'lg:grid-cols-[1.5fr_1fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.5fr_1fr_1fr_1.6fr]'}`}>
         <div className="col-span-2 space-y-4 lg:col-span-1">
           <Logo settings={settings} variant={light ? 'light' : 'dark'} className="h-12" />
           <p className={`max-w-xs text-[14px] leading-relaxed ${light ? 'text-ink/65' : 'text-white/60'}`}>{settings.tagline ? `${settings.tagline}. ` : ''}Order in a minute and pay in cash when it reaches your door.</p>
@@ -60,12 +61,11 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
           <li><Link href="/info/terms" className={link}>Terms &amp; conditions</Link></li>
         </Column>
 
-        <Column title="Contact">
+        {hasContact && <Column title="Contact">
           {settings.phone && <li className="flex items-center gap-2"><Icon name="phone" size={15} className="text-accent" /><a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className={link}>{settings.phone}</a></li>}
           {settings.email && <li className="flex items-center gap-2"><Icon name="mail" size={15} className="text-accent" /><a href={`mailto:${settings.email}`} className={`${link} break-all`}>{settings.email}</a></li>}
           {settings.address && <li className="flex items-start gap-2"><Icon name="pin" size={15} className="mt-1 shrink-0 text-accent" /><span className={light ? 'text-ink/70' : 'text-white/65'}>{settings.address}</span></li>}
-          {!settings.phone && !settings.email && !settings.address && <li className={light ? 'text-ink/50' : 'text-white/50'}>Contact details are added in Admin → Settings.</li>}
-        </Column>
+        </Column>}
 
         <div className="col-span-2 lg:col-span-1">
           <p className="ft-title mb-4 text-[12px] font-semibold uppercase tracking-[0.2em]">Newsletter</p>

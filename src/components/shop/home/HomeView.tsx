@@ -2,7 +2,7 @@ import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
 import { BestSellers, Deal, NewsletterBand, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
 import {
-  getCategories, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
+  getShopCategories, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
 } from '@/lib/catalog';
 import { formatTaka } from '@/lib/format';
@@ -35,7 +35,7 @@ const HAS_PRODUCTS: SectionType[] = ['collection', 'product_row', 'testimonials'
 /** The whole home page for one theme (the live page and the admin preview). */
 export async function HomeView({ theme }: { theme: ThemeKey }) {
   const [settings, categories, zones, rows, covers, latest, featured] = await Promise.all([
-    getSettings(), getCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6),
+    getSettings(), getShopCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6),
   ]);
 
   const sections = (rows ?? FALLBACK)

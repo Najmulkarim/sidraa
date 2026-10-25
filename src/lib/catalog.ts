@@ -88,6 +88,19 @@ export const getCategories = cachedRead('categories', async (): Promise<Category
   return (data as Category[] | null) ?? [];
 }, []);
 
+/** Categories with at least one product on sale: what the menu, footer and home tiles show. */
+export const getShopCategories = cachedRead('shop_categories', async (): Promise<Category[]> => {
+  const { data, error } = await createPublicClient()
+    .from('categories')
+    .select('id, name, slug, description, image_path, sort_order, is_public, products!inner(id)')
+    .eq('products.status', 'published')
+    .limit(1, { referencedTable: 'products' })
+    .order('sort_order')
+    .order('name');
+  if (error) throw new CatalogReadError(error.message);
+  return ((data ?? []) as (Category & { products?: unknown })[]).map(({ products: _p, ...c }) => c as Category);
+}, []);
+
 export const getZones = cachedRead('zones', async (): Promise<DeliveryZone[]> => {
   const { data, error } = await createPublicClient()
     .from('delivery_zones')

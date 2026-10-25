@@ -4,10 +4,10 @@ import { FacebookPixel } from '@/components/shop/FacebookPixel';
 import { Footer } from '@/components/shop/Footer';
 import { Header } from '@/components/shop/Header';
 import { MobileTabBar } from '@/components/shop/MobileTabBar';
-import { getCategories, getSettings, getZones } from '@/lib/catalog';
+import { getSettings, getShopCategories, getZones } from '@/lib/catalog';
 
 export default async function ShopLayout({ children }: { children: ReactNode }) {
-  const [settings, categories, zones] = await Promise.all([getSettings(), getCategories(), getZones()]);
+  const [settings, categories, zones] = await Promise.all([getSettings(), getShopCategories(), getZones()]);
   return (
     <CartProvider>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-full focus:bg-card focus:px-4 focus:text-brand focus:py-2">
