@@ -107,7 +107,7 @@ export const trackSchema = z.object({
     .string()
     .trim()
     .transform((v) => v.toUpperCase().replace(/[^A-Z0-9]/g, ''))
-    .refine((v) => /^(ORDER)?\d{1,12}$/.test(v) || (v.length >= 10 && v.length <= 12), 'Enter your order number, e.g. Order0001'),
+    .refine((v) => /^[A-Z]{0,10}\d{1,12}$/.test(v) || (v.length >= 10 && v.length <= 12), 'Enter your order number, e.g. Order0001'),
   phoneLast4: z.string().trim().regex(/^\d{4}$/, 'Enter the last 4 digits of your phone number'),
 });
 

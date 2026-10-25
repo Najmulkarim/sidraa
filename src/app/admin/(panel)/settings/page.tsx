@@ -8,6 +8,9 @@ import { LogoUploader } from '@/components/admin/LogoUploader';
 import { MarketingSettingsForm, type MarketingView } from '@/components/admin/MarketingSettingsForm';
 import { PaymentSettingsForm } from '@/components/admin/PaymentSettingsForm';
 import { SettingsForm } from '@/components/admin/SettingsForm';
+import { BrandImageUploader } from '@/components/admin/BrandImageUploader';
+import { StorefrontSettingsForm } from '@/components/admin/StorefrontSettingsForm';
+import { parseStorefront } from '@/lib/storefront';
 import { StaffManager, type StaffMember } from '@/components/admin/StaffManager';
 import { ZoneForm } from '@/components/admin/ZoneForm';
 import { requireAdmin } from '@/lib/auth';
@@ -48,6 +51,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         ))}
       </nav>
 
+      {tab === 'storefront' && <StorefrontTab supabase={supabase} />}
       {tab === 'store' && <StoreTab supabase={supabase} />}
       {tab === 'delivery' && <DeliveryTab supabase={supabase} />}
       {tab === 'payments' && <PaymentsTab />}
@@ -59,6 +63,25 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 }
 
 type Db = Awaited<ReturnType<typeof requireAdmin>>['supabase'];
+
+async function StorefrontTab({ supabase }: { supabase: Db }) {
+  const [{ data }, { data: last }] = await Promise.all([
+    supabase.from('store_settings').select('storefront, order_number_prefix').eq('id', 1).single<{ storefront: unknown; order_number_prefix: string }>(),
+    supabase.from('orders').select('id').is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle<{ id: string }>(),
+  ]);
+  const sf = parseStorefront(data?.storefront);
+  return (
+    <div className="space-y-6">
+      <section className="card space-y-3 p-5">
+        <h2 className="font-semibold">Favicon &amp; share image</h2>
+        <BrandImageUploader kind="favicon" path={sf.favicon} title="Website favicon" hint="The small icon in the browser tab. Square PNG, about 80 × 80 or larger." box="h-14 w-14" />
+        <BrandImageUploader kind="og_image" path={sf.og_image} title="Facebook share image (home page)" hint="Shown when your website link is shared. 1200 × 630 works best." box="h-14 w-24" />
+        <p className="text-[12.5px] text-muted">Logo, store name, phone, email, address, colours and the announcement text are in the <a href="/admin/settings?tab=store" className="font-semibold text-brand underline">Store &amp; contact</a> tab. Payment numbers are in <a href="/admin/settings?tab=payments" className="font-semibold text-brand underline">Payments</a>.</p>
+      </section>
+      <StorefrontSettingsForm sf={sf} prefix={data?.order_number_prefix ?? 'Order'} previewOrderId={last?.id ?? null} />
+    </div>
+  );
+}
 
 async function StoreTab({ supabase }: { supabase: Db }) {
   const { data } = await supabase.from('store_settings').select('*').eq('id', 1).single();

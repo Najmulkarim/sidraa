@@ -70,7 +70,8 @@ export function capabilitiesFor(role: AdminRole, granted: readonly string[]): Se
 
 /** Settings tabs and who sees them. */
 export const SETTINGS_TABS = [
-  { key: 'store', label: 'Store', need: 'store_settings' },
+  { key: 'storefront', label: 'Storefront', need: 'store_settings' },
+  { key: 'store', label: 'Store & contact', need: 'store_settings' },
   { key: 'delivery', label: 'Delivery', need: 'store_settings' },
   { key: 'payments', label: 'Payments', need: 'store_settings' },
   { key: 'courier', label: 'Courier', need: 'courier_settings' },

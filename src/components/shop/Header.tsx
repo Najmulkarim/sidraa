@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { imageUrl } from '@/lib/env';
 import { formatTaka } from '@/lib/format';
+import { parseStorefront } from '@/lib/storefront';
 import type { Category, DeliveryZone, StoreSettings } from '@/lib/types';
 import { Icon } from '../icons';
 import { CartBadge } from './CartBadge';
@@ -23,6 +24,8 @@ export function Logo({ settings, variant = 'light', className = 'h-11' }: { sett
 /** Server component. The mobile menu (MobileMenu) is a <details> element, so it works before JavaScript loads. */
 export function Header({ settings, categories, zones, theme = 'luxora' }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[]; theme?: string }) {
   const cream = theme === 'luxora';
+  // Settings → Storefront: which header parts show.
+  const show = parseStorefront(settings.storefront).header;
   // The shop's own announcement (Settings → Store) replaces the automatic one.
   const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
   const announce = settings.announcement ?? [
@@ -49,7 +52,7 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
 
   return (
     <>
-      {announce && (
+      {show.announcement && announce && (
         /* One scrolling line on phones (the copy is doubled for a seamless loop), centred text from tablets up. */
         <div className="overflow-hidden bg-night py-2 text-[11.5px] uppercase tracking-[0.2em] text-white/90">
           <p className="hidden px-4 text-center md:block">{announce}</p>
@@ -64,7 +67,7 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
           backdrop-filter on the header itself would trap the drawer's position: fixed. */}
       {/* Logo left, menu centred, icons right, on the blush cream. The blur sits on a pseudo-element:
           backdrop-filter on the header itself would trap the drawer's position: fixed. */}
-      <header className={`sticky top-0 z-30 shadow-[0_1px_0_color-mix(in_oklab,var(--brand)_10%,var(--line))] before:absolute before:inset-0 before:-z-10 ${cream ? 'before:bg-cream/95' : 'before:bg-paper/95'} before:backdrop-blur`}>
+      <header className={`${show.sticky ? 'sticky top-0' : 'relative'} z-30 shadow-[0_1px_0_color-mix(in_oklab,var(--brand)_10%,var(--line))] before:absolute before:inset-0 before:-z-10 ${cream ? 'before:bg-cream/95' : 'before:bg-paper/95'} before:backdrop-blur`}>
         <div className="container-page flex h-16 items-center gap-2 md:h-[76px]">
           <MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} />
 
@@ -72,11 +75,11 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
             <Logo settings={settings} className="h-10 md:h-11" />
           </Link>
 
-          <div className="mx-auto hidden self-stretch lg:block"><MainNav links={barLinks} look={theme === 'luxe' ? 'pill' : theme === 'novatrend' ? 'color' : 'underline'} /></div>
+          <div className={`mx-auto hidden self-stretch ${show.menu ? 'lg:block' : ''}`}><MainNav links={barLinks} look={theme === 'luxe' ? 'pill' : theme === 'novatrend' ? 'color' : 'underline'} /></div>
 
           <div className="ml-auto flex items-center gap-0.5 lg:ml-0 lg:gap-1.5">
             {/* Search opens a small box under the icon (works without JavaScript). */}
-            <details className="group relative">
+            {show.search && <details className="group relative">
               <summary className={`${icon} cursor-pointer list-none [&::-webkit-details-marker]:hidden`} aria-label="Search">
                 <Icon name="search" size={20} />
               </summary>
@@ -85,11 +88,11 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
                 <input id="site-search" name="q" type="search" placeholder="Search products…" maxLength={80} autoFocus className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[15px] outline-none" />
                 <button className="bg-night px-4 text-white hover:bg-brand" aria-label="Search"><Icon name="search" size={18} /></button>
               </form>
-            </details>
-            <Link href="/track" className={icon} aria-label="Track your order" title="Track order">
+            </details>}
+            {show.track && <Link href="/track" className={icon} aria-label="Track your order" title="Track order">
               <Icon name="truck" size={21} />
-            </Link>
-            {tel && (
+            </Link>}
+            {show.call && tel && (
               <a href={`tel:${tel}`} className={`${icon} max-sm:hidden`} aria-label={`Call ${settings.phone}`} title="Call us">
                 <Icon name="phone" size={19} />
               </a>

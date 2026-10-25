@@ -4,6 +4,8 @@ import { Cormorant_Garamond, Inter, Jost, Playfair_Display, Plus_Jakarta_Sans, P
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import { isTheme } from '@/lib/home-sections';
+import { imageUrl } from '@/lib/env';
+import { parseStorefront } from '@/lib/storefront';
 import './globals.css';
 
 // One pair per home theme (globals.css maps [data-theme] to them). Not preloaded:
@@ -19,14 +21,18 @@ const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta].map((f) =>
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   const description = s.tagline ?? `Shop ${s.store_name} online. Cash on delivery across Bangladesh.`;
+  const sf = parseStorefront(s.storefront);
+  const favicon = imageUrl(sf.favicon);
+  const og = imageUrl(sf.og_image);
+  const title = sf.site_title || s.store_name;
   return {
     metadataBase: new URL(SITE_URL),
-    icons: { icon: '/brand/favicon.png', apple: '/brand/apple-icon.png' },
+    icons: { icon: favicon ?? '/brand/favicon.png', apple: favicon ?? '/brand/apple-icon.png' },
     // "Add to Home Screen" opens the shop full-screen, like an app.
     appleWebApp: { capable: true, title: s.store_name, statusBarStyle: 'default' },
-    title: { default: s.store_name, template: `%s · ${s.store_name}` },
+    title: { default: title, template: `%s · ${s.store_name}` },
     description,
-    openGraph: { siteName: s.store_name, type: 'website', locale: 'en_BD' },
+    openGraph: { siteName: s.store_name, type: 'website', locale: 'en_BD', ...(og ? { images: [{ url: og }] } : {}) },
     twitter: { card: 'summary_large_image' },
   };
 }
@@ -42,10 +48,14 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const s = await getSettings();
+  const sf = parseStorefront(s.storefront);
   // Only well-formed hex colours reach the style attribute.
   const style = {
     ...(HEX.test(s.theme.primary ?? '') ? { '--brand': s.theme.primary } : {}),
     ...(HEX.test(s.theme.accent ?? '') ? { '--accent': s.theme.accent } : {}),
+    // Settings → Storefront fonts override the theme's pair.
+    ...(sf.font_heading ? { '--font-heading': `var(--f-${sf.font_heading})` } : {}),
+    ...(sf.font_body ? { '--font-body': `var(--f-${sf.font_body})` } : {}),
   } as CSSProperties;
 
   return (

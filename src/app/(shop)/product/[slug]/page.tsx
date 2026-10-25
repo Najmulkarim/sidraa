@@ -7,6 +7,7 @@ import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { ProductGrid } from '@/components/shop/ProductCard';
 import { getProductBySlug, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
 import { imageUrl, SITE_URL } from '@/lib/env';
+import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { parseDescription, splitBullet } from '@/lib/product-content';
 import { Icon } from '@/components/icons';
@@ -179,7 +180,7 @@ export default async function ProductPage({ params }: Props) {
     <div className="container-page py-5 md:py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
 
-      <nav className="mb-4 text-[13px] text-muted md:mb-6" aria-label="Breadcrumb">
+      <nav className={`mb-4 text-[13px] text-muted md:mb-6 ${parseStorefront(settings.storefront).layout.breadcrumbs ? '' : 'sr-only'}`} aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1">
           <li><Link href="/" className="hover:text-ink">Home</Link> ›</li>
           {product.category && (

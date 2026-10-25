@@ -25,6 +25,10 @@ export type StoreSettings = {
   coupons_enabled: boolean;
   /** Which home page theme is live (luxora, shopease, luxe, novatrend). */
   home_theme: string;
+  /** Header / footer parts, fonts, favicon, invoice … (see lib/storefront.ts). */
+  storefront: unknown;
+  /** "Order" → Order0001; or a capitals prefix like SDR → SDR0001. */
+  order_number_prefix: string;
 };
 
 export type Category = {

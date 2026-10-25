@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Category, StoreSettings } from '@/lib/types';
+import { parseStorefront } from '@/lib/storefront';
 import { Icon, type IconName } from '../icons';
 import { Logo } from './Header';
 import { NewsletterForm } from './NewsletterForm';
@@ -22,9 +23,10 @@ function Column({ title, children }: { title: string; children: React.ReactNode 
 
 export function Footer({ settings, categories, tone = 'dark' }: { settings: StoreSettings; categories: Category[]; tone?: 'dark' | 'light' }) {
   const light = tone === 'light';
+  const show = parseStorefront(settings.storefront).footer;
   const social = Object.entries(settings.social ?? {}).filter(([k, v]) => SOCIAL[k] && typeof v === 'string' && v.startsWith('https://'));
   const year = new Date().getFullYear();
-  const hasContact = Boolean(settings.phone || settings.email || settings.address);
+  const hasContact = show.contact && Boolean(settings.phone || settings.email || settings.address);
   const link = light ? 'text-ink/70 transition hover:text-brand' : 'text-white/65 transition hover:text-white';
 
   return (
@@ -34,7 +36,7 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
         <div className="col-span-2 space-y-4 lg:col-span-1">
           <Logo settings={settings} variant={light ? 'light' : 'dark'} className="h-12" />
           <p className={`max-w-xs text-[14px] leading-relaxed ${light ? 'text-ink/65' : 'text-white/60'}`}>{settings.tagline ? `${settings.tagline}. ` : ''}Order in a minute and pay in cash when it reaches your door.</p>
-          {social.length > 0 && (
+          {show.social && social.length > 0 && (
             <ul className="flex gap-2">
               {social.map(([k, v]) => (
                 <li key={k}>
@@ -67,11 +69,11 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
           {settings.address && <li className="flex items-start gap-2"><Icon name="pin" size={15} className="mt-1 shrink-0 text-accent" /><span className={light ? 'text-ink/70' : 'text-white/65'}>{settings.address}</span></li>}
         </Column>}
 
-        <div className="col-span-2 lg:col-span-1">
+        {show.newsletter && <div className="col-span-2 lg:col-span-1">
           <p className="ft-title mb-4 text-[12px] font-semibold uppercase tracking-[0.2em]">Newsletter</p>
           <p className={`mb-4 text-[14px] ${light ? 'text-ink/65' : 'text-white/60'}`}>New arrivals, offers and restocks — first, in your inbox.</p>
           <NewsletterForm tone={light ? 'light' : 'dark'} />
-        </div>
+        </div>}
       </div>
       <div className={`py-5 text-center text-[12.5px] tracking-wide ${light ? 'bg-night text-white/70' : 'border-t border-white/10 text-white/50'}`}>
         © {year} {settings.store_name}. All rights reserved · Prices in Bangladeshi Taka (৳)

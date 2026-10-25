@@ -38,6 +38,8 @@ const FALLBACK_SETTINGS: StoreSettings = {
   announcement: null,
   coupons_enabled: true,
   home_theme: 'luxora',
+  storefront: {},
+  order_number_prefix: 'Order',
 };
 
 function sortRelations(p: ProductWithRelations): ProductWithRelations {
@@ -71,7 +73,7 @@ function cachedRead<T>(key: string, read: () => Promise<T>, fallback: T): () => 
 export const getSettings = cachedRead('settings', async (): Promise<StoreSettings> => {
   const { data, error } = await createPublicClient()
     .from('store_settings')
-    .select('store_name, tagline, logo_path, theme, phone, email, address, social, cod_terms, return_policy_days, order_ref_prefix, low_stock_threshold, fb_pixel_id, announcement, coupons_enabled, home_theme')
+    .select('store_name, tagline, logo_path, theme, phone, email, address, social, cod_terms, return_policy_days, order_ref_prefix, low_stock_threshold, fb_pixel_id, announcement, coupons_enabled, home_theme, storefront, order_number_prefix')
     .eq('id', 1)
     .maybeSingle();
   if (error || !data) throw new CatalogReadError(error?.message ?? 'store_settings row missing');

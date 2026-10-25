@@ -161,6 +161,7 @@ describe('order numbers in links', () => {
     expect(canonicalRef('ORDER0002')).toBe('Order0002');
     expect(canonicalRef('order12345')).toBe('Order12345');
     expect(canonicalRef('sd-33wh-wmkc')).toBe('SD-33WH-WMKC');
+    expect(canonicalRef('sdr0012')).toBe('SDR0012');
   });
   it('rejects anything else', () => {
     for (const v of ['Order12', 'Orderxyz', '', 'DROP TABLE']) expect(canonicalRef(v)).toBeNull();
