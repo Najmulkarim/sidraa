@@ -5,6 +5,7 @@ import { mapDbError } from '@/lib/db-errors';
 import { addDays, dhakaDayStartUtc, dhakaToday, formatTaka, isYmd, resolveRange } from '@/lib/format';
 import { canTransition, isEditable, nextStatuses } from '@/lib/order-status';
 import { maskBdPhone, normalizeBdPhone } from '@/lib/phone';
+import { canonicalRef } from '@/lib/order-ref';
 import { slugify } from '@/lib/slug';
 
 const V = (n: number) => `b0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -151,5 +152,17 @@ describe('db errors', () => {
     expect(mapDbError({ message: 'INVALID_INPUT', details: '{"field":"customer_phone","reason":"Bad phone"}' })).toMatchObject({ field: 'customer_phone', message: 'Bad phone' });
     expect(mapDbError({ message: 'relation "x" does not exist', code: '42P01' }).message).toBe('Something went wrong. Please try again.');
     expect(mapDbError({ message: 'duplicate key', code: '23505' }).code).toBe('DUPLICATE');
+  });
+});
+
+describe('order numbers in links', () => {
+  it('accepts Order0001 in any case and old SD- references', () => {
+    expect(canonicalRef('Order0002')).toBe('Order0002');
+    expect(canonicalRef('ORDER0002')).toBe('Order0002');
+    expect(canonicalRef('order12345')).toBe('Order12345');
+    expect(canonicalRef('sd-33wh-wmkc')).toBe('SD-33WH-WMKC');
+  });
+  it('rejects anything else', () => {
+    for (const v of ['Order12', 'Orderxyz', '', 'DROP TABLE']) expect(canonicalRef(v)).toBeNull();
   });
 });
