@@ -13,7 +13,14 @@ import type { Order, OrderItem } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Order received', robots: { index: false } };
 
-const REF = /^[A-Z]{2,4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/;
+/** Order numbers: "Order0001" now, "SD-33WH-WMKC" for orders placed before the change. */
+function canonicalRef(raw: string): string | null {
+  const v = raw.trim();
+  const n = /^order(d{4,})$/i.exec(v);
+  if (n) return `Order${n[1]}`;
+  if (/^[A-Z]{2,4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/i.test(v)) return v.toUpperCase();
+  return null;
+}
 
 /**
  * Confirmation page. Full details are shown only to the browser that
@@ -23,9 +30,9 @@ const REF = /^[A-Z]{2,4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/;
  */
 export default async function OrderPage({ params }: { params: Promise<{ ref: string }> }) {
   const { ref: rawRef } = await params;
-  const ref = decodeURIComponent(rawRef).toUpperCase();
+  const ref = canonicalRef(decodeURIComponent(rawRef));
   const [jar, settings] = await Promise.all([cookies(), getSettings()]);
-  const isOwner = REF.test(ref) && jar.get(LAST_ORDER_COOKIE)?.value === ref;
+  const isOwner = !!ref && jar.get(LAST_ORDER_COOKIE)?.value === ref;
 
   let order: (Order & { items: OrderItem[] }) | null = null;
   if (isOwner) {
@@ -40,10 +47,21 @@ export default async function OrderPage({ params }: { params: Promise<{ ref: str
   if (!order) {
     return (
       <div className="container-page max-w-2xl py-16 text-center">
-        <p className="eyebrow">Order</p>
-        <h1 className="mt-2 font-display text-4xl font-semibold">{REF.test(ref) ? ref : 'Order'}</h1>
-        <p className="mt-4 text-muted">To see the status of this order, use order tracking with the last 4 digits of the phone number used.</p>
-        <Link href="/track" className="btn btn-primary mt-8">Track order</Link>
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok/10 text-ok" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 5 5 9-10" /></svg>
+        </span>
+        <h1 className="mt-4 font-display text-4xl font-semibold">Thank you for shopping with {settings.store_name}!</h1>
+        {ref && (
+          <p className="mt-5 inline-flex flex-col items-center rounded-2xl border border-dashed border-brand/40 px-6 py-3">
+            <span className="eyebrow">Order number</span>
+            <span className="font-mono text-2xl font-bold tracking-wider text-brand">{ref}</span>
+          </p>
+        )}
+        <p className="mt-4 text-muted">To see the status of this order, use order tracking with the order number and the last 4 digits of the phone number used.</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/products" className="btn btn-primary">Continue shopping</Link>
+          <Link href="/track" className="btn btn-outline">Track order</Link>
+        </div>
       </div>
     );
   }
@@ -63,10 +81,10 @@ export default async function OrderPage({ params }: { params: Promise<{ ref: str
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok/10 text-ok" aria-hidden="true">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 5 5 9-10" /></svg>
           </span>
-          <h1 className="font-display text-4xl font-semibold">Thank you, {order.customer_name.split(' ')[0]}!</h1>
-          <p className="text-muted">Your order has been received. We will call {maskBdPhone(order.customer_phone)} to confirm it.</p>
+          <h1 className="font-display text-4xl font-semibold">Thank you for your order, {order.customer_name.split(' ')[0]}!</h1>
+          <p className="text-muted">Your order has been placed successfully. We will call {maskBdPhone(order.customer_phone)} to confirm it.</p>
           <p className="inline-flex flex-col items-center rounded-2xl border border-dashed border-brand/40 px-6 py-3">
-            <span className="eyebrow">Order reference</span>
+            <span className="eyebrow">Order number</span>
             <span className="font-mono text-2xl font-bold tracking-wider text-brand">{order.public_ref}</span>
             <span className="text-xs text-muted">Save this to track your order.</span>
           </p>
