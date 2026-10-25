@@ -83,7 +83,7 @@ export async function Listing({
         {showCategoryFilter && (
           <>
             <label className="sr-only" htmlFor="category">Category</label>
-            <select id="category" name="category" defaultValue={first(searchParams.category) ?? ''} className="input md:w-44">
+            <select id="category" name="category" defaultValue={first(searchParams.category) ?? ''} className="input hidden md:block md:w-44">
               <option value="">All categories</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.slug}>{c.name}</option>
