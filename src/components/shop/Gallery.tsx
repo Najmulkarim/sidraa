@@ -41,6 +41,33 @@ export function Gallery({ images, name, badge }: { images: Photo[]; name: string
     if (i !== active && images[i]) setActive(i);
   }
 
+  // Thumbnail column: exactly as tall as the main photo; the rest scrolls,
+  // with arrows and a fade shown only on the side that has more.
+  const thumbs = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState({ up: false, down: false });
+  function measureThumbs() {
+    const el = thumbs.current;
+    if (!el) return;
+    setMore({ up: el.scrollTop > 2, down: el.scrollTop + el.clientHeight < el.scrollHeight - 2 });
+  }
+  function pageThumbs(dir: 1 | -1) {
+    const el = thumbs.current;
+    if (el) el.scrollBy({ top: dir * el.clientHeight * 0.75, behavior: 'smooth' });
+  }
+  useEffect(() => {
+    measureThumbs();
+    window.addEventListener('resize', measureThumbs);
+    return () => window.removeEventListener('resize', measureThumbs);
+  }, [images.length]);
+  // Keep the chosen photo's thumbnail in view (scrolls the column only, never the page).
+  useEffect(() => {
+    const el = thumbs.current;
+    const item = el?.children[active] as HTMLElement | undefined;
+    if (!el || !item) return;
+    if (item.offsetTop < el.scrollTop) el.scrollTo({ top: item.offsetTop, behavior: 'smooth' });
+    else if (item.offsetTop + item.offsetHeight > el.scrollTop + el.clientHeight) el.scrollTo({ top: item.offsetTop + item.offsetHeight - el.clientHeight, behavior: 'smooth' });
+  }, [active]);
+
   function onZoomMove(e: MouseEvent<HTMLButtonElement>) {
     const r = e.currentTarget.getBoundingClientRect();
     setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
@@ -90,9 +117,16 @@ export function Gallery({ images, name, badge }: { images: Photo[]; name: string
       {/* Tablets and up: thumbnail column + hover zoom */}
       <div className={`hidden gap-3 md:grid ${many ? 'md:grid-cols-[4.5rem_minmax(0,1fr)]' : ''}`}>
         {many && (
-          <ul className="flex max-h-[34rem] flex-col gap-2 overflow-y-auto pr-0.5 [scrollbar-width:thin]" aria-label="Product photos">
+          // The cell stretches to the main photo's height; the list fills it absolutely and scrolls inside.
+          <div className="relative min-h-0">
+          <ul
+            ref={thumbs}
+            onScroll={measureThumbs}
+            className="absolute inset-0 flex snap-y flex-col gap-2 overflow-y-auto overscroll-contain py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Product photos"
+          >
             {images.map((img, i) => (
-              <li key={img.id}>
+              <li key={img.id} className="shrink-0 snap-start">
                 <button
                   type="button"
                   onClick={() => show(i)}
@@ -106,6 +140,17 @@ export function Gallery({ images, name, badge }: { images: Photo[]; name: string
               </li>
             ))}
           </ul>
+          {more.up && (
+            <button type="button" onClick={() => pageThumbs(-1)} aria-label="Earlier photos" className="absolute inset-x-0 top-0 z-10 flex h-10 items-start justify-center bg-[linear-gradient(180deg,var(--paper)_35%,transparent)] pt-0.5">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-card shadow ring-1 ring-line"><Icon name="arrow" size={14} className="-rotate-90" /></span>
+            </button>
+          )}
+          {more.down && (
+            <button type="button" onClick={() => pageThumbs(1)} aria-label={`More photos (${images.length} in all)`} className="absolute inset-x-0 bottom-0 z-10 flex h-10 items-end justify-center bg-[linear-gradient(0deg,var(--paper)_35%,transparent)] pb-0.5">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-card shadow ring-1 ring-line"><Icon name="arrow" size={14} className="rotate-90" /></span>
+            </button>
+          )}
+          </div>
         )}
         <div className="relative">
           {badgeEl}
