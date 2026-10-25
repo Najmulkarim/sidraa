@@ -7,7 +7,7 @@ import { notify } from './Toaster';
 import { CopyField, SecretInput } from './SecretInput';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
-export type MarketingView = { fb_pixel_id: string | null; capi_enabled: boolean; capi_token: string | null; capi_test_code: string | null; graph_version: string; updated_at?: string | null };
+export type MarketingView = { fb_pixel_id: string | null; capi_enabled: boolean; capi_token: string | null; capi_test_code: string | null; graph_version: string; updated_at?: string | null; catalog_feed_id?: string | null; catalog_token?: string | null };
 
 function Row({ label, value, ok }: { label: string; value: string; ok: boolean }) {
   return (
@@ -27,6 +27,11 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
   const [code, setCode] = useState(m.capi_test_code ?? '');
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      <div className="sticky top-14 z-10 flex items-center justify-between gap-3 rounded-xl border border-line bg-white/95 px-4 py-2.5 backdrop-blur">
+        <p className="text-sm font-semibold">Facebook &amp; tracking</p>
+        <PendingButton pending={pending} className="btn btn-sm bg-[#16a34a] text-white hover:bg-[#15803d]">✓ Save all</PendingButton>
+      </div>
+
       {/* What the database holds right now (refreshed after every save). */}
       <section className={`space-y-2 rounded-xl border p-4 ${m.fb_pixel_id ? 'border-ok/40 bg-ok/5' : 'border-warn/40 bg-warn/5'}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -38,6 +43,7 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
           <Row label="Access token" value={m.capi_token ? `saved ${m.capi_token}` : 'not set'} ok={!!m.capi_token} />
           <Row label="Test event code" value={m.capi_test_code ?? 'none'} ok={!!m.capi_test_code} />
           <Row label="Conversions API" value={m.capi_enabled ? 'ON' : 'OFF'} ok={m.capi_enabled} />
+          <Row label="Catalog feed ID" value={m.catalog_feed_id ?? 'not set'} ok={!!m.catalog_feed_id} />
         </div>
       </section>
       <section className="card grid gap-4 p-5 sm:grid-cols-2">
@@ -78,6 +84,19 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
         </div>
       </section>
 
+      <section className="card grid gap-4 p-5 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <h2 className="font-semibold">Catalog: send updates at once (optional)</h2>
+          <p className="text-sm text-muted">Feed ID (Commerce Manager → Data sources → your feed → Settings) and a system-user token with catalog access. Without them the catalog still updates daily.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="catalogFeedId" className="label">Catalog feed ID</label>
+          <input id="catalogFeedId" name="catalogFeedId" defaultValue={m.catalog_feed_id ?? ''} inputMode="numeric" className="input font-mono" />
+          <FieldError state={state} name="catalogFeedId" />
+        </div>
+        <SecretInput name="catalogToken" label="Catalog access token" saved={m.catalog_token ?? null} state={state} maxLength={1000} />
+      </section>
+
       <section className="card space-y-3 p-5">
         <h2 className="font-semibold">Catalog for Facebook &amp; Instagram shops</h2>
         <p className="text-sm text-muted">In Commerce Manager → Catalog → Data sources → Data feed, add this URL as a scheduled feed (daily). Product IDs match the Pixel events.</p>
@@ -85,7 +104,7 @@ export function MarketingSettingsForm({ settings: m, siteUrl }: { settings: Mark
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <PendingButton pending={pending}>Save Facebook settings</PendingButton>
+        <PendingButton pending={pending}>Save all Facebook settings</PendingButton>
         <button type="button" disabled={testing} onClick={() => start(async () => { const r = await testFacebookConnection(); setTest(r); notify(r.ok, r.message); })} className="btn btn-outline">{testing ? 'Testing…' : 'Test connection'}</button>
         <FormMessage state={state} />
         {test && <span role="status" className={test.ok ? 'text-sm text-ok' : 'text-sm text-bad'}>{test.message}</span>}

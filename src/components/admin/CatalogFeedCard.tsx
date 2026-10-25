@@ -1,17 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { refreshCatalogNow, saveCatalogSettings } from '@/actions/admin-catalog-feed';
+import { refreshCatalogNow } from '@/actions/admin-catalog-feed';
 import type { ActionState } from '@/lib/types';
-import { CopyField, SecretInput } from './SecretInput';
-import { FormMessage, PendingButton, useKeepValuesAction } from './ui';
+import { CopyField } from './SecretInput';
 import { notify } from './Toaster';
 
 /** Settings → Facebook: product feed link, Refresh now, and the optional feed ID + token for instant updates. */
-export function CatalogFeedCard({ feedUrl, feedId, token, lastAt, lastResult }: { feedUrl: string; feedId: string | null; token: string | null; lastAt: string | null; lastResult: string | null }) {
+export function CatalogFeedCard({ feedUrl, lastAt, lastResult }: { feedUrl: string; lastAt: string | null; lastResult: string | null }) {
   const [pending, start] = useTransition();
   const [res, setRes] = useState<ActionState | null>(null);
-  const { state, onSubmit, pending: saving } = useKeepValuesAction(saveCatalogSettings);
 
   return (
     <section className="card space-y-4 p-5">
@@ -28,18 +26,7 @@ export function CatalogFeedCard({ feedUrl, feedId, token, lastAt, lastResult }: 
       </div>
       {lastAt && <p className="text-[12.5px] text-muted">Last sent {new Date(lastAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}: {lastResult}</p>}
 
-      <form onSubmit={onSubmit} className="grid gap-3 border-t border-line pt-4 sm:grid-cols-2" noValidate>
-        <p className="text-[13px] text-muted sm:col-span-2">Optional — to send updates to Facebook at once instead of waiting for its schedule: the feed ID (Commerce Manager → Data sources → your feed → Settings) and a system-user token with catalog access.</p>
-        <div className="field">
-          <label htmlFor="catalogFeedId" className="label">Feed ID</label>
-          <input id="catalogFeedId" name="catalogFeedId" defaultValue={feedId ?? ''} inputMode="numeric" className="input font-mono" />
-        </div>
-        <SecretInput name="catalogToken" label="Access token" saved={token} state={state} maxLength={600} />
-        <div className="space-y-2 sm:col-span-2">
-          <FormMessage state={state} />
-          <PendingButton pending={saving} className="btn btn-outline btn-sm">Save</PendingButton>
-        </div>
-      </form>
+      <p className="text-[12.5px] text-muted">Feed ID and catalog token (optional) are saved with the Facebook settings above.</p>
     </section>
   );
 }

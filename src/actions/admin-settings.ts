@@ -145,21 +145,26 @@ export async function saveMarketingSettings(_prev: ActionState, formData: FormDa
   const graph = String(raw.graphVersion ?? '').trim() || 'v26.0';
   const capiEnabled = raw.capiEnabled === 'on' || raw.capiEnabled === 'true';
   const clearToken = formData.get('clear_capiToken') === 'on';
+  const feedId = String(raw.catalogFeedId ?? '').replace(/\D/g, '');
+  const catToken = String(raw.catalogToken ?? '').replace(/\s/g, '');
+  const clearCatToken = formData.get('clear_catalogToken') === 'on';
 
   const errors: Record<string, string> = {};
   if (pixel && !/^\d{6,20}$/.test(pixel)) errors.fbPixelId = 'The Pixel (Dataset) ID is a number of 6–20 digits.';
   if (token && !/^[A-Za-z0-9_-]{20,1000}$/.test(token)) errors.capiToken = 'That does not look like a Facebook access token (it starts with EAA…). Paste the whole token.';
   if (testCode && !/^[A-Z0-9]{1,40}$/.test(testCode)) errors.capiTestCode = 'Letters and numbers only, like TEST12345.';
   if (!/^v\d{1,3}\.\d$/.test(graph)) errors.graphVersion = 'Like v26.0';
+  if (feedId && !/^\d{5,30}$/.test(feedId)) errors.catalogFeedId = 'The feed ID is a long number.';
+  if (catToken && !/^[A-Za-z0-9_-]{20,1000}$/.test(catToken)) errors.catalogToken = 'Paste the whole catalog token (it starts with EAA…).';
   if (Object.keys(errors).length) return { ok: false, message: Object.values(errors)[0]!, fieldErrors: errors };
 
   const admin = createAdminClient();
   const [{ data: before }, { data: px }] = await Promise.all([
-    admin.from('marketing_settings').select('capi_token, capi_test_code').eq('id', 1).maybeSingle<{ capi_token: string | null; capi_test_code: string | null }>(),
+    admin.from('marketing_settings').select('capi_token, capi_test_code, catalog_token, catalog_feed_id').eq('id', 1).maybeSingle<{ capi_token: string | null; capi_test_code: string | null; catalog_token: string | null; catalog_feed_id: string | null }>(),
     admin.from('store_settings').select('fb_pixel_id').eq('id', 1).maybeSingle<{ fb_pixel_id: string | null }>(),
   ]);
   // Nothing typed and nothing stored: say so instead of a green "Saved".
-  if (!pixel && !token && !testCode && !clearToken && !px?.fb_pixel_id && !before?.capi_token && !before?.capi_test_code) {
+  if (!pixel && !token && !testCode && !feedId && !catToken && !clearToken && !clearCatToken && !px?.fb_pixel_id && !before?.capi_token && !before?.capi_test_code && !before?.catalog_feed_id && !before?.catalog_token) {
     return { ok: false, message: 'The boxes were empty — nothing was saved. Type the Pixel ID and paste the access token, then Save.', fieldErrors: { fbPixelId: 'Enter the Pixel (Dataset) ID' } };
   }
   const nextToken = clearToken ? null : token || before?.capi_token || null;
@@ -168,7 +173,10 @@ export async function saveMarketingSettings(_prev: ActionState, formData: FormDa
 
   const [a, b] = await Promise.all([
     admin.from('store_settings').update({ fb_pixel_id: pixel || null }).eq('id', 1),
-    admin.from('marketing_settings').update({ capi_enabled: capiEnabled, capi_token: nextToken, capi_test_code: testCode || null, graph_version: graph }).eq('id', 1),
+    admin.from('marketing_settings').update({
+      capi_enabled: capiEnabled, capi_token: nextToken, capi_test_code: testCode || null, graph_version: graph,
+      catalog_feed_id: feedId || null, catalog_token: clearCatToken ? null : catToken || before?.catalog_token || null,
+    }).eq('id', 1),
   ]);
   if (a.error || b.error) {
     console.error('[admin] facebook settings', a.error ?? b.error);

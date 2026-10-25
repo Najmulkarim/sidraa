@@ -165,8 +165,8 @@ async function FacebookTab({ supabase }: { supabase: Db }) {
   const log = (events ?? []) as { id: number; event_name: string; event_id: string; ok: boolean; response: string | null; created_at: string }[];
   return (
     <div className="space-y-6">
-      <MarketingSettingsForm key={String(saved?.updated_at ?? '')} settings={{ ...(data as MarketingView), updated_at: saved?.updated_at ?? null }} siteUrl={SITE_URL} />
-      <CatalogFeedCard feedUrl={`${SITE_URL}${FEED_PATH}`} feedId={cat?.catalog_feed_id ?? null} token={mask(cat?.catalog_token ?? null)} lastAt={cat?.catalog_pushed_at ?? null} lastResult={cat?.catalog_push_result ?? null} />
+      <MarketingSettingsForm key={String(saved?.updated_at ?? '')} settings={{ ...(data as MarketingView), updated_at: saved?.updated_at ?? null, catalog_feed_id: cat?.catalog_feed_id ?? null, catalog_token: mask(cat?.catalog_token ?? null) }} siteUrl={SITE_URL} />
+      <CatalogFeedCard feedUrl={`${SITE_URL}${FEED_PATH}`} lastAt={cat?.catalog_pushed_at ?? null} lastResult={cat?.catalog_push_result ?? null} />
       <section className="card overflow-hidden">
         <h2 className="p-5 pb-3 font-semibold">Recent Conversions API events</h2>
         {log.length === 0 ? (
