@@ -16,7 +16,7 @@ export function SectionHead({ title, subtitle, href, linkLabel = 'View all' }: {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="text-[1.35rem] font-bold leading-tight tracking-tight sm:text-[1.6rem]">{title}</h2>
+        <h2 className="font-display text-[1.6rem] uppercase leading-tight tracking-wide sm:text-[1.9rem]">{title}</h2>
         <span className="mt-1.5 block h-1 w-12 rounded-full bg-[linear-gradient(90deg,var(--brand),var(--accent))]" aria-hidden="true" />
         {subtitle && <p className="mt-2 text-[14px] text-muted">{subtitle}</p>}
       </div>

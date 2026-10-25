@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { imageUrl } from '@/lib/env';
+import { formatTaka } from '@/lib/format';
 import type { Category, DeliveryZone, StoreSettings } from '@/lib/types';
 import { Icon } from '../icons';
 import { CartBadge } from './CartBadge';
@@ -20,9 +21,14 @@ export function Logo({ settings, variant = 'light', className = 'h-11' }: { sett
 }
 
 /** Server component. The mobile menu (MobileMenu) is a <details> element, so it works before JavaScript loads. */
-export function Header({ settings, categories }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[] }) {
-  // The strip above the header only shows the shop's own announcement (Settings → Store).
-  const announce = settings.announcement;
+export function Header({ settings, categories, zones }: { settings: StoreSettings; categories: Category[]; zones: DeliveryZone[] }) {
+  // The shop's own announcement (Settings → Store) replaces the automatic one.
+  const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
+  const announce = settings.announcement ?? [
+    'Cash on delivery all over Bangladesh',
+    freeOver.length ? `Free delivery on orders over ${formatTaka(Math.min(...freeOver))}` : null,
+    `Easy ${settings.return_policy_days}-day returns`,
+  ].filter(Boolean).join('  •  ');
   const links = [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'Shop all' },

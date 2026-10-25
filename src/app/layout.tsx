@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
-import { Playfair_Display, Poppins } from 'next/font/google';
+import { Assistant, Fjalla_One } from 'next/font/google';
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import './globals.css';
 
-const heading = Playfair_Display({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading', display: 'swap' });
-const body = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
+// Fjalla One (condensed, one weight) for display headings, Assistant for everything else.
+const heading = Fjalla_One({ subsets: ['latin'], weight: '400', variable: '--font-heading', display: 'swap' });
+const body = Assistant({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
