@@ -1,73 +1,134 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { activateTheme } from '@/actions/admin-home';
-import { THEME_GROUPS, THEME_INFO, THEMES, type ThemeKey } from '@/lib/home-sections';
+import { THEME_GROUPS, THEME_INFO, THEMES, type ThemeGroup, type ThemeKey } from '@/lib/home-sections';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { notify } from './Toaster';
 
-/** Theme cards: preview any theme, edit its sections, make it live in one click. */
+/** Theme gallery: the live theme on top, group filters, then one card per theme (preview, edit, one click to go live). */
 export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing: ThemeKey; photos: string[] }) {
   const [current, setCurrent] = useState(live);
+  const [group, setGroup] = useState<ThemeGroup | 'all'>('all');
   const [pending, start] = useTransition();
+  const [busy, setBusy] = useState<ThemeKey | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function activate(t: ThemeKey) {
     setMsg(null);
+    setBusy(t);
     start(async () => {
       const r = await activateTheme(t);
       if (r.ok) setCurrent(t);
       setMsg({ ok: r.ok, text: r.message ?? '' });
       notify(r.ok, r.message);
+      setBusy(null);
     });
   }
 
+  const liveInfo = THEME_INFO[current];
+  // The live theme has the big card on top; the grid lists the others.
+  const shown = THEMES.filter((t) => t !== current && (group === 'all' || THEME_INFO[t].group === group));
+  const chips: { key: ThemeGroup | 'all'; name: string; count: number }[] = [
+    { key: 'all', name: 'All other themes', count: THEMES.length - 1 },
+    ...THEME_GROUPS.map((g) => ({ key: g.key, name: g.name, count: THEMES.filter((t) => t !== current && THEME_INFO[t].group === g.key).length })),
+  ];
+
   return (
-    <section className="space-y-6">
-      <p className="flex flex-wrap items-center gap-2 rounded-xl bg-ok/10 px-4 py-3 text-[13.5px] text-ok">
-        <Icon name="check" size={16} /> Live now: <b>{THEME_INFO[current].name}</b>
-        <span className="text-ink/60">· {THEMES.length} themes in {THEME_GROUPS.length} groups — each keeps its own sections.</span>
-      </p>
-      {THEME_GROUPS.map((g) => (
-        <div key={g.key} className="space-y-3">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="text-[15px] font-bold">{g.name} <span className="font-normal text-muted">({THEMES.filter((t) => THEME_INFO[t].group === g.key).length})</span></h2>
-            <p className="text-[12.5px] text-muted">{g.hint}</p>
+    <section className="space-y-5">
+      {/* The live theme, large. */}
+      <div className="card grid overflow-hidden md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="self-center border-b border-line md:border-b-0 md:border-r" aria-hidden="true"><Fit><ThemeThumb theme={current} photos={photos} /></Fit></div>
+        <div className="flex flex-col justify-center gap-3 p-5 sm:p-6">
+          <span className="flex w-fit items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wide text-ok"><span className="h-2 w-2 animate-pulse rounded-full bg-ok" /> Live on your shop</span>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{liveInfo.name}</h2>
+            <p className="mt-1 text-[13.5px] text-muted">{liveInfo.tagline}</p>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {THEMES.filter((t) => THEME_INFO[t].group === g.key).map((t) => {
-              const info = THEME_INFO[t];
-              const isLive = current === t;
-              const isEditing = editing === t;
-              return (
-                <li key={t} className={`card flex flex-col overflow-hidden transition ${isEditing ? 'ring-2 ring-brand' : ''}`}>
-                  <div className="relative h-44 overflow-hidden border-b border-line" aria-hidden="true">
-                    <ThemeThumb theme={t} photos={photos} />
-                    {isLive && <span className="absolute right-2 top-2 z-10 rounded-full bg-ok px-2 py-0.5 text-[11px] font-bold text-white shadow">LIVE</span>}
-                  </div>
-                  <div className="flex flex-1 flex-col gap-2 p-3.5">
-                    <p className="font-semibold">{info.name}</p>
-                    <p className="flex-1 text-[12.5px] text-muted">{info.tagline}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {isLive ? (
-                        <span className="btn btn-sm flex-1 cursor-default bg-ok/10 text-ok"><Icon name="check" size={14} /> Live now</span>
-                      ) : (
-                        <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm flex-1">{pending ? '…' : 'Activate'}</button>
-                      )}
-                      <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" title="Open a preview in a new tab"><Icon name="eye" size={14} /> Preview</a>
-                      <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} className={`btn btn-sm ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={14} /> Edit</Link>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <dl className="grid gap-1.5 text-[13px]">
+            <div className="flex gap-2"><dt className="w-20 shrink-0 text-muted">Best for</dt><dd className="font-medium">{liveInfo.bestFor}</dd></div>
+            <div className="flex gap-2"><dt className="w-20 shrink-0 text-muted">Group</dt><dd className="font-medium">{THEME_GROUPS.find((g) => g.key === liveInfo.group)?.name}</dd></div>
+            <div className="flex items-center gap-2"><dt className="w-20 shrink-0 text-muted">Colours</dt><dd><Swatches colors={liveInfo.swatches} /></dd></div>
+          </dl>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Link href={`/admin/homepage?theme=${current}`} className="btn btn-primary btn-sm"><Icon name="pencil" size={14} /> Edit sections</Link>
+            <a href="/" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm"><Icon name="external" size={14} /> View shop</a>
+          </div>
         </div>
-      ))}
+      </div>
+
+      {/* Group filters. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="tablist" aria-label="Theme groups" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {chips.map((c) => (
+            <button key={c.key} type="button" role="tab" aria-selected={group === c.key} onClick={() => setGroup(c.key)} className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition ${group === c.key ? 'bg-night text-white' : 'bg-soft text-ink/70 hover:bg-tint hover:text-brand-ink'}`}>
+              {c.name} <span className={group === c.key ? 'text-white/60' : 'text-muted'}>{c.count}</span>
+            </button>
+          ))}
+        </div>
+        {group !== 'all' && <p className="text-[12.5px] text-muted">{THEME_GROUPS.find((g) => g.key === group)?.hint}</p>}
+      </div>
+
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {shown.map((t) => {
+          const info = THEME_INFO[t];
+          const isEditing = editing === t;
+          return (
+            <li key={t} className={`card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg ${isEditing ? 'ring-2 ring-brand' : ''}`}>
+              <div className="relative overflow-hidden border-b border-line">
+                <div className="transition duration-500 group-hover:scale-[1.03]" aria-hidden="true"><Fit><ThemeThumb theme={t} photos={photos} /></Fit></div>
+                <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="absolute inset-0 grid place-items-center bg-night/0 opacity-0 transition group-hover:bg-night/45 group-hover:opacity-100 focus-visible:bg-night/45 focus-visible:opacity-100" aria-label={`Preview ${info.name} in a new tab`}>
+                  <span className="btn btn-sm bg-white text-night"><Icon name="eye" size={14} /> Preview</span>
+                </a>
+                {isEditing && <span className="absolute right-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-white shadow">EDITING</span>}
+              </div>
+              <div className="flex flex-1 flex-col gap-2 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0"><b className="block text-[15px] font-semibold">{info.name}</b><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{THEME_GROUPS.find((g) => g.key === info.group)?.name}</span></p>
+                  <Swatches colors={info.swatches} />
+                </div>
+                <p className="text-[12.5px] text-muted">{info.tagline}</p>
+                <p className="flex-1 text-[12.5px]"><span className="text-muted">Best for:</span> <b className="font-medium">{info.bestFor}</b></p>
+                <div className="flex gap-1.5 pt-1">
+                  <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm flex-1">{busy === t ? 'Activating…' : 'Activate'}</button>
+                  <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" title="Open a preview in a new tab" aria-label={`Preview ${info.name}`}><Icon name="eye" size={15} /></a>
+                  <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} title="Edit this theme's sections" aria-label={`Edit ${info.name}`} className={`btn btn-sm ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={15} /></Link>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
       {msg && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>{msg.text}</p>}
     </section>
+  );
+}
+
+/** Draws a theme miniature on a fixed 280 × 176 canvas and scales it to the box width, so every card looks the same. */
+function Fit({ children }: { children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setScale(el.clientWidth / 280));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={box} className="relative aspect-[280/176] w-full overflow-hidden">
+      <div className="absolute left-0 top-0 h-[176px] w-[280px] origin-top-left" style={{ transform: `scale(${scale})` }}>{children}</div>
+    </div>
+  );
+}
+
+function Swatches({ colors }: { colors: string[] }) {
+  return (
+    <span className="flex -space-x-1.5" aria-hidden="true">
+      {colors.map((c, i) => <span key={i} className="h-4 w-4 rounded-full ring-2 ring-white shadow-[0_0_0_1px_var(--line)]" style={{ background: c }} />)}
+    </span>
   );
 }
 

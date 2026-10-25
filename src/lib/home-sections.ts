@@ -17,17 +17,17 @@ export const THEME_GROUPS: { key: ThemeGroup; name: string; hint: string }[] = [
   { key: 'modern', name: 'Modern & bold', hint: 'Clean and punchy, strong buttons and offers.' },
   { key: 'store', name: 'Big store & deals', hint: 'Search bar, many categories and product rows, like a marketplace.' },
 ];
-export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[]; group: ThemeGroup }> = {
-  luxora: { name: 'Luxora', group: 'boutique', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
-  luxe: { name: 'Luxe Fashion', group: 'boutique', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
-  chic: { name: 'Chic', group: 'boutique', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
-  nova: { name: 'Nova', group: 'boutique', tagline: 'Navy and orange editorial: photo hero, split banners, favourites with tabs, complete the look.', swatches: ['#141b2b', '#e2602a', '#f6f3ef'] },
-  shopease: { name: 'ShopEase', group: 'modern', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
-  novatrend: { name: 'NovaTrend', group: 'modern', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
-  urban: { name: 'Urban', group: 'modern', tagline: 'Clean city look: full-width photo hero, photo category tiles, trust badges.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
-  market: { name: 'Market', group: 'store', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
-  mega: { name: 'Mega', group: 'store', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
-  topdeal: { name: 'TopDeal', group: 'store', tagline: 'Deals store: navy header, banner with six tiles, round categories, side lists.', swatches: ['#1f2a44', '#fbbf24', 'var(--brand)'] },
+export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[]; group: ThemeGroup; bestFor: string }> = {
+  luxora: { name: 'Luxora', group: 'boutique', bestFor: 'A premium brand feel', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
+  luxe: { name: 'Luxe Fashion', group: 'boutique', bestFor: 'A bright boutique with many photos', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
+  chic: { name: 'Chic', group: 'boutique', bestFor: 'Women’s fashion with a soft look', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
+  nova: { name: 'Nova', group: 'boutique', bestFor: 'Seasonal collections and lookbooks', tagline: 'Navy and orange editorial: photo hero, split banners, favourites with tabs, complete the look.', swatches: ['#141b2b', '#e2602a', '#f6f3ef'] },
+  shopease: { name: 'ShopEase', group: 'modern', bestFor: 'Offers and a deal of the day', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
+  novatrend: { name: 'NovaTrend', group: 'modern', bestFor: 'Trendy, young shoppers', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  urban: { name: 'Urban', group: 'modern', bestFor: 'A clean, simple catalogue', tagline: 'Clean city look: full-width photo hero, photo category tiles, trust badges.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  market: { name: 'Market', group: 'store', bestFor: 'A big catalogue with many categories', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
+  mega: { name: 'Mega', group: 'store', bestFor: 'A department-store feel', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
+  topdeal: { name: 'TopDeal', group: 'store', bestFor: 'Daily deals and discounts', tagline: 'Deals store: navy header, banner with six tiles, round categories, side lists.', swatches: ['#1f2a44', '#fbbf24', 'var(--brand)'] },
 };
 export function isTheme(v: unknown): v is ThemeKey {
   return typeof v === 'string' && (THEMES as readonly string[]).includes(v);
