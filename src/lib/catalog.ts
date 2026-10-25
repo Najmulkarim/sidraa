@@ -90,6 +90,15 @@ export const getCategories = cachedRead('categories', async (): Promise<Category
   return (data as Category[] | null) ?? [];
 }, []);
 
+/** How many published products each category has (for "120+ items" style captions). */
+export const getCategoryCounts = cachedRead('category_counts', async (): Promise<Record<string, number>> => {
+  const { data, error } = await createPublicClient().from('products').select('category_id').eq('status', 'published').not('category_id', 'is', null).limit(5000);
+  if (error) throw new CatalogReadError(error.message);
+  const counts: Record<string, number> = {};
+  for (const r of (data ?? []) as { category_id: string }[]) counts[r.category_id] = (counts[r.category_id] ?? 0) + 1;
+  return counts;
+}, {});
+
 /** Categories with at least one product on sale: what the menu, footer and home tiles show. */
 export const getShopCategories = cachedRead('shop_categories', async (): Promise<Category[]> => {
   const { data, error } = await createPublicClient()

@@ -117,6 +117,36 @@ function ThemeThumb({ theme, photos }: { theme: ThemeKey; photos: string[] }) {
       </div>
     );
   }
+  if (theme === 'market') {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {bar()}
+        <span className="mx-2 mt-1 h-1.5 rounded-full bg-brand" />
+        <span className="mx-2 mt-1 grid grid-cols-5 gap-1">{[0, 1, 2, 3, 4].map((n) => <span key={n} className="h-2.5 rounded-sm bg-tint" />)}</span>
+        <div className="mx-2 mt-1 grid flex-1 grid-cols-[1.7fr_1fr] gap-1">
+          <span className="relative overflow-hidden rounded bg-[#fde3c4]"><Pic i={0} className="absolute inset-y-0 right-0 w-1/2" /></span>
+          <span className="grid gap-1"><Pic i={1} className="rounded" /><Pic i={2} className="rounded" /></span>
+        </div>
+        <span className="grid grid-cols-5 gap-1 p-2">{[3, 4, 5, 6, 7].map((n) => <Pic key={n} i={n} className="aspect-square rounded ring-1 ring-line" />)}</span>
+      </div>
+    );
+  }
+  if (theme === 'chic') {
+    return (
+      <div className="flex h-full flex-col bg-cream">
+        {bar()}
+        <div className="relative grid flex-1 grid-cols-2 items-center">
+          <span className="space-y-2 px-3">{lines(false, true)}<span className="block h-3 w-10 rounded bg-brand" /></span>
+          <span className="relative h-full">
+            <span className="absolute right-1 top-2 aspect-square w-[80%] rounded-full bg-brand/80" />
+            <Pic i={0} className="absolute bottom-0 left-[18%] right-[10%] top-[8%] rounded-t-full" />
+          </span>
+        </div>
+        <span className="-mt-2 mx-2 mb-1 grid grid-cols-4 gap-1 rounded bg-white p-1 shadow-sm">{[0, 1, 2, 3].map((n) => <span key={n} className="h-1.5 rounded-sm bg-brand/30" />)}</span>
+        <span className="grid grid-cols-4 gap-1 px-2 pb-2">{[1, 2, 3, 4].map((n) => <Pic key={n} i={n} className="aspect-[4/5] rounded" />)}</span>
+      </div>
+    );
+  }
   // NovaTrend
   return (
     <div className="flex h-full flex-col bg-white">

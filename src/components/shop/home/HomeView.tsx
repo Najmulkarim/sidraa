@@ -1,8 +1,10 @@
 import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
+import { MarketBanners, MarketCategoryGrid, MarketDeals, MarketHero, MarketProducts, MarketTiles, MarketTrio } from './MarketSections';
+import { ChicBenefits, ChicCategories, ChicHero, ChicOffer, ChicProductRow } from './ChicSections';
 import { BestSellers, Deal, NewsletterBand, ProductGridSection, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
 import {
-  getShopCategories, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
+  getShopCategories, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
 } from '@/lib/catalog';
 import { formatTaka } from '@/lib/format';
@@ -34,8 +36,8 @@ const HAS_PRODUCTS: SectionType[] = ['collection', 'product_row', 'testimonials'
 
 /** The whole home page for one theme (the live page and the admin preview). */
 export async function HomeView({ theme }: { theme: ThemeKey }) {
-  const [settings, categories, zones, rows, covers, latest, featured] = await Promise.all([
-    getSettings(), getShopCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6),
+  const [settings, categories, zones, rows, covers, latest, featured, counts] = await Promise.all([
+    getSettings(), getShopCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6), getCategoryCounts(),
   ]);
 
   const sections = (rows ?? FALLBACK)
@@ -57,6 +59,9 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
   ];
 
   const lux = theme === 'luxora';
+  const chic = theme === 'chic';
+  const market = theme === 'market';
+  const onSale = market && sections.some((s) => s.type === 'product_row' && (s.settings as SectionSettings['product_row']).layout === 'trio') ? await getOnSale(4) : [];
   const t = theme as ShopTheme;
 
   return (
@@ -67,6 +72,8 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
         const products = lists[i]!;
         switch (s.type) {
           case 'hero':
+            if (market) return <MarketHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} />;
+            if (chic) return <ChicHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={latest.length ? latest : featured} total={Object.values(counts).reduce((a, b) => a + b, 0)} />;
             return lux
               ? <HeroSection key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} fallbackImage={photos[0] ?? null} />
               : <ThemeHero key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} discount={discount} products={featured.length ? featured : latest} />;
@@ -77,11 +84,18 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'benefits': {
             // Each card's wording can be renamed in the admin; blank keeps the automatic text.
             const items = benefits.map((b, n) => ({ ...b, title: lbl(s.settings, `b${n + 1}_title`, b.title), text: lbl(s.settings, `b${n + 1}_text`, b.text) }));
+            if (chic) return <ChicBenefits key={key} items={items} overlap={sections[i - 1]?.type === 'hero'} />;
             return lux ? <Benefits key={key} items={items} /> : <ThemeBenefits key={key} theme={t} items={items} />;
           }
           case 'category_tiles': {
             const ids = (s.settings as SectionSettings['category_tiles']).category_ids;
             const chosen = ids.length ? ids.map((id) => categories.find((c) => c.id === id)).filter((c): c is (typeof categories)[number] => !!c) : categories;
+            if (market) {
+              return lbl(s.settings, 'style', 'grid') === 'mini'
+                ? <MarketTiles key={key} categories={chosen} covers={covers} counts={counts} />
+                : <MarketCategoryGrid key={key} title={s.title} categories={chosen} covers={covers} settings={s.settings as SectionSettings['category_tiles']} />;
+            }
+            if (chic) return <ChicCategories key={key} title={s.title} categories={chosen} covers={covers} counts={counts} settings={s.settings as SectionSettings['category_tiles']} />;
             return lux
               ? <CategoryTiles key={key} title={s.title} subtitle={s.subtitle} categories={chosen} images={covers} />
               : <ThemeCategories key={key} theme={t} title={s.title} categories={chosen} covers={covers} settings={s.settings as SectionSettings['category_tiles']} />;
@@ -92,12 +106,23 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <BestSellers key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['collection']} products={products} />;
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
-            if (st.layout === 'grid') return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
+            if (st.layout === 'grid' && !market) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
+            if (market && st.layout === 'trio') {
+              return <MarketTrio key={key} lists={[
+                { title: 'New launches', href: '/products?sort=new', tone: 'bg-[#fff4dc]', products: latest },
+                { title: 'Trending now', href: '/products', tone: 'bg-[#fde3ea]', products: featured },
+                { title: 'On sale', href: '/products?sort=price-asc', tone: 'bg-[#dff1ec]', products: onSale },
+              ]} />;
+            }
+            if (market) return <MarketProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} />;
+            if (chic) return <ChicProductRow key={key} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;
             return lux
               ? <ProductRowSection key={key} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />
               : <ThemeProductRow key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;
           }
           case 'banners':
+            if (market) return <MarketBanners key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
+            if (chic) return <ChicOffer key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             return lux
               ? <Banners key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} fallbackImage={photos[1] ?? photos[0] ?? null} />
               : <ThemeBanners key={key} theme={t} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
@@ -110,6 +135,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'about':
             return <About key={key} title={s.title} text={s.subtitle} settings={s.settings as SectionSettings['about']} store={settings} />;
           case 'deal':
+            if (market) return <MarketDeals key={key} title={s.title} settings={s.settings as SectionSettings['deal']} products={products.slice(0, (s.settings as SectionSettings['deal']).limit)} />;
             return <Deal key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['deal']} product={products[0] ?? null} />;
           case 'newsletter':
             return <NewsletterBand key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['newsletter']} />;

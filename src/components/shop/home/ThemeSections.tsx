@@ -17,7 +17,7 @@ import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types'
  */
 export type ShopTheme = Exclude<ThemeKey, 'luxora'>;
 
-function info(p: ProductWithRelations) {
+export function info(p: ProductWithRelations) {
   const { min } = priceRange(p);
   const compare = p.compare_at_price === null ? null : toNumber(p.compare_at_price);
   const off = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;

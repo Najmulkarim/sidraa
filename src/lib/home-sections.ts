@@ -9,13 +9,15 @@ import { z } from 'zod';
 export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery', 'deal', 'newsletter'] as const;
 
 /** Home page themes: each has its own sections; store_settings.home_theme picks the live one. */
-export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend'] as const;
+export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market'] as const;
 export type ThemeKey = (typeof THEMES)[number];
 export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[] }> = {
   luxora: { name: 'Luxora', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
   shopease: { name: 'ShopEase', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
   luxe: { name: 'Luxe Fashion', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
   novatrend: { name: 'NovaTrend', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  market: { name: 'Market', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
+  chic: { name: 'Chic', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
 };
 export function isTheme(v: unknown): v is ThemeKey {
   return typeof v === 'string' && (THEMES as readonly string[]).includes(v);
@@ -89,7 +91,7 @@ export const SETTINGS_SCHEMA = {
   category_tiles: z.object({ category_ids: uuidList, labels }),
   collection: productList.extend({ image, link, labels }),
   // layout 'grid': a plain grid (e.g. "All products", 20 items) with a View all button under it.
-  product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid']).default('row'), labels }),
+  product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid', 'trio']).default('row'), labels }),
   banners: z.object({ items: z.array(z.object({ image, title: text(80), subtitle: text(160), link })).max(3).default([]), labels }),
   about: z.object({ image, link, link_label: text(40) }),
   testimonials: productList.extend({
@@ -126,6 +128,7 @@ export const LABEL_FIELDS: Partial<Record<SectionType, { key: string; name: stri
   category_tiles: [
     { key: 'view_all', name: '“View all” link', fallback: 'View all categories' },
     { key: 'tile', name: 'Text under each category', fallback: 'Shop now' },
+    { key: 'style', name: 'Market theme: “mini” for small tiles, empty for the grid', fallback: 'grid' },
   ],
   collection: [
     { key: 'view_all', name: '“View all” link', fallback: 'View all' },
