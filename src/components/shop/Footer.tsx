@@ -64,7 +64,7 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
           {settings.phone && <li className="flex items-center gap-2"><Icon name="phone" size={15} className="text-accent" /><a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className={link}>{settings.phone}</a></li>}
           {settings.email && <li className="flex items-center gap-2"><Icon name="mail" size={15} className="text-accent" /><a href={`mailto:${settings.email}`} className={`${link} break-all`}>{settings.email}</a></li>}
           {settings.address && <li className="flex items-start gap-2"><Icon name="pin" size={15} className="mt-1 shrink-0 text-accent" /><span className={light ? 'text-ink/70' : 'text-white/65'}>{settings.address}</span></li>}
-          {!settings.phone && !settings.email && !settings.address && <li className="text-white/50">Contact details are added in Admin → Settings.</li>}
+          {!settings.phone && !settings.email && !settings.address && <li className={light ? 'text-ink/50' : 'text-white/50'}>Contact details are added in Admin → Settings.</li>}
         </Column>
 
         <div className="col-span-2 lg:col-span-1">
