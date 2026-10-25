@@ -171,7 +171,8 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
     });
   }
 
-  const showTitle = t !== 'quick_links' && t !== 'benefits' && t !== 'banners' && t !== 'notice';
+  const showTitle = t !== 'quick_links' && t !== 'benefits' && t !== 'notice';
+  const titleLabel = t === 'banners' ? 'Small line above the banner (e.g. LIMITED EDITION)' : t === 'testimonials' ? 'Heading over the customer comments' : 'Heading';
   const subtitleLabel = t === 'notice' ? 'Notice text' : t === 'about' ? 'Story text' : 'Short text under the heading (optional)';
 
   return (
@@ -182,14 +183,14 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
         <div className="grid gap-4 md:grid-cols-2">
           {showTitle && (
             <div className="field">
-              <label className="label" htmlFor={`t-${section.id}`}>Heading</label>
+              <label className="label" htmlFor={`t-${section.id}`}>{titleLabel}</label>
               <input id={`t-${section.id}`} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="input" />
             </div>
           )}
-          <div className={`field ${t === 'notice' ? 'md:col-span-2' : ''}`}>
+          {t !== 'banners' && t !== 'testimonials' && t !== 'gallery' && <div className={`field ${t === 'notice' ? 'md:col-span-2' : ''}`}>
             <label className="label" htmlFor={`s-${section.id}`}>{subtitleLabel}</label>
             <textarea id={`s-${section.id}`} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={600} rows={t === 'about' ? 4 : 2} className="input" />
-          </div>
+          </div>}
         </div>
       )}
 
@@ -218,7 +219,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
       {t === 'benefits' && <p className="text-[13px] text-muted">These cards come from Settings (cash on delivery, free delivery threshold, return days). Nothing to fill in here.</p>}
       {t === 'category_tiles' && <CategoryPicker ids={(settings as SectionSettings['category_tiles']).category_ids} categories={ctx.categories} onChange={(category_ids) => set({ category_ids })} />}
       {(t === 'collection' || t === 'product_row') && (
-        <ProductListEditor settings={settings as SectionSettings['collection']} set={set} ctx={ctx} withImage={t === 'collection'} />
+        <ProductListEditor settings={settings as SectionSettings['collection']} set={set} ctx={ctx} withImage={t === 'collection'} autoplay={t === 'product_row' ? (settings as SectionSettings['product_row']).autoplay : undefined} />
       )}
       {t === 'banners' && (
         <ListEditor
@@ -238,6 +239,51 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
             </div>
           )}
         />
+      )}
+      {t === 'testimonials' && (
+        <div className="space-y-5">
+          <TextField label="Heading over the products (left)" value={(settings as SectionSettings['testimonials']).products_title} onChange={(products_title) => set({ products_title })} max={80} />
+          <ProductListEditor settings={{ ...(settings as SectionSettings['testimonials']), link: '', image: null }} set={set} ctx={ctx} withImage={false} />
+          <ListEditor
+            title="Customer comments (only real ones, with the customer's permission)"
+            items={(settings as SectionSettings['testimonials']).items}
+            max={12}
+            blank={{ quote: '', name: '', place: '', rating: 5 }}
+            onChange={(items) => set({ items })}
+            render={(r, update) => (
+              <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_10rem_10rem_6rem]">
+                <textarea value={r.quote} onChange={(e) => update({ ...r, quote: e.target.value })} placeholder="What the customer said" maxLength={400} rows={2} className="input sm:col-span-4" />
+                <input value={r.name} onChange={(e) => update({ ...r, name: e.target.value })} placeholder="Name" maxLength={60} className="input" />
+                <input value={r.place} onChange={(e) => update({ ...r, place: e.target.value })} placeholder="City (optional)" maxLength={60} className="input" />
+                <span />
+                <select value={r.rating} onChange={(e) => update({ ...r, rating: Number(e.target.value) })} className="input" aria-label="Stars">
+                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} ★</option>)}
+                </select>
+              </div>
+            )}
+          />
+        </div>
+      )}
+      {t === 'gallery' && (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Account name under the heading (e.g. @sidraa.bd)" value={(settings as SectionSettings['gallery']).handle} onChange={(handle) => set({ handle })} max={60} />
+            <div className="field"><span className="label">"Follow us" link (Facebook / Instagram)</span><LinkInput value={(settings as SectionSettings['gallery']).handle_link} onChange={(handle_link) => set({ handle_link })} /></div>
+          </div>
+          <ListEditor
+            title="Photos (up to 12, square works best). Without any, your newest product photos are shown."
+            items={(settings as SectionSettings['gallery']).images}
+            max={12}
+            blank={{ image: null, link: '' }}
+            onChange={(images) => set({ images })}
+            render={(g, update) => (
+              <div className="grid flex-1 gap-3 sm:grid-cols-[8rem_1fr]">
+                <ImageField value={g.image} onChange={(image) => update({ ...g, image })} aspect="aspect-square" />
+                <div><LinkInput value={g.link} onChange={(link) => update({ ...g, link })} /></div>
+              </div>
+            )}
+          />
+        </div>
       )}
       {t === 'about' && (
         <div className="grid gap-4 md:grid-cols-[12rem_1fr]">
@@ -292,9 +338,12 @@ function HeroEditor({ settings, set }: { settings: SectionSettings['hero']; set:
   );
 }
 
-function ProductListEditor({ settings, set, ctx, withImage }: { settings: SectionSettings['collection']; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean }) {
+function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
   return (
     <div className="space-y-4">
+      {autoplay !== undefined && (
+        <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={autoplay} onChange={(e) => set({ autoplay: e.target.checked })} className="h-4 w-4 accent-[var(--brand)]" /> Scroll by itself (pauses when a visitor touches it)</label>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="field">
           <span className="label">Which products</span>

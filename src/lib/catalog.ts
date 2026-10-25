@@ -148,7 +148,24 @@ export const getCategoryProducts = cache(async (categoryId: string, limit = 8): 
   return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
 });
 
-export type HomeSectionRow = { id: string; type: string; title: string | null; subtitle: string | null; enabled: boolean; sort_order: number; settings: unknown };
+/** A photo for each category (its newest product's first photo), for category circles without their own picture. */
+export const getCategoryCovers = cache(async (): Promise<Record<string, string | null>> => {
+  const { data, error } = await createPublicClient()
+    .from('products')
+    .select('category_id, images:product_images(storage_path, sort_order)')
+    .not('category_id', 'is', null)
+    .order('published_at', { ascending: false })
+    .limit(300);
+  if (error) console.error('[catalog] covers', error.message);
+  const covers: Record<string, string | null> = {};
+  for (const p of (data ?? []) as { category_id: string; images: { storage_path: string; sort_order: number }[] }[]) {
+    if (covers[p.category_id]) continue;
+    covers[p.category_id] = [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
+  }
+  return covers;
+});
+
+export type HomeSectionRow ={ id: string; type: string; title: string | null; subtitle: string | null; enabled: boolean; sort_order: number; settings: unknown };
 
 /** Enabled home page sections in order; null when they cannot be read (e.g. before migration 0016), so the page falls back to its default layout. */
 export const getHomeSections = cachedRead('home_sections', async (): Promise<HomeSectionRow[] | null> => {

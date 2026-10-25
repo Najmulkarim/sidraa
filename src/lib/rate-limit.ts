@@ -14,6 +14,7 @@ export const LIMITS = {
   trackIp: { max: 10, windowSeconds: 600 },
   loginIp: { max: 5, windowSeconds: 900 },
   loginEmail: { max: 10, windowSeconds: 3600 },
+  newsletterIp: { max: 5, windowSeconds: 3600 },
 } as const;
 
 export function hashKey(value: string): string {

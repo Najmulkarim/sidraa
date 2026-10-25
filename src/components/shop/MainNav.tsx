@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 export function MainNav({ links }: { links: { href: string; label: string }[] }) {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="hidden self-stretch lg:block">
+    <nav aria-label="Main" className="h-full">
       <ul className="flex h-full items-stretch gap-6 xl:gap-7">
         {links.map((l) => {
           const active = l.href === '/' ? path === '/' : path === l.href || path.startsWith(`${l.href}/`);
@@ -16,7 +16,7 @@ export function MainNav({ links }: { links: { href: string; label: string }[] })
               <Link
                 href={l.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex items-center whitespace-nowrap text-[13px] font-medium uppercase tracking-[0.14em] transition-colors hover:text-brand ${
+                className={`relative flex items-center whitespace-nowrap text-[13.5px] font-normal tracking-[0.04em] transition-colors hover:text-brand ${
                   active ? 'text-brand after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-brand' : 'text-ink'
                 }`}
               >

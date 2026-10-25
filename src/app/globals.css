@@ -14,6 +14,8 @@
   --ink: #1f1d2b;
   --paper: #ffffff;
   --soft: #faf7fb;
+  /* Warm blush cream from the logo pink: header, hero and feature strips. */
+  --cream: color-mix(in oklab, var(--brand) 7%, #fbf6f3);
   --tint: color-mix(in oklab, var(--brand) 7%, white);
   --card: #ffffff;
   --muted: #6b6880;
@@ -35,6 +37,7 @@
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-soft: var(--soft);
+  --color-cream: var(--cream);
   --color-tint: var(--tint);
   --color-card: var(--card);
   --color-muted: var(--muted);
@@ -85,7 +88,7 @@ body {
     gap: 0.5rem;
     min-height: 2.75rem;
     padding: 0 1.4rem;
-    border-radius: 0.6rem;
+    border-radius: 0.3rem;
     font-weight: 600;
     font-size: 0.8125rem;
     letter-spacing: 0.1em;
@@ -96,8 +99,11 @@ body {
   }
   .btn:disabled, .btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
   .btn:active:not(:disabled) { transform: scale(0.97); }
-  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--brand) 80%, transparent); }
-  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 26px -12px color-mix(in oklab, var(--brand) 90%, transparent); }
+  /* Solid logo-dark button, logo pink on hover (luxury look). */
+  .btn-primary { background: var(--night); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--brand); }
+  .btn-dark-outline { border: 1px solid var(--night); color: var(--night); background: transparent; }
+  .btn-dark-outline:hover:not(:disabled) { background: var(--night); color: #fff; }
   .btn-outline { border: 1.5px solid var(--brand); color: var(--brand); background: #fff; }
   .btn-outline:hover:not(:disabled) { background: var(--brand); color: #fff; }
   .btn-ghost { color: var(--ink); background: transparent; text-transform: none; letter-spacing: 0; font-weight: 500; }
