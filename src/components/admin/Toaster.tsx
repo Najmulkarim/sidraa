@@ -5,12 +5,16 @@ import { Icon } from '../icons';
 
 type Toast = { id: number; ok: boolean; text: string };
 const EVENT = 'sidraa:toast';
+// Popups raised before the Toaster is listening (e.g. as a page opens) wait here.
+let listening = false;
+const waiting: Omit<Toast, 'id'>[] = [];
 
 /** Shows a popup from anywhere in the admin: green for done, red for a problem. */
 export function notify(ok: boolean, text?: string | null) {
   if (typeof window === 'undefined') return;
   const msg = text?.trim() || (ok ? 'Done.' : 'Something went wrong.');
-  window.dispatchEvent(new CustomEvent<Omit<Toast, 'id'>>(EVENT, { detail: { ok, text: msg } }));
+  if (!listening) waiting.push({ ok, text: msg });
+  else window.dispatchEvent(new CustomEvent<Omit<Toast, 'id'>>(EVENT, { detail: { ok, text: msg } }));
 }
 
 /** Popup stack in the top-right corner (top, full width on phones). Mounted once in the admin layout. */
@@ -26,7 +30,12 @@ export function Toaster() {
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), ok ? 4000 : 7000);
     };
     window.addEventListener(EVENT, on);
-    return () => window.removeEventListener(EVENT, on);
+    listening = true;
+    for (const t of waiting.splice(0)) on(new CustomEvent(EVENT, { detail: t }));
+    return () => {
+      listening = false;
+      window.removeEventListener(EVENT, on);
+    };
   }, []);
 
   return (
