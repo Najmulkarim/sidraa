@@ -158,6 +158,8 @@ export const productSchema = z
     discountStyle: z.preprocess((v) => (v === 'amount' ? 'amount' : 'percent'), z.enum(['percent', 'amount'])),
     status: z.enum(['draft', 'published', 'archived']),
     isFeatured: checkbox,
+    stockOutMode: z.preprocess((v) => (v === 'preorder' || v === 'continue' ? v : 'sold_out'), z.enum(['sold_out', 'preorder', 'continue'])),
+    preorderDays: z.preprocess((v) => (v === undefined || v === '' ? undefined : Number(v)), z.number().int('Whole days').min(1, 'At least 1 day').max(180, 'At most 180 days').optional()),
     seoTitle: optionalText(70),
     seoDescription: optionalText(170),
     colorLabel: z.preprocess((v) => (typeof v === 'string' && v.trim() ? v : 'Color'), z.string().trim().max(20, 'At most 20 characters')),

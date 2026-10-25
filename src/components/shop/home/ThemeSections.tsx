@@ -5,7 +5,7 @@ import { NewsletterForm } from '../NewsletterForm';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { Countdown } from './Countdown';
-import { priceRange, totalStock } from '@/lib/catalog';
+import { isPreorder, priceRange, sellable, totalStock } from '@/lib/catalog';
 import { imageUrl } from '@/lib/env';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings, type ThemeKey } from '@/lib/home-sections';
@@ -23,7 +23,10 @@ function info(p: ProductWithRelations) {
   const off = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
   const active = p.variants.filter((v) => v.is_active);
   const single = active.length === 1 && !active[0]!.color && !active[0]!.size && !active[0]!.option3 ? active[0]!.id : null;
-  return { min, compare, off, badge: discountBadge(min, compare, p.discount_style), stock: totalStock(p), image: p.images[0]?.storage_path ?? null, single };
+  // Keep-selling products count as in stock (a big number); pre-orders get their own tag.
+  const stock = sellable(p) ? Math.max(totalStock(p), p.stock_out_mode === 'sold_out' ? 0 : 99) : 0;
+  const preorder = isPreorder(p);
+  return { min, compare, off, badge: preorder ? 'Pre-order' : discountBadge(min, compare, p.discount_style), stock, preorder, image: p.images[0]?.storage_path ?? null, single: preorder ? null : single };
 }
 
 export function Head({ theme, title, subtitle, href, linkLabel = 'View all' }: { theme: ShopTheme; title: string; subtitle?: string | null; href?: string | null; linkLabel?: string }) {

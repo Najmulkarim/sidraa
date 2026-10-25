@@ -201,7 +201,9 @@ export default async function ProductPage({ params }: Props) {
               productSlug={product.slug}
               imagePath={product.images[0]?.storage_path ?? null}
               compareAt={compare}
-              variants={variants}
+              // "Sale ongoing": the shopper just sees it in stock.
+              variants={product.stock_out_mode === 'continue' ? variants.map((v) => ({ ...v, stock: Math.max(v.stock, 99) })) : variants}
+              preorderDays={product.stock_out_mode === 'preorder' ? (product.preorder_days ?? 7) : null}
               labels={{ color_label: product.color_label, size_label: product.size_label, option3_label: product.option3_label }}
               imageOrder={product.images.map((i) => i.storage_path)}
               header={header}

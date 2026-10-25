@@ -15,7 +15,7 @@ import { sizeRank } from './sizes';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
-  'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at,' +
+  'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at,' +
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
   ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active)';
 
@@ -307,7 +307,17 @@ export function priceRange(p: ProductWithRelations): { min: number; max: number 
 }
 
 export function totalStock(p: ProductWithRelations): number {
-  return p.variants.filter((v) => v.is_active).reduce((n, v) => n + v.stock, 0);
+  return p.variants.filter((v) => v.is_active).reduce((n, v) => n + Math.max(0, v.stock), 0);
+}
+
+/** Can it be bought now? Out-of-stock pre-order and keep-selling products still can. */
+export function sellable(p: ProductWithRelations): boolean {
+  return p.stock_out_mode !== 'sold_out' || totalStock(p) > 0;
+}
+
+/** Shown as Pre-order: every option is out and the product takes pre-orders. */
+export function isPreorder(p: ProductWithRelations): boolean {
+  return p.stock_out_mode === 'preorder' && totalStock(p) <= 0;
 }
 
 export { variantLabel } from './catalog-labels';

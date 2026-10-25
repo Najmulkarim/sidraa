@@ -33,7 +33,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   if (isOwner) {
     const { data } = await createAdminClient()
       .from('orders')
-      .select('*, items:order_items(id, product_id, variant_id, product_name, sku, variant_label, unit_price, quantity, line_total)')
+      .select('*, items:order_items(id, product_id, variant_id, product_name, sku, variant_label, unit_price, quantity, line_total, backorder)')
       .eq('public_ref', ref)
       .maybeSingle();
     order = data as (Order & { items: OrderItem[] }) | null;
@@ -112,6 +112,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 <span>
                   {i.product_name}
                   {i.variant_label && <span className="text-muted"> · {i.variant_label}</span>}
+                  {i.backorder === 'preorder' && <span className="ml-1.5 rounded bg-plum px-1.5 py-0.5 text-[10.5px] font-bold uppercase text-white">Pre-order</span>}
                   <span className="text-muted"> × {i.quantity}</span>
                 </span>
                 <span>{formatTaka(i.line_total)}</span>

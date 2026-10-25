@@ -35,7 +35,7 @@ export async function GET() {
         p.id,
         p.name.slice(0, 150),
         (p.description ?? p.name).replace(/\s+/g, ' ').slice(0, 5000),
-        totalStock(p) > 0 ? 'in stock' : 'out of stock',
+        totalStock(p) > 0 || p.stock_out_mode === 'continue' ? 'in stock' : p.stock_out_mode === 'preorder' ? 'preorder' : 'out of stock',
         'new',
         `${(onSale ? compare! : min).toFixed(2)} BDT`,
         onSale ? `${min.toFixed(2)} BDT` : '',

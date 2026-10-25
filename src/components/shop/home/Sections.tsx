@@ -5,7 +5,7 @@ import { ProductImage } from '../ProductImage';
 import { AutoScroll } from './AutoScroll';
 import { HeroLuxury, type HeroSlide } from './HeroLuxury';
 import { TestimonialSlider } from './TestimonialSlider';
-import { priceRange, totalStock } from '@/lib/catalog';
+import { priceRange, sellable } from '@/lib/catalog';
 import { imageUrl } from '@/lib/env';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings } from '@/lib/home-sections';
@@ -137,7 +137,7 @@ export function MiniCard({ product, className = '' }: { product: ProductWithRela
   const { min } = priceRange(product);
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
   const off = discountBadge(min, compare, product.discount_style);
-  const soldOut = totalStock(product) <= 0;
+  const soldOut = !sellable(product);
   const second = product.images[1]?.storage_path;
   return (
     <Link href={`/product/${product.slug}`} className={`group block text-center ${className}`}>

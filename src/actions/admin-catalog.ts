@@ -40,6 +40,8 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     discount_style: p.discountStyle,
     status: p.status,
     is_featured: p.isFeatured,
+    stock_out_mode: p.stockOutMode,
+    preorder_days: p.stockOutMode === 'preorder' ? (p.preorderDays ?? 7) : null,
     seo_title: p.seoTitle ?? null,
     seo_description: p.seoDescription ?? null,
     color_label: p.colorLabel,
@@ -197,6 +199,8 @@ type CopySource = {
   base_price: number | string;
   compare_at_price: number | string | null;
   discount_style: 'percent' | 'amount';
+  stock_out_mode: 'sold_out' | 'preorder' | 'continue';
+  preorder_days: number | null;
   seo_title: string | null;
   seo_description: string | null;
   color_label: string;
@@ -219,7 +223,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
   if (!id.success) return { ok: false, message: 'Invalid product.' };
   const { data, error: readError } = await supabase
     .from('products')
-    .select('name, slug, category_id, description, base_price, compare_at_price, discount_style, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active)')
+    .select('name, slug, category_id, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active)')
     .eq('id', id.data)
     .single();
   if (readError || !data) return { ok: false, message: 'Product not found.' };
@@ -242,6 +246,8 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
       base_price: src.base_price,
       compare_at_price: src.compare_at_price,
       discount_style: src.discount_style,
+      stock_out_mode: src.stock_out_mode,
+      preorder_days: src.preorder_days,
       status: 'draft',
       is_featured: false,
       seo_title: src.seo_title,

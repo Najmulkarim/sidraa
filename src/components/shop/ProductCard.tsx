@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
-import { priceRange, totalStock, variantLabel } from '@/lib/catalog';
+import { isPreorder, priceRange, sellable, variantLabel } from '@/lib/catalog';
 import type { ProductWithRelations } from '@/lib/types';
 import { ProductImage } from './ProductImage';
 import { QuickAdd } from './QuickAdd';
@@ -8,7 +8,8 @@ import { QuickAdd } from './QuickAdd';
 export function ProductCard({ product, priority = false, badge }: { product: ProductWithRelations; priority?: boolean; badge?: string }) {
   const { min, max } = priceRange(product);
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
-  const soldOut = totalStock(product) <= 0;
+  const soldOut = !sellable(product);
+  const preorder = isPreorder(product);
   const image = product.images[0];
   const active = product.variants.filter((v) => v.is_active);
   const single = active.length === 1 && variantLabel(active[0]!) === '' ? active[0]! : null;
@@ -32,6 +33,8 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
         <span className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {soldOut ? (
             <span className="rounded-md bg-night px-2 py-0.5 text-[11px] font-bold uppercase text-white">Sold out</span>
+          ) : preorder ? (
+            <span className="rounded-md bg-plum px-2 py-0.5 text-[11px] font-bold uppercase text-white">Pre-order</span>
           ) : discount ? (
             <span className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">{discount}</span>
           ) : badge ? (

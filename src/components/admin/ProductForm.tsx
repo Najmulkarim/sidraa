@@ -8,6 +8,7 @@ import type { Category, Product, ProductImage as ProductImageRow, Variant } from
 import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
 import { DiscountFields } from './DiscountFields';
+import { StockOutFields } from './StockOutFields';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
@@ -328,6 +329,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
             style={product?.discount_style === 'amount' ? 'amount' : 'percent'}
             errors={{ basePrice: <FieldError state={state} name="basePrice" />, compareAtPrice: <FieldError state={state} name="compareAtPrice" /> }}
           />
+          <StockOutFields mode={product?.stock_out_mode ?? 'sold_out'} days={product?.preorder_days ?? null} error={<FieldError state={state} name="preorderDays" />} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isFeatured" defaultChecked={product?.is_featured ?? false} className="h-4 w-4 accent-[var(--brand)]" />
             Feature on the home page

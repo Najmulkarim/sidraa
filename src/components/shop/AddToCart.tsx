@@ -39,6 +39,7 @@ export function AddToCart({
   shopPhone = null,
   returnDays,
   shareUrl,
+  preorderDays = null,
 }: {
   productId: string;
   productName: string;
@@ -57,6 +58,8 @@ export function AddToCart({
   shopPhone?: string | null;
   returnDays: number;
   shareUrl: string;
+  /** Set when the product takes pre-orders: out-of-stock options stay buyable, delivered in this many days. */
+  preorderDays?: number | null;
 }) {
   const { dispatch } = useCart();
   const router = useRouter();
@@ -99,10 +102,13 @@ export function AddToCart({
   }, [toast]);
 
   const selected = groups.length === 0 ? (variants[0] ?? null) : findVariant(variants, groups, sel);
-  const allSoldOut = !variants.some((v) => v.stock > 0);
+  const preorder = preorderDays !== null;
+  const buyable = (v: PickerVariant) => v.stock > 0 || preorder;
+  const allSoldOut = !variants.some(buyable);
+  const preorderNow = preorder && !!selected && selected.stock <= 0;
   const prices = variants.filter((v) => canPickAll(v, sel)).map((v) => v.price);
   const shownPrice = selected?.price ?? (prices.length ? Math.min(...prices) : Math.min(...variants.map((v) => v.price)));
-  const maxQty = Math.max(1, Math.min(MAX_QTY, selected?.stock ?? MAX_QTY));
+  const maxQty = preorderNow ? MAX_QTY : Math.max(1, Math.min(MAX_QTY, selected?.stock ?? MAX_QTY));
 
   // Facebook Pixel (no-op without a Pixel ID). Content id = product id, as in the catalog feed.
   useEffect(() => {
@@ -139,7 +145,7 @@ export function AddToCart({
       setError(`Choose a ${missing ? missing.label.toLowerCase() : 'option'} first.`);
       return;
     }
-    if (selected.stock <= 0) {
+    if (!buyable(selected)) {
       setError('This option is sold out.');
       return;
     }
@@ -159,7 +165,7 @@ export function AddToCart({
 
   /** From the buy bar: an unpicked option is up the page, so take the shopper there. */
   function addFromBar(goToCheckout: boolean) {
-    if (!selected || selected.stock <= 0) top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!selected || !buyable(selected)) top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     add(goToCheckout);
   }
 
@@ -214,7 +220,7 @@ export function AddToCart({
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={g.label}>
             {g.values.map((o) => {
               const active = sel[g.key] === o.value;
-              const anyStock = variants.some((v) => v[g.key] === o.value && v.stock > 0);
+              const anyStock = variants.some((v) => v[g.key] === o.value && buyable(v));
               const available = canPick(variants, sel, g.key, o.value);
               const struck = !anyStock || (exists(variants, sel, g.key, o.value) && !available);
               const base = `rounded-xl border-[1.5px] text-sm font-semibold transition ${active ? 'border-brand ring-2 ring-brand/25' : 'border-line hover:border-ink'} ${!anyStock ? 'cursor-not-allowed opacity-50' : ''}`;
@@ -241,9 +247,13 @@ export function AddToCart({
         {delivery && <div className="text-[13px] leading-relaxed text-ink/80">{delivery}</div>}
         <div className="space-y-1">
           {selected ? (
+            preorderNow ? (
+              <p className="text-[15px] font-semibold text-plum">Pre-order · delivery in {preorderDays} day{preorderDays === 1 ? '' : 's'}</p>
+            ) : (
             <p className={`text-[15px] font-semibold ${selected.stock <= 0 ? 'text-bad' : selected.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
               {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left — order soon` : 'In stock'}
             </p>
+            )
           ) : (
             <p className="text-[13px] text-muted">{allSoldOut ? 'Sold out' : 'Choose your options to see stock'}</p>
           )}
@@ -267,10 +277,10 @@ export function AddToCart({
 
         <div ref={buttons} className="grid gap-2.5">
           <button type="button" className="btn btn-outline w-full" onClick={() => add(false)} disabled={allSoldOut}>
-            {allSoldOut ? 'Sold out' : 'Add to cart'}
+            {allSoldOut ? 'Sold out' : preorderNow ? 'Pre-order now' : 'Add to cart'}
           </button>
           <button type="button" className="btn btn-primary w-full" onClick={() => add(true)} disabled={allSoldOut}>
-            Buy now
+            {preorderNow ? 'Pre-order & checkout' : 'Buy now'}
           </button>
           {whatsapp && !allSoldOut && (
             <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn w-full bg-[#1fa855] text-white hover:bg-[#178c46]">

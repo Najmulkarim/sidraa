@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/icons';
 import { CopySku, PerPageSelect, ProductCardControls } from '@/components/admin/ProductListControls';
 import { ProductImage } from '@/components/shop/ProductImage';
+import { RefreshCatalogButton } from '@/components/admin/RefreshCatalogButton';
 import { requirePermission } from '@/lib/auth';
 import { escapeLike } from '@/lib/catalog';
 import { formatTaka, toNumber } from '@/lib/format';
@@ -45,7 +46,7 @@ function pageList(page: number, pages: number): (number | '…')[] {
 }
 
 export default async function ProductsAdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ supabase }, sp] = await Promise.all([requirePermission('catalog'), searchParams]);
+  const [{ supabase, can }, sp] = await Promise.all([requirePermission('catalog'), searchParams]);
   const q = (sp.q ?? '').trim().slice(0, 80);
   const status = ['draft', 'published', 'archived'].includes(sp.status ?? '') ? (sp.status as ProductStatus) : null;
   const per = PER_PAGE_OPTIONS.includes(Number(sp.per)) ? Number(sp.per) : DEFAULT_PER_PAGE;
@@ -112,6 +113,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
           </form>
           <div className="flex gap-2">
             <a href="/admin/export/products" className="btn btn-outline btn-sm h-11">CSV</a>
+            {can.has('marketing') && <RefreshCatalogButton />}
             <Link href="/admin/products/new" className="btn btn-primary btn-sm h-11 flex-1 sm:flex-none"><Icon name="plus" size={16} /> Add Product</Link>
           </div>
         </div>

@@ -68,6 +68,9 @@ export type Product = {
   compare_at_price: Numeric | null;
   /** How the discount badge reads: percent (20% OFF) or amount (৳200 OFF). */
   discount_style: 'percent' | 'amount';
+  /** Out of stock: sold_out (as usual), preorder (Pre-order, delivered in preorder_days) or continue (keeps selling, no tag). */
+  stock_out_mode: 'sold_out' | 'preorder' | 'continue';
+  preorder_days: number | null;
   status: ProductStatus;
   is_featured: boolean;
   seo_title: string | null;
@@ -161,6 +164,8 @@ export type OrderItem = {
   unit_price: Numeric;
   quantity: number;
   line_total: Numeric;
+  /** Sold beyond the stock at the time: preorder (shown to the customer) or continue (staff only). */
+  backorder?: 'preorder' | 'continue' | null;
 };
 
 export type OrderHistory = {
@@ -185,6 +190,9 @@ export type QuoteLine =
       quantity: number;
       line_total: number;
       stock_left: number;
+      /** Out of stock but taken as a pre-order (delivery in preorder_days). */
+      preorder?: boolean;
+      preorder_days?: number | null;
       state: 'ok' | 'insufficient' | 'sold_out';
     };
 

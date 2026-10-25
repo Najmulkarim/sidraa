@@ -67,6 +67,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                       <td>
                         {i.product_id ? <Link href={`/admin/products/${i.product_id}`} className="font-medium hover:underline">{i.product_name}</Link> : i.product_name}
                         {i.variant_label && <div className="text-xs text-muted">{i.variant_label}</div>}
+                        {i.backorder && <span className={`mt-0.5 inline-block rounded px-1.5 text-[10.5px] font-bold uppercase text-white ${i.backorder === 'preorder' ? 'bg-plum' : 'bg-warn'}`}>{i.backorder === 'preorder' ? 'Pre-order' : 'Sold without stock'}</span>}
                       </td>
                       <td className="font-mono text-xs">{i.sku}</td>
                       <td className="text-right">{formatTaka(i.unit_price)}</td>

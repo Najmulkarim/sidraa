@@ -166,6 +166,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
               <span>
                 {l.state === 'unavailable' ? 'Unavailable item' : l.product_name}
                 {l.state !== 'unavailable' && l.variant_label ? <span className="text-muted"> · {l.variant_label}</span> : null}
+                {l.state !== 'unavailable' && l.preorder && <span className="block text-[12px] font-semibold text-plum">Pre-order · delivery in {l.preorder_days ?? 7} days</span>}
                 <span className="text-muted"> × {l.quantity}</span>
                 {lineProblem(l) && <span className="block error">{lineProblem(l)}</span>}
               </span>
