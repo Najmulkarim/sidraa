@@ -29,11 +29,10 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
   }
 
   const liveInfo = THEME_INFO[current];
-  // The live theme has the big card on top; the grid lists the others.
-  const shown = THEMES.filter((t) => t !== current && (group === 'all' || THEME_INFO[t].group === group));
+  const shown = THEMES.filter((t) => group === 'all' || THEME_INFO[t].group === group);
   const chips: { key: ThemeGroup | 'all'; name: string; count: number }[] = [
-    { key: 'all', name: 'All other themes', count: THEMES.length - 1 },
-    ...THEME_GROUPS.map((g) => ({ key: g.key, name: g.name, count: THEMES.filter((t) => t !== current && THEME_INFO[t].group === g.key).length })),
+    { key: 'all', name: 'All themes', count: THEMES.length },
+    ...THEME_GROUPS.map((g) => ({ key: g.key, name: g.name, count: THEMES.filter((t) => THEME_INFO[t].group === g.key).length })),
   ];
 
   return (
@@ -71,30 +70,38 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
         {group !== 'all' && <p className="text-[12.5px] text-muted">{THEME_GROUPS.find((g) => g.key === group)?.hint}</p>}
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Five to a line on wide screens: the ten themes fill two rows. */}
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {shown.map((t) => {
           const info = THEME_INFO[t];
+          const isLive = current === t;
           const isEditing = editing === t;
           return (
-            <li key={t} className={`card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg ${isEditing ? 'ring-2 ring-brand' : ''}`}>
+            <li key={t} className={`card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg ${isLive ? 'ring-2 ring-ok' : isEditing ? 'ring-2 ring-brand' : ''}`}>
               <div className="relative overflow-hidden border-b border-line">
                 <div className="transition duration-500 group-hover:scale-[1.03]" aria-hidden="true"><Fit><ThemeThumb theme={t} photos={photos} /></Fit></div>
                 <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="absolute inset-0 grid place-items-center bg-night/0 opacity-0 transition group-hover:bg-night/45 group-hover:opacity-100 focus-visible:bg-night/45 focus-visible:opacity-100" aria-label={`Preview ${info.name} in a new tab`}>
-                  <span className="btn btn-sm bg-white text-night"><Icon name="eye" size={14} /> Preview</span>
+                  <span className="btn btn-sm bg-white px-3 text-night"><Icon name="eye" size={14} /> Preview</span>
                 </a>
-                {isEditing && <span className="absolute right-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-white shadow">EDITING</span>}
+                {isLive && <span className="absolute right-1.5 top-1.5 rounded-full bg-ok px-2 py-0.5 text-[10px] font-bold text-white shadow">LIVE</span>}
+                {!isLive && isEditing && <span className="absolute right-1.5 top-1.5 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white shadow">EDITING</span>}
               </div>
-              <div className="flex flex-1 flex-col gap-2 p-4">
+              <div className="flex flex-1 flex-col gap-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="min-w-0"><b className="block text-[15px] font-semibold">{info.name}</b><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{THEME_GROUPS.find((g) => g.key === info.group)?.name}</span></p>
+                  <b className="min-w-0 truncate text-[14px] font-semibold">{info.name}</b>
                   <Swatches colors={info.swatches} />
                 </div>
-                <p className="text-[12.5px] text-muted">{info.tagline}</p>
-                <p className="flex-1 text-[12.5px]"><span className="text-muted">Best for:</span> <b className="font-medium">{info.bestFor}</b></p>
-                <div className="flex gap-1.5 pt-1">
-                  <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm flex-1">{busy === t ? 'Activating…' : 'Activate'}</button>
-                  <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" title="Open a preview in a new tab" aria-label={`Preview ${info.name}`}><Icon name="eye" size={15} /></a>
-                  <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} title="Edit this theme's sections" aria-label={`Edit ${info.name}`} className={`btn btn-sm ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={15} /></Link>
+                <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">{THEME_GROUPS.find((g) => g.key === info.group)?.name}</p>
+                <p className="line-clamp-2 text-[12px] leading-snug text-muted" title={info.tagline}>{info.tagline}</p>
+                <p className="line-clamp-2 flex-1 text-[12px] leading-snug"><span className="text-muted">Best for:</span> <b className="font-medium">{info.bestFor}</b></p>
+                <div className="flex gap-1 pt-1">
+                  {isLive ? (
+                    <span className="btn btn-sm min-w-0 flex-1 cursor-default bg-ok/10 px-2 text-ok"><Icon name="check" size={14} /> Live</span>
+                  ) : (
+                    <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm min-w-0 flex-1 px-1.5 text-[11px] tracking-[0.04em] sm:text-[12px]">{busy === t ? '…' : 'Activate'}</button>
+                  )}
+                  <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm px-2.5" title="Open a preview in a new tab" aria-label={`Preview ${info.name}`}><Icon name="eye" size={15} /></a>
+                  <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} title="Edit this theme's sections" aria-label={`Edit ${info.name}`} className={`btn btn-sm px-2.5 ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={15} /></Link>
                 </div>
               </div>
             </li>
