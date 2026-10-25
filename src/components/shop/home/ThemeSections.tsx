@@ -457,7 +457,8 @@ export function ProductGridSection({ theme, title, subtitle, link, products }: {
         <h2 className={`font-display text-night ${serif ? 'text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold' : 'text-[1.6rem] font-bold tracking-tight sm:text-[1.9rem]'}`}>{title ?? 'All products'}</h2>
         {subtitle && <p className="mt-1.5 text-[14.5px] text-ink/65">{subtitle}</p>}
       </div>
-      <ProductGrid products={products} priorityCount={0} />
+      {/* Five to a line on wide screens: 20 products fill four even rows. */}
+      <ProductGrid products={products} priorityCount={0} wide />
       <div className="mt-8 text-center">
         <Link href={link || '/products'} className="btn btn-primary px-8">View all products <Icon name="arrow" size={16} /></Link>
       </div>

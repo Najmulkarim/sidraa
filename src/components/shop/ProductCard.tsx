@@ -76,9 +76,9 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   );
 }
 
-export function ProductGrid({ products, priorityCount = 0, badge }: { products: ProductWithRelations[]; priorityCount?: number; badge?: string }) {
+export function ProductGrid({ products, priorityCount = 0, badge, wide = false }: { products: ProductWithRelations[]; priorityCount?: number; badge?: string; wide?: boolean }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+    <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 ${wide ? 'md:grid-cols-4 lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
       {products.map((p, i) => (
         <div key={p.id} className="reveal">
           <ProductCard product={p} priority={i < priorityCount} badge={badge} />
