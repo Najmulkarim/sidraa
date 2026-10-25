@@ -19,7 +19,7 @@ const TABS: { href: string; label: string; icon: IconName }[] = [
  * and comes back on the way up. Product pages show their own buy bar in
  * this spot instead, and checkout keeps the screen to itself.
  */
-export function MobileTabBar() {
+export function MobileTabBar({ phone = null }: { phone?: string | null }) {
   const path = usePathname();
   const { count, ready } = useCart();
   const bump = useCartBump();
@@ -51,7 +51,7 @@ export function MobileTabBar() {
           aria-label="Quick links"
           className={`fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-16px_var(--plum)] backdrop-blur transition-transform duration-300 md:hidden ${hidden ? 'translate-y-full' : ''}`}
         >
-          <ul className="grid grid-cols-4">
+          <ul className={`grid ${phone ? 'grid-cols-5' : 'grid-cols-4'}`}>
             {TABS.map((t) => {
               const active = t.href === '/' ? path === '/' : path === t.href || path.startsWith(`${t.href}/`) || (t.href === '/products' && path.startsWith('/category/'));
               return (
@@ -70,6 +70,16 @@ export function MobileTabBar() {
                 </li>
               );
             })}
+            {phone && (
+              <li>
+                <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="flex flex-col items-center gap-0.5 py-2 text-[12px] font-medium text-muted transition active:scale-90">
+                  <span className="grid h-8 w-14 place-items-center rounded-full bg-ok/10 text-ok">
+                    <Icon name="phone" size={21} />
+                  </span>
+                  Call
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
       )}

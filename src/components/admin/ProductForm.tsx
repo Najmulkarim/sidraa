@@ -90,7 +90,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
         .map((c) => {
           // Re-use the photo already chosen for this colour, if any.
           const photo = keep.find((r) => r.color && r.color.toLowerCase() === c.color.toLowerCase() && r.imagePath)?.imagePath ?? null;
-          // SKU left empty: assigned on save (SKU000001, SKU000002, …).
+          // SKU left empty: assigned on save (<product SKU>-01, -02, …).
           return { ...blankRow(), ...c, imagePath: photo };
         });
       return [...keep, ...added];
@@ -139,7 +139,18 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
           </div>
           <div className="field">
             <label htmlFor="description" className="label">Description</label>
-            <textarea id="description" name="description" rows={6} maxLength={10000} defaultValue={product?.description ?? ''} className="input" />
+            <textarea
+              id="description"
+              name="description"
+              rows={8}
+              maxLength={10000}
+              defaultValue={product?.description ?? ''}
+              placeholder={'A short paragraph about the product.\n\n- UV400 polarised lenses\n- Comes with a case and cloth\n\nMaterial: Metal\nFrame width: 140 mm'}
+              className="input"
+            />
+            <p className="hint">
+              On the product page, lines starting with <b>-</b> become the <b>About this item</b> list, and <b>Label: value</b> lines (e.g. <i>Material: Metal</i>) become the <b>Product details</b> table. Other text shows as the description.
+            </p>
             <FieldError state={state} name="description" />
           </div>
         </section>
@@ -148,9 +159,15 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
 
         <section className="card space-y-5 p-5">
           <div>
-            <h2 className="font-semibold">Variations &amp; stock</h2>
+            <h2 className="flex flex-wrap items-center gap-2 font-semibold">
+              Variations &amp; stock
+              <span className="rounded-md bg-soft px-2 py-0.5 font-mono text-[12px] font-semibold text-muted">
+                Product SKU: <span className="text-ink">{product?.sku ?? 'assigned on save'}</span>
+              </span>
+            </h2>
             <p className="text-xs text-muted">
               Up to three variation types — for example Colour, Size and Sleeve. Every combination gets its own SKU, price, stock and photo.
+              Leave a new row&apos;s SKU empty and it becomes {product?.sku ?? 'the product SKU'}-01, -02, … on save.
               Leave price empty to use the product price. Stock of saved variations changes in Inventory, so every change is logged.
             </p>
           </div>
@@ -207,7 +224,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
               <thead>
                 <tr>
                   <th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
-                  <th title="Leave empty on a new row for the next SKU000001-style code">SKU</th><th>Price ৳</th><th>Stock</th><th>Active</th><th></th>
+                  <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th>Stock</th><th>Active</th><th></th>
                 </tr>
               </thead>
               <tbody>

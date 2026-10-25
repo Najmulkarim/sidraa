@@ -22,6 +22,7 @@ const STATUS_FILTERS: { value: ProductStatus | ''; label: string }[] = [
 
 type Row = {
   id: string;
+  sku: string;
   name: string;
   slug: string;
   status: ProductStatus;
@@ -50,7 +51,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
   const per = PER_PAGE_OPTIONS.includes(Number(sp.per)) ? Number(sp.per) : DEFAULT_PER_PAGE;
   const page = Math.max(1, Number(sp.page) || 1);
 
-  // Search matches the product name or any of its SKUs.
+  // Search matches the product name, the product SKU or any variation SKU.
   const like = `%${escapeLike(q)}%`;
   let skuProductIds: string[] = [];
   if (q) {
@@ -60,11 +61,11 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, status, base_price, compare_at_price, is_featured, category:categories(name), images:product_images(storage_path, sort_order), variants:product_variants(sku, stock, is_active, price)', { count: 'exact' });
+    .select('id, sku, name, slug, status, base_price, compare_at_price, is_featured, category:categories(name), images:product_images(storage_path, sort_order), variants:product_variants(sku, stock, is_active, price)', { count: 'exact' });
   if (q) {
     // Inside or() the value is double-quoted so commas and brackets in the search stay literal.
     const quoted = `"${like.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-    query = skuProductIds.length ? query.or(`name.ilike.${quoted},id.in.(${skuProductIds.join(',')})`) : query.ilike('name', like);
+    query = query.or(`name.ilike.${quoted},sku.ilike.${quoted}${skuProductIds.length ? `,id.in.(${skuProductIds.join(',')})` : ''}`);
   }
   if (status) query = query.eq('status', status);
   const from = (page - 1) * per;
@@ -154,7 +155,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
             const price = prices.length ? Math.min(...prices) : toNumber(p.base_price);
             const compare = p.compare_at_price === null ? null : toNumber(p.compare_at_price);
             const img = [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0];
-            const sku = [...p.variants].sort((a, b) => a.sku.localeCompare(b.sku))[0]?.sku;
+            const sku = p.sku;
             return (
               <li key={p.id} className="card flex flex-col overflow-hidden transition hover:shadow-[var(--shadow)]">
                 <Link href={`/admin/products/${p.id}`} className="relative block aspect-square overflow-hidden bg-soft">
@@ -168,12 +169,12 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
                   </h2>
                   {sku ? (
                     <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted">
-                      <span className="truncate font-semibold text-brand" title={p.variants.length > 1 ? `${sku} +${p.variants.length - 1} more` : sku}>{sku}</span>
+                      SKU: <span className="truncate font-semibold text-brand" title={`${sku} · ${p.variants.length} variation${p.variants.length === 1 ? '' : 's'}`}>{sku}</span>
                       <CopySku sku={sku} />
-                      {p.variants.length > 1 && <span className="shrink-0">+{p.variants.length - 1}</span>}
+                      {p.variants.length > 1 && <span className="shrink-0">· {p.variants.length} var.</span>}
                     </p>
                   ) : (
-                    <p className="text-[11px] text-muted">No variations yet</p>
+                    <p className="text-[11px] text-muted">No SKU yet</p>
                   )}
                   <p className="mt-auto flex flex-wrap items-baseline gap-x-1.5 pt-0.5">
                     <span className="text-[15px] font-bold">{formatTaka(price)}</span>

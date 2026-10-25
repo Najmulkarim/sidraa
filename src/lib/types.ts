@@ -56,6 +56,8 @@ export type Variant = {
 
 export type Product = {
   id: string;
+  /** "Mother" SKU (SKU-0008); its variations are SKU-0008-01, SKU-0008-02, … */
+  sku: string;
   category_id: string | null;
   name: string;
   slug: string;

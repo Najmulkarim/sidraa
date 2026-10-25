@@ -155,7 +155,7 @@ describe('variant SKUs', () => {
   });
   it('still needs a SKU on saved variations and rejects duplicates', () => {
     expect(productSchema.safeParse(product([{ id: '0b8f5a2e-1c3d-4e5f-8a9b-0c1d2e3f4a5b', sku: '', size: 'M', color: '' }])).success).toBe(false);
-    expect(productSchema.safeParse(product([{ sku: 'SKU000001', size: 'M', color: '' }, { sku: 'sku000001', size: 'L', color: '' }])).success).toBe(false);
+    expect(productSchema.safeParse(product([{ sku: 'SKU-0001', size: 'M', color: '' }, { sku: 'sku-0001', size: 'L', color: '' }])).success).toBe(false);
   });
 });
 

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MAX_QTY } from '@/lib/cart';
 import { trackPixel } from '@/lib/facebook/pixel';
 import { formatTaka } from '@/lib/format';
+import { whatsappOrderLink } from '@/lib/product-content';
 import { canPick, exists, findVariant, initialSelection, optionGroups, type OptionKey, type OptionLabels, type PickVariant, type Selection } from '@/lib/variations';
 import { Icon } from '../icons';
 import { useCart } from './CartProvider';
@@ -15,9 +16,12 @@ import { useVariantImage } from './VariantImage';
 export type PickerVariant = PickVariant;
 
 /**
- * Colour / size / third-option pickers + quantity + Add to cart / Buy now.
- * Each type is its own row; a colour with a photo shows as a photo swatch
- * and switches the gallery. Stock labels are a convenience; place_order()
+ * The product page's right-hand side, Amazon style: title and price, the
+ * colour / size / third-option pickers and the details on the left, a buy
+ * box (stock, quantity, Add to cart, Buy now, WhatsApp, share) on the
+ * right. On phones it stacks: pickers, buy box, then details. Each option
+ * type is its own row; a colour with a photo shows as a photo swatch and
+ * switches the gallery. Stock labels are a convenience; place_order()
  * re-checks stock under a row lock.
  */
 export function AddToCart({
@@ -29,6 +33,12 @@ export function AddToCart({
   variants,
   labels,
   imageOrder = [],
+  header,
+  details,
+  delivery,
+  shopPhone = null,
+  returnDays,
+  shareUrl,
 }: {
   productId: string;
   productName: string;
@@ -38,6 +48,15 @@ export function AddToCart({
   variants: PickerVariant[];
   labels: OptionLabels;
   imageOrder?: string[];
+  /** Category, title and the like, shown above the price. */
+  header?: ReactNode;
+  /** "About this item", product details table, description. */
+  details?: ReactNode;
+  /** Delivery line(s) for the buy box. */
+  delivery?: ReactNode;
+  shopPhone?: string | null;
+  returnDays: number;
+  shareUrl: string;
 }) {
   const { dispatch } = useCart();
   const router = useRouter();
@@ -145,19 +164,47 @@ export function AddToCart({
   }
 
   const chosen = selected ? [selected.color, selected.size, selected.option3].filter(Boolean).join(' / ') : 'Choose your options';
+  const onSale = compareAt !== null && compareAt > shownPrice;
+  const percentOff = onSale ? Math.round((1 - shownPrice / compareAt!) * 100) : 0;
+  const whatsapp = whatsappOrderLink(
+    shopPhone,
+    [`Hi! I want to order:`, `${productName}${selected && chosen ? ` (${chosen})` : ''} × ${qty}`, selected?.sku ? `SKU: ${selected.sku}` : null, `Price: ${formatTaka(shownPrice)}`, shareUrl].filter(Boolean).join('\n'),
+  );
+  const [shared, setShared] = useState(false);
+
+  async function share() {
+    try {
+      // typeof check: older desktop browsers have no share sheet.
+      if (typeof navigator.share === 'function') await navigator.share({ title: productName, url: shareUrl });
+      else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShared(true);
+        setTimeout(() => setShared(false), 1800);
+      }
+    } catch {
+      // Share sheet closed, or clipboard blocked: nothing to do.
+    }
+  }
 
   return (
-    <div ref={top} className="scroll-mt-24 space-y-6">
-      <p className="flex items-baseline gap-3">
-        <span className="text-2xl font-semibold">{formatTaka(shownPrice)}</span>
-        {compareAt !== null && compareAt > shownPrice && (
-          <>
-            <s className="text-muted">{formatTaka(compareAt)}</s>
-            <span className="badge badge-brand">Save {formatTaka(compareAt - shownPrice)}</span>
-          </>
-        )}
-      </p>
+    <div ref={top} className="grid min-w-0 scroll-mt-24 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_17.5rem] xl:items-start">
+      <div className="space-y-4 xl:col-start-1 xl:row-start-1">
+        {header}
+        <div className="border-y border-line py-4">
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {onSale && <span className="text-2xl font-light text-bad">-{percentOff}%</span>}
+            <span className="text-[1.9rem] font-semibold leading-none">{formatTaka(shownPrice)}</span>
+          </p>
+          {onSale && (
+            <p className="mt-1.5 text-[13px] text-muted">
+              Regular price: <s>{formatTaka(compareAt)}</s> <span className="ml-1 font-semibold text-ok">You save {formatTaka(compareAt! - shownPrice)}</span>
+            </p>
+          )}
+          <p className="mt-1.5 text-[13px] text-muted">Cash on delivery · Pay when it reaches you</p>
+        </div>
+      </div>
 
+      <div className="space-y-5 xl:col-start-1 xl:row-start-2">
       {groups.map((g) => (
         <fieldset key={g.key} className="space-y-2.5">
           <legend className="label mb-2">
@@ -186,44 +233,74 @@ export function AddToCart({
         </fieldset>
       ))}
 
-      {selected && (
-        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <span className={selected.stock <= 3 ? 'text-warn' : 'text-ok'}>
-            {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left` : 'In stock'}
-          </span>
-          {selected.sku && (
-            <span className="text-muted">
-              SKU: <span className="font-mono font-semibold text-ink">{selected.sku}</span>
-            </span>
+      </div>
+
+      {/* Buy box: right column on wide screens, after the pickers on phones. */}
+      <aside aria-label="Buy" className="card space-y-4 p-4 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-3 xl:row-start-1">
+        <p className="text-2xl font-semibold leading-none">{formatTaka(shownPrice)}</p>
+        {delivery && <div className="text-[13px] leading-relaxed text-ink/80">{delivery}</div>}
+        <div className="space-y-1">
+          {selected ? (
+            <p className={`text-[15px] font-semibold ${selected.stock <= 0 ? 'text-bad' : selected.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
+              {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left — order soon` : 'In stock'}
+            </p>
+          ) : (
+            <p className="text-[13px] text-muted">{allSoldOut ? 'Sold out' : 'Choose your options to see stock'}</p>
           )}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3">
-        <span className="label">Quantity</span>
-        <div className="flex items-center rounded-full border border-line bg-card">
-          <button type="button" className="h-11 w-11 text-lg" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">−</button>
-          <span className="w-8 text-center font-semibold" aria-live="polite">{qty}</span>
-          <button type="button" className="h-11 w-11 text-lg" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} aria-label="Increase quantity">+</button>
+          {selected?.sku && (
+            <p className="text-[13px] text-muted">
+              SKU: <span className="font-mono font-semibold text-ink">{selected.sku}</span>
+            </p>
+          )}
         </div>
-      </div>
 
-      {error && <p className="error" role="alert">{error}</p>}
+        <div className="flex items-center gap-3">
+          <span className="label">Quantity</span>
+          <div className="flex items-center rounded-full border border-line bg-card">
+            <button type="button" className="h-10 w-10 text-lg" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">−</button>
+            <span className="w-8 text-center font-semibold" aria-live="polite">{qty}</span>
+            <button type="button" className="h-10 w-10 text-lg" onClick={() => setQty((q) => Math.min(maxQty, q + 1))} aria-label="Increase quantity">+</button>
+          </div>
+        </div>
 
-      <div ref={buttons} className="grid gap-3 sm:grid-cols-2">
-        <button type="button" className="btn btn-outline" onClick={() => add(false)} disabled={allSoldOut}>
-          {allSoldOut ? 'Sold out' : 'Add to cart'}
+        {error && <p className="error" role="alert">{error}</p>}
+
+        <div ref={buttons} className="grid gap-2.5">
+          <button type="button" className="btn btn-outline w-full" onClick={() => add(false)} disabled={allSoldOut}>
+            {allSoldOut ? 'Sold out' : 'Add to cart'}
+          </button>
+          <button type="button" className="btn btn-primary w-full" onClick={() => add(true)} disabled={allSoldOut}>
+            Buy now
+          </button>
+          {whatsapp && !allSoldOut && (
+            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn w-full bg-[#1fa855] text-white hover:bg-[#178c46]">
+              <Icon name="whatsapp" size={18} /> Order on WhatsApp
+            </a>
+          )}
+        </div>
+
+        {added && (
+          <p className="rounded-xl bg-ok/10 px-3 py-2.5 text-sm text-ok" role="status">
+            Added to your cart. <Link href="/cart" className="font-semibold underline">View cart</Link>
+          </p>
+        )}
+
+        <ul className="space-y-2 border-t border-line pt-3 text-[13px] text-ink/80">
+          <li className="flex items-center gap-2"><Icon name="cash" size={17} className="shrink-0 text-brand" /> Cash on delivery</li>
+          <li className="flex items-center gap-2"><Icon name="eye" size={17} className="shrink-0 text-brand" /> Check the parcel before you pay</li>
+          <li className="flex items-center gap-2">
+            <Icon name="return" size={17} className="shrink-0 text-brand" />
+            <span>{returnDays}-day easy returns · <Link href="/info/returns" className="underline">Policy</Link></span>
+          </li>
+          <li className="flex items-center gap-2"><Icon name="shield" size={17} className="shrink-0 text-brand" /> Secure order, no account needed</li>
+        </ul>
+
+        <button type="button" onClick={share} className="flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2 text-[13px] font-semibold hover:border-brand hover:text-brand">
+          <Icon name={shared ? 'check' : 'share'} size={16} /> {shared ? 'Link copied' : 'Share this product'}
         </button>
-        <button type="button" className="btn btn-primary" onClick={() => add(true)} disabled={allSoldOut}>
-          Buy now — cash on delivery
-        </button>
-      </div>
+      </aside>
 
-      {added && (
-        <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok" role="status">
-          Added to your cart. <Link href="/cart" className="font-semibold underline">View cart</Link>
-        </p>
-      )}
+      {details && <div className="min-w-0 space-y-8 xl:col-start-1 xl:row-start-3">{details}</div>}
 
       {/* Phone-only: toast + buy bar fixed to the bottom of the screen. */}
       {toast > 0 && (

@@ -108,7 +108,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
   for (const v of p.variants) {
     // Variation photos must be this product's own photos (the database checks too).
     const imagePath = v.imagePath && photos.has(v.imagePath) ? v.imagePath : null;
-    // An empty SKU on a new variation is left out, so the database assigns the next SKU000001-style code.
+    // An empty SKU on a new variation is left out, so the database assigns <product SKU>-01, -02, …
     const fields = { ...(v.sku ? { sku: v.sku } : {}), size: v.size, color: v.color, option3: v.option3, image_path: imagePath, price: v.price, is_active: v.isActive };
     const label = v.sku || [v.color, v.size, v.option3].filter(Boolean).join(' / ') || 'New variation';
     if (v.id) {
@@ -206,7 +206,7 @@ type CopySource = {
 
 /**
  * Copies a product as a draft: same details and variations with new SKUs
- * (the next SKU000001-style codes)
+ * (a new product SKU, variations numbered -01, -02, … under it)
  * and zero stock (stock only ever arrives through logged movements), and
  * its own copies of the photo files, so deleting one product's photos
  * never breaks the other.
@@ -282,7 +282,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
     const { error } = await supabase.from('product_variants').insert(
       src.variants.map((v) => ({
         product_id: newId,
-        // No sku: the database assigns the next SKU000001-style code.
+        // No sku: the database assigns <new product SKU>-01, -02, …
         size: v.size,
         color: v.color,
         option3: v.option3,

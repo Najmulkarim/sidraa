@@ -15,7 +15,7 @@ import { sizeRank } from './sizes';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
-  'id, category_id, name, slug, description, base_price, compare_at_price, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at,' +
+  'id, sku, category_id, name, slug, description, base_price, compare_at_price, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at,' +
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
   ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active)';
 

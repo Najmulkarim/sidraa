@@ -17,7 +17,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       <Header settings={settings} categories={categories} zones={zones} />
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} />
-      <MobileTabBar />
+      <MobileTabBar phone={settings.phone} />
     </CartProvider>
   );
 }

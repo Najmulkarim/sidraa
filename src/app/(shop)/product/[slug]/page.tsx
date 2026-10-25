@@ -8,6 +8,8 @@ import { ProductGrid } from '@/components/shop/ProductCard';
 import { getProductBySlug, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { formatTaka, toNumber } from '@/lib/format';
+import { parseDescription, splitBullet } from '@/lib/product-content';
+import { Icon } from '@/components/icons';
 
 export const revalidate = 300;
 
@@ -41,20 +43,25 @@ export default async function ProductPage({ params }: Props) {
   const [product, settings, zones] = await Promise.all([getProductBySlug(slug), getSettings(), getZones()]);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product.id, product.category_id);
+  const related = await getRelatedProducts(product.id, product.category_id, 6);
   const variants = product.variants
     .filter((v) => v.is_active)
     .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock, sku: v.sku }));
   const { min, max } = priceRange(product);
   const inStock = totalStock(product) > 0;
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
+  const percentOff = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
+  const content = parseDescription(product.description);
+  const productUrl = `${SITE_URL}/product/${product.slug}`;
+  const activeZones = zones.filter((z) => z.is_active !== false);
+  const freeOver = activeZones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
     description: product.description ?? undefined,
-    sku: product.variants[0]?.sku,
+    sku: product.sku,
     image: product.images.map((i) => imageUrl(i.storage_path)).filter(Boolean),
     brand: { '@type': 'Brand', name: settings.store_name },
     offers: {
@@ -64,33 +71,128 @@ export default async function ProductPage({ params }: Props) {
       highPrice: max,
       offerCount: variants.length,
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `${SITE_URL}/product/${product.slug}`,
+      url: productUrl,
     },
   };
 
+  const header = (
+    <header className="space-y-2">
+      {product.category && (
+        <Link href={`/category/${product.category.slug}`} className="text-[13px] font-semibold text-brand-ink hover:underline">
+          Visit the {product.category.name} collection
+        </Link>
+      )}
+      <h1 className="text-[1.45rem] font-semibold leading-snug sm:text-[1.7rem]">{product.name}</h1>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
+        {product.sku && (
+          <span>
+            SKU: <span className="font-mono font-semibold text-ink">{product.sku}</span>
+          </span>
+        )}
+        <span className={inStock ? 'text-ok' : 'text-bad'}>{inStock ? 'In stock' : 'Out of stock'}</span>
+      </p>
+    </header>
+  );
+
+  const delivery = activeZones.length > 0 && (
+    <div className="space-y-1">
+      <p className="font-semibold text-ink">Delivery</p>
+      <ul className="space-y-0.5">
+        {activeZones.map((z) => (
+          <li key={z.id} className="flex justify-between gap-2">
+            <span>{z.name}{z.eta_text ? <span className="text-muted"> · {z.eta_text}</span> : null}</span>
+            <span className="shrink-0 font-semibold">{formatTaka(z.charge)}</span>
+          </li>
+        ))}
+      </ul>
+      {freeOver.length > 0 && <p className="font-semibold text-ok">FREE delivery on orders over {formatTaka(Math.min(...freeOver))}</p>}
+    </div>
+  );
+
+  const details = (
+    <>
+      {content.bullets.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-bold">About this item</h2>
+          <ul className="space-y-2 text-[15px] leading-relaxed">
+            {content.bullets.map((b, i) => {
+              const [lead, rest] = splitBullet(b);
+              return (
+                <li key={i} className="flex gap-2.5">
+                  <Icon name="check" size={18} className="mt-0.5 shrink-0 text-ok" />
+                  <span>{lead ? <><b className="font-semibold">{lead}</b> – {rest}</> : rest}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      {(content.specs.length > 0 || product.category || product.sku) && (
+        <section>
+          <h2 className="mb-3 text-lg font-bold">Product details</h2>
+          <table className="w-full overflow-hidden rounded-xl border border-line text-[14px]">
+            <tbody>
+              {content.specs.map(([k, v]) => (
+                <tr key={k} className="border-b border-line last:border-0">
+                  <th scope="row" className="w-2/5 bg-soft px-3 py-2.5 text-left font-semibold">{k}</th>
+                  <td className="px-3 py-2.5">{v}</td>
+                </tr>
+              ))}
+              {product.category && (
+                <tr className="border-b border-line last:border-0">
+                  <th scope="row" className="w-2/5 bg-soft px-3 py-2.5 text-left font-semibold">Category</th>
+                  <td className="px-3 py-2.5"><Link href={`/category/${product.category.slug}`} className="text-brand-ink hover:underline">{product.category.name}</Link></td>
+                </tr>
+              )}
+              {product.sku && (
+                <tr className="border-b border-line last:border-0">
+                  <th scope="row" className="w-2/5 bg-soft px-3 py-2.5 text-left font-semibold">SKU</th>
+                  <td className="px-3 py-2.5 font-mono">{product.sku}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+      )}
+      {content.text && (
+        <section>
+          <h2 className="mb-3 text-lg font-bold">Description</h2>
+          <div className="whitespace-pre-line text-[15px] leading-relaxed text-ink/85">{content.text}</div>
+        </section>
+      )}
+      <section className="card grid gap-3 p-4 text-[13px] sm:grid-cols-2">
+        <div>
+          <p className="font-semibold">Cash on delivery</p>
+          <p className="mt-0.5 text-muted">{settings.cod_terms}</p>
+        </div>
+        <div>
+          <p className="font-semibold">Returns</p>
+          <p className="mt-0.5 text-muted">
+            Tell us within {settings.return_policy_days} day{settings.return_policy_days === 1 ? '' : 's'} of delivery. <Link href="/info/returns" className="underline">Return policy</Link>
+          </p>
+        </div>
+      </section>
+    </>
+  );
+
   return (
-    <div className="container-page py-8">
+    <div className="container-page py-5 md:py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
 
-      <nav className="mb-6 text-sm text-muted" aria-label="Breadcrumb">
-        <ol className="flex flex-wrap gap-1">
-          <li><Link href="/" className="hover:text-ink">Home</Link> /</li>
+      <nav className="mb-4 text-[13px] text-muted md:mb-6" aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-1">
+          <li><Link href="/" className="hover:text-ink">Home</Link> ›</li>
           {product.category && (
-            <li><Link href={`/category/${product.category.slug}`} className="hover:text-ink">{product.category.name}</Link> /</li>
+            <li><Link href={`/category/${product.category.slug}`} className="hover:text-ink">{product.category.name}</Link> ›</li>
           )}
-          <li aria-current="page" className="text-ink">{product.name}</li>
+          <li aria-current="page" className="line-clamp-1 text-ink">{product.name}</li>
         </ol>
       </nav>
 
       <VariantImageProvider>
-      <div className="grid gap-10 lg:grid-cols-2">
-        <Gallery images={product.images} name={product.name} />
-
-        <div className="space-y-8 lg:pt-4">
-          <header className="space-y-2">
-            {product.category && <p className="eyebrow">{product.category.name}</p>}
-            <h1 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">{product.name}</h1>
-          </header>
+        {/* minmax(0, …) columns: the thumbnail strip scrolls instead of widening the page. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <Gallery images={product.images} name={product.name} badge={percentOff > 0 ? `-${percentOff}%` : null} />
 
           {variants.length > 0 ? (
             <AddToCart
@@ -102,52 +204,26 @@ export default async function ProductPage({ params }: Props) {
               variants={variants}
               labels={{ color_label: product.color_label, size_label: product.size_label, option3_label: product.option3_label }}
               imageOrder={product.images.map((i) => i.storage_path)}
+              header={header}
+              details={details}
+              delivery={delivery || null}
+              shopPhone={settings.phone}
+              returnDays={settings.return_policy_days}
+              shareUrl={productUrl}
             />
           ) : (
-            <p className="text-muted">This product is not available right now.</p>
-          )}
-
-          <div className="card divide-y divide-line text-sm">
-            <div className="p-4">
-              <p className="font-semibold">Cash on delivery</p>
-              <p className="mt-1 text-muted">{settings.cod_terms}</p>
+            <div className="space-y-6">
+              {header}
+              <p className="card p-4 text-muted">This product is not available right now.</p>
+              {details}
             </div>
-            {zones.length > 0 && (
-              <div className="p-4">
-                <p className="font-semibold">Delivery</p>
-                <ul className="mt-1 space-y-0.5 text-muted">
-                  {zones.map((z) => (
-                    <li key={z.id}>
-                      {z.name}: {formatTaka(z.charge)}
-                      {z.eta_text ? ` · ${z.eta_text}` : ''}
-                      {z.free_over !== null ? ` · free over ${formatTaka(z.free_over)}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="p-4">
-              <p className="font-semibold">Returns</p>
-              <p className="mt-1 text-muted">
-                Tell us within {settings.return_policy_days} day{settings.return_policy_days === 1 ? '' : 's'} of delivery.{' '}
-                <Link href="/info/returns" className="underline">Return policy</Link>
-              </p>
-            </div>
-          </div>
-
-          {product.description && (
-            <section>
-              <h2 className="mb-2 font-display text-2xl font-semibold">Details</h2>
-              <div className="whitespace-pre-line text-[0.95rem] leading-relaxed text-ink/85">{product.description}</div>
-            </section>
           )}
         </div>
-      </div>
       </VariantImageProvider>
 
       {related.length > 0 && (
-        <section className="mt-20">
-          <h2 className="mb-6 font-display text-3xl font-semibold">You may also like</h2>
+        <section className="mt-14 border-t border-line pt-8">
+          <h2 className="section-title mb-5">Products related to this item</h2>
           <ProductGrid products={related} />
         </section>
       )}

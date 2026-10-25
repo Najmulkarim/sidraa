@@ -110,7 +110,7 @@ export const mfaCodeSchema = z.object({
 
 export const variantInputSchema = z.object({
   id: z.preprocess(blankToUndefined, z.uuid().optional()),
-  /** Empty on a new variation: the database assigns the next SKU000001-style code. */
+  /** Empty on a new variation: the database assigns <product SKU>-01, -02, … */
   sku: z.string().trim().max(64).regex(/^[A-Za-z0-9._-]*$/, 'Letters, numbers, . _ - only').default(''),
   size: z.string().trim().max(20, 'Keep it under 20 characters').default(''),
   color: z.string().trim().max(30, 'Keep it under 30 characters').default(''),
