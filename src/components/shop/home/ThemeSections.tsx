@@ -9,7 +9,7 @@ import { Countdown } from './Countdown';
 import { priceRange, totalStock } from '@/lib/catalog';
 import { imageUrl } from '@/lib/env';
 import { formatTaka, toNumber } from '@/lib/format';
-import type { SectionSettings, ThemeKey } from '@/lib/home-sections';
+import { lbl, type SectionSettings, type ThemeKey } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 
 /**
@@ -70,14 +70,14 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
         <div className="relative grid overflow-hidden rounded-2xl bg-night text-white md:grid-cols-[1.1fr_1fr]">
           <span className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand/20 blur-3xl" aria-hidden="true" />
           <div className="relative z-10 space-y-5 p-7 sm:p-10 lg:p-14">
-            <span className="inline-block rounded-md bg-white/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide ring-1 ring-white/15">{store.tagline ?? 'Limited time only'}</span>
+            <span className="inline-block rounded-md bg-white/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide ring-1 ring-white/15">{lbl(settings, 'eyebrow', store.tagline ?? 'Limited time only')}</span>
             <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-extrabold leading-[1.05]">
               {first}{rest.length ? ',' : ''}
               {rest.length > 0 && <span className="block text-brand">{rest.join(',').trim()}</span>}
             </h1>
             {text && <p className="max-w-md text-[15.5px] text-white/80">{text}</p>}
             <ul className="flex flex-wrap gap-x-5 gap-y-3 text-[13px]">
-              {([['tag', 'Best prices', 'Every day'], ['shield', 'Cash on delivery', 'Pay at your door'], ['truck', 'Fast delivery', 'All over Bangladesh']] as [IconName, string, string][]).map(([i, a, b]) => (
+              {([['tag', lbl(settings, 'chip1', 'Best prices'), lbl(settings, 'chip1_text', 'Every day')], ['shield', lbl(settings, 'chip2', 'Cash on delivery'), lbl(settings, 'chip2_text', 'Pay at your door')], ['truck', lbl(settings, 'chip3', 'Fast delivery'), lbl(settings, 'chip3_text', 'All over Bangladesh')]] as [IconName, string, string][]).map(([i, a, b]) => (
                 <li key={a} className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-full bg-white text-night"><Icon name={i} size={17} /></span><span><b className="block font-semibold">{a}</b><span className="text-white/65">{b}</span></span></li>
               ))}
             </ul>
@@ -100,14 +100,14 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
     return (
       <section className="container-page mt-6 grid items-center gap-8 md:grid-cols-[1fr_1.15fr]">
         <div className="order-2 space-y-5 md:order-1">
-          <p className="flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.16em] text-brand-ink"><span aria-hidden="true">✦</span>{store.tagline ?? 'New arrivals'}</p>
+          <p className="flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.16em] text-brand-ink"><span aria-hidden="true">✦</span>{lbl(settings, 'eyebrow', store.tagline ?? 'New arrivals')}</p>
           <h1 className="font-display text-[clamp(2.4rem,5vw,3.9rem)] font-semibold leading-[1.06] text-night">
             {lead} {accent && <span className="text-brand">{accent}</span>}
           </h1>
           {text && <p className="max-w-sm text-[16px] text-ink/70">{text}</p>}
           <div className="flex flex-wrap gap-3">
             <Link href={cta.href} className="btn btn-primary rounded-lg">{cta.label} <Icon name="arrow" size={16} /></Link>
-            <Link href="/products?sort=new" className="btn btn-dark-outline rounded-lg">Explore collection</Link>
+            <Link href="/products?sort=new" className="btn btn-dark-outline rounded-lg">{lbl(settings, 'button2', 'Explore collection')}</Link>
           </div>
         </div>
         <div className="relative order-1 aspect-[4/3] overflow-hidden rounded-3xl bg-cream md:order-2">
@@ -126,12 +126,12 @@ export function ThemeHero({ theme, title, subtitle, settings, store, discount, p
       <span className="pointer-events-none absolute -right-24 top-10 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle,var(--brand),transparent_65%)] opacity-25" aria-hidden="true" />
       <div className="container-page relative grid items-center gap-8 py-10 md:grid-cols-2 md:py-14">
         <div className="space-y-5">
-          <p className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">{store.tagline ?? 'Trending now'}</p>
+          <p className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">{lbl(settings, 'eyebrow', store.tagline ?? 'Trending now')}</p>
           <h1 className="font-display text-[clamp(2.4rem,5.2vw,4rem)] font-extrabold leading-[1.04] tracking-tight text-night">{heading}</h1>
           {text && <p className="max-w-md text-[16px] text-ink/65">{text}</p>}
           <div className="flex flex-wrap gap-3">
             <Link href={cta.href} className="btn rounded-lg bg-brand text-white hover:bg-night">{cta.label} <Icon name="arrow" size={16} /></Link>
-            <Link href="/products?sort=new" className="btn btn-dark-outline rounded-lg">Explore collection</Link>
+            <Link href="/products?sort=new" className="btn btn-dark-outline rounded-lg">{lbl(settings, 'button2', 'Explore collection')}</Link>
           </div>
         </div>
         <div className="relative mx-auto aspect-square w-full max-w-lg">
@@ -180,7 +180,8 @@ export function ThemeBenefits({ theme, items }: { theme: ShopTheme; items: { ico
 
 // ----------------------------------------------------------- categories
 
-export function ThemeCategories({ theme, title, categories, covers }: { theme: ShopTheme; title: string | null; categories: Category[]; covers: Record<string, string | null> }) {
+export function ThemeCategories({ theme, title, categories, covers, settings }: { theme: ShopTheme; title: string | null; categories: Category[]; covers: Record<string, string | null>; settings?: SectionSettings['category_tiles'] }) {
+  const tile = lbl(settings, 'tile', 'Shop now');
   if (!categories.length) return null;
   // A real product photo beats the drawn placeholder pictures of the starter categories.
   const pic = (c: Category) => (c.image_path && !c.image_path.startsWith('/demo/') ? c.image_path : covers[c.id] ?? c.image_path ?? null);
@@ -205,7 +206,7 @@ export function ThemeCategories({ theme, title, categories, covers }: { theme: S
   }
   return (
     <section className="container-page mt-12">
-      <Head theme={theme} title={title ?? 'Shop by category'} href={theme === 'novatrend' ? '/products' : null} linkLabel="View all categories" />
+      <Head theme={theme} title={title ?? 'Shop by category'} href={theme === 'novatrend' ? '/products' : null} linkLabel={lbl(settings, 'view_all', 'View all categories')} />
       {/* One line; when there are more than fit it slides along by itself. */}
       <AutoScroll label={title ?? 'Categories'}>
         {categories.slice(0, 16).map((c) => (
@@ -217,10 +218,10 @@ export function ThemeCategories({ theme, title, categories, covers }: { theme: S
               <span className={`flex items-center px-3 py-2.5 ${theme === 'shopease' ? 'flex-col text-center' : 'justify-between'}`}>
                 <span>
                   <span className="block text-[14px] font-semibold text-night">{c.name}</span>
-                  {theme === 'novatrend' && <span className="text-[12px] text-ink/55">Shop now</span>}
+                  {theme === 'novatrend' && <span className="text-[12px] text-ink/55">{tile}</span>}
                 </span>
                 {theme === 'shopease' ? (
-                  <span className="mt-0.5 inline-flex items-center gap-1 text-[12.5px] text-ink/65 group-hover:text-brand">Shop now <Icon name="arrow" size={13} /></span>
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-[12.5px] text-ink/65 group-hover:text-brand">{tile} <Icon name="arrow" size={13} /></span>
                 ) : (
                   <Icon name="arrow" size={16} className="text-night transition group-hover:translate-x-0.5 group-hover:text-brand" />
                 )}
@@ -261,10 +262,11 @@ export function ShopCard({ theme, product, badge }: { theme: ShopTheme; product:
 
 export function ThemeProductRow({ theme, title, subtitle, settings, products }: { theme: ShopTheme; title: string | null; subtitle: string | null; settings: SectionSettings['product_row']; products: ProductWithRelations[] }) {
   if (!products.length) return null;
-  const badge = settings.source === 'new' ? 'New' : settings.source === 'featured' && theme === 'novatrend' ? 'Hot' : undefined;
+  const auto = settings.source === 'new' ? 'New' : settings.source === 'featured' && theme === 'novatrend' ? 'Hot' : undefined;
+  const badge = lbl(settings, 'badge', '') || auto;
   return (
     <section className="container-page mt-12">
-      <Head theme={theme} title={title ?? 'Products'} subtitle={subtitle} href={settings.link || '/products'} />
+      <Head theme={theme} title={title ?? 'Products'} subtitle={subtitle} href={settings.link || '/products'} linkLabel={lbl(settings, 'view_all', 'View all')} />
       {settings.autoplay ? (
         <AutoScroll autoplay label={title ?? 'Products'}>
           {products.map((p) => (
@@ -286,7 +288,7 @@ export function BestSellers({ theme, title, settings, products }: { theme: ShopT
   if (!shown.length) return null;
   return (
     <section className="container-page mt-12">
-      <Head theme={theme} title={title ?? 'Best sellers'} href={settings.link || '/products'} />
+      <Head theme={theme} title={title ?? 'Best sellers'} href={settings.link || '/products'} linkLabel={lbl(settings, 'view_all', 'View all')} />
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {shown.map((p) => {
           const d = info(p);
@@ -294,7 +296,7 @@ export function BestSellers({ theme, title, settings, products }: { theme: ShopT
             <li key={p.id} className="grid grid-cols-[40%_1fr] gap-4 rounded-2xl bg-soft p-3 ring-1 ring-line">
               <Link href={`/product/${p.slug}`} className="relative aspect-square overflow-hidden rounded-xl bg-card"><ProductImage path={d.image} alt={p.name} sizes="200px" /></Link>
               <div className="flex min-w-0 flex-col gap-1.5 py-1">
-                <span className="w-fit rounded-md bg-[#fde68a] px-2 py-0.5 text-[11px] font-bold text-night">Bestseller</span>
+                <span className="w-fit rounded-md bg-[#fde68a] px-2 py-0.5 text-[11px] font-bold text-night">{lbl(settings, 'badge', 'Bestseller')}</span>
                 <Link href={`/product/${p.slug}`} className="line-clamp-2 text-[15px] font-semibold text-night hover:text-brand">{p.name}</Link>
                 <p className="flex items-baseline gap-1.5"><span className="text-[16px] font-bold">{formatTaka(d.min)}</span>{d.off > 0 && <s className="text-[12.5px] text-ink/45">{formatTaka(d.compare)}</s>}</p>
                 {p.description && <p className="line-clamp-2 text-[12.5px] text-ink/60">{p.description.replace(/[-•✓✔✅]/g, ' ').trim()}</p>}
@@ -323,7 +325,7 @@ export function Deal({ theme, title, subtitle, settings, product }: { theme: Sho
             <h2 className="font-display text-[clamp(1.9rem,4vw,2.8rem)] font-extrabold leading-tight">{title ?? product.name}</h2>
             {subtitle && <p className="text-[15px] text-white/85">{subtitle}</p>}
             {running && <Countdown endsAt={settings.ends_at!} tone="dark" />}
-            <span className="btn mt-2 w-fit bg-white text-night">Shop sale now <Icon name="arrow" size={16} /></span>
+            <span className="btn mt-2 w-fit bg-white text-night">{lbl(settings, 'button', 'Shop sale now')} <Icon name="arrow" size={16} /></span>
           </div>
           <div className="relative min-h-56"><ProductImage path={d.image} alt={product.name} sizes="(min-width: 768px) 40vw, 100vw" className="object-contain! p-6 transition duration-500 group-hover:scale-105" /></div>
         </Link>
@@ -338,7 +340,7 @@ export function Deal({ theme, title, subtitle, settings, product }: { theme: Sho
           <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-brand">{settings.eyebrow || 'Deal of the day'}</p>
           <h2 className="font-display text-[clamp(1.9rem,4vw,2.7rem)] font-extrabold leading-tight text-night">{title ?? 'Grab it before it’s gone!'}</h2>
           {subtitle && <p className="text-[15px] font-medium text-ink/75">{subtitle}</p>}
-          <Link href={settings.link || `/product/${product.slug}`} className="btn mt-1 bg-brand text-white hover:bg-night">Shop the deal <Icon name="arrow" size={16} /></Link>
+          <Link href={settings.link || `/product/${product.slug}`} className="btn mt-1 bg-brand text-white hover:bg-night">{lbl(settings, 'button', 'Shop the deal')} <Icon name="arrow" size={16} /></Link>
         </div>
         <Link href={`/product/${product.slug}`} className="group grid grid-cols-[42%_1fr] items-center gap-4 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-line">
           <span className="relative aspect-square overflow-hidden rounded-xl bg-soft"><ProductImage path={d.image} alt={product.name} sizes="240px" className="transition duration-500 group-hover:scale-105" /></span>
@@ -359,7 +361,7 @@ export function Deal({ theme, title, subtitle, settings, product }: { theme: Sho
 
 // ------------------------------------------------------------ newsletter
 
-export function NewsletterBand({ theme, title, subtitle }: { theme: ThemeKey; title: string | null; subtitle: string | null }) {
+export function NewsletterBand({ theme, title, subtitle, settings }: { theme: ThemeKey; title: string | null; subtitle: string | null; settings?: SectionSettings['newsletter'] }) {
   const dark = theme === 'shopease' || theme === 'novatrend' || theme === 'luxora';
   return (
     <section className="container-page mt-14">
@@ -371,7 +373,7 @@ export function NewsletterBand({ theme, title, subtitle }: { theme: ThemeKey; ti
             {subtitle && <p className={`mt-1 text-[14px] ${dark ? 'text-white/70' : 'text-ink/70'}`}>{subtitle}</p>}
           </div>
         </div>
-        <NewsletterForm tone={dark ? 'dark' : 'light'} />
+        <NewsletterForm tone={dark ? 'dark' : 'light'} buttonLabel={lbl(settings, 'button', 'Subscribe')} placeholder={lbl(settings, 'placeholder', 'Enter your email')} />
       </div>
     </section>
   );
@@ -392,7 +394,7 @@ export function ThemeBanners({ theme, eyebrow, settings, images }: { theme: Shop
             {eyebrow && <p className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-white/70">{eyebrow}</p>}
             {b.title && <h2 className="font-display text-[clamp(1.9rem,4vw,2.6rem)] font-extrabold leading-tight">{b.title}</h2>}
             {b.subtitle && <p className="max-w-sm text-[15px] text-white/75">{b.subtitle}</p>}
-            <span className="btn mt-2 w-fit bg-white text-night">Shop collection</span>
+            <span className="btn mt-2 w-fit bg-white text-night">{lbl(settings, 'button', 'Shop collection')}</span>
           </div>
           <div className="relative min-h-56"><ProductImage path={b.image ?? images[0] ?? null} alt="" sizes="(min-width: 768px) 50vw, 100vw" className="opacity-90 transition duration-700 group-hover:scale-105" /></div>
         </Link>
@@ -408,7 +410,7 @@ export function ThemeBanners({ theme, eyebrow, settings, images }: { theme: Shop
               <span className="flex flex-col justify-center gap-1.5 p-5">
                 {b.title && <span className="font-display text-[1.35rem] font-semibold leading-tight text-night">{b.title}</span>}
                 {b.subtitle && <span className="text-[13px] text-ink/65">{b.subtitle}</span>}
-                <span className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-night group-hover:text-brand">Shop now <Icon name="arrow" size={14} /></span>
+                <span className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-night group-hover:text-brand">{lbl(settings, 'button', 'Shop now')} <Icon name="arrow" size={14} /></span>
               </span>
               <span className="relative"><ProductImage path={b.image ?? images[i] ?? images[0] ?? null} alt="" sizes="(min-width: 768px) 16vw, 45vw" className="transition duration-500 group-hover:scale-105" /></span>
             </Link>
@@ -448,7 +450,7 @@ export function ReviewCards({ theme, title, settings }: { theme: ShopTheme; titl
 // --------------------------------------------------------- product grid
 
 /** A grid of products (e.g. "All products", 20 of them) with a View all button under it. */
-export function ProductGridSection({ theme, title, subtitle, link, products }: { theme: ThemeKey; title: string | null; subtitle: string | null; link: string; products: ProductWithRelations[] }) {
+export function ProductGridSection({ theme, title, subtitle, link, button, products }: { theme: ThemeKey; title: string | null; subtitle: string | null; link: string; button: string; products: ProductWithRelations[] }) {
   if (!products.length) return null;
   const serif = theme === 'luxora' || theme === 'luxe';
   return (
@@ -460,7 +462,7 @@ export function ProductGridSection({ theme, title, subtitle, link, products }: {
       {/* Five to a line on wide screens: 20 products fill four even rows. */}
       <ProductGrid products={products} priorityCount={0} wide />
       <div className="mt-8 text-center">
-        <Link href={link || '/products'} className="btn btn-primary px-8">View all products <Icon name="arrow" size={16} /></Link>
+        <Link href={link || '/products'} className="btn btn-primary px-8">{button} <Icon name="arrow" size={16} /></Link>
       </div>
     </section>
   );

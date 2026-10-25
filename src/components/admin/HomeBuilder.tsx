@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition, type ReactNode } from 'react';
 import { addHomeSection, deleteHomeSection, reorderHomeSections, saveHomeSection, setHomeSectionEnabled } from '@/actions/admin-home';
-import { PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
+import { LABEL_FIELDS, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
@@ -216,7 +216,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
           <div className="field"><span className="label">Link (optional)</span><LinkInput value={(settings as SectionSettings['notice']).link} onChange={(link) => set({ link })} /></div>
         </div>
       )}
-      {t === 'benefits' && <p className="text-[13px] text-muted">These cards come from Settings (cash on delivery, free delivery threshold, return days). Nothing to fill in here.</p>}
+      {t === 'benefits' && <p className="text-[13px] text-muted">These cards come from Settings (cash on delivery, free delivery threshold, return days). Rename any of them under “Button & label texts” below.</p>}
       {t === 'category_tiles' && <CategoryPicker ids={(settings as SectionSettings['category_tiles']).category_ids} categories={ctx.categories} onChange={(category_ids) => set({ category_ids })} />}
       {t === 'product_row' && (
         <div className="field max-w-xs">
@@ -321,6 +321,10 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
             <div className="field"><span className="label">Button link</span><LinkInput value={(settings as SectionSettings['about']).link} onChange={(link) => set({ link })} /></div>
           </div>
         </div>
+      )}
+
+      {LABEL_FIELDS[t] && (
+        <LabelsEditor fields={LABEL_FIELDS[t]!} value={(settings as { labels?: Record<string, string> }).labels ?? {}} onChange={(labels) => set({ labels })} />
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
@@ -605,4 +609,33 @@ function toLocalInput(iso: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+/** Renames a section's buttons, badges and small texts; blank keeps the text shown in grey. */
+function LabelsEditor({ fields, value, onChange }: { fields: { key: string; name: string; fallback: string }[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
+  const filled = fields.filter((f) => value[f.key]?.trim()).length;
+  return (
+    <details className="rounded-xl border border-line bg-soft/40 p-3" open={filled > 0}>
+      <summary className="cursor-pointer text-sm font-semibold">Button &amp; label texts {filled > 0 && <span className="badge ml-1">{filled} changed</span>}</summary>
+      <p className="mt-1 text-[12.5px] text-muted">Type your own words; leave a box empty to keep the text shown in grey.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {fields.map((f) => (
+          <label key={f.key} className="field">
+            <span className="label">{f.name}</span>
+            <input
+              value={value[f.key] ?? ''}
+              placeholder={f.fallback}
+              maxLength={60}
+              onChange={(e) => {
+                const next = { ...value, [f.key]: e.target.value };
+                if (!e.target.value) delete next[f.key];
+                onChange(next);
+              }}
+              className="input"
+            />
+          </label>
+        ))}
+      </div>
+    </details>
+  );
 }

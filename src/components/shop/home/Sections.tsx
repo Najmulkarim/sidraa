@@ -8,7 +8,7 @@ import { TestimonialSlider } from './TestimonialSlider';
 import { priceRange, totalStock } from '@/lib/catalog';
 import { imageUrl } from '@/lib/env';
 import { formatTaka, toNumber } from '@/lib/format';
-import type { SectionSettings } from '@/lib/home-sections';
+import { lbl, type SectionSettings } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 
 /** Home page sections (luxury layout). Each is fed by app/(shop)/page.tsx. */
@@ -38,7 +38,7 @@ export function HeroSection({ title, subtitle, settings, store, fallbackImage }:
   const slides: HeroSlide[] = withPhotos.length
     ? withPhotos.map((s) => ({ image: s.image, title: s.title || title || store.store_name, subtitle: s.subtitle || subtitle || '', button: s.button || settings.button, link: s.link || settings.link }))
     : [{ image: fallbackImage, title: title ?? store.store_name, subtitle: subtitle ?? '', button: settings.button, link: settings.link }];
-  return <HeroLuxury slides={slides} eyebrow={store.tagline ?? 'New season'} secondary={{ label: 'New arrivals', href: '/products?sort=new' }} />;
+  return <HeroLuxury slides={slides} eyebrow={lbl(settings, 'eyebrow', store.tagline ?? 'New season')} secondary={{ label: lbl(settings, 'button2', 'New arrivals'), href: '/products?sort=new' }} />;
 }
 
 // ---------------------------------------------------------- quick links
@@ -162,7 +162,7 @@ export function ProductRowSection({ title, subtitle, settings, products }: { tit
   if (!products.length) return null;
   return (
     <section className="reveal container-page mt-16">
-      <SectionHead title={title ?? 'Most loved this week'} subtitle={subtitle} href={settings.link || '/products'} />
+      <SectionHead title={title ?? 'Most loved this week'} subtitle={subtitle} href={settings.link || '/products'} linkLabel={lbl(settings, 'view_all', 'View all')} />
       <AutoScroll autoplay={settings.autoplay} label={title ?? 'Products'}>
         {products.map((p) => (
           <div key={p.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[22%] lg:w-[calc((100%-5*1rem)/6)]">
@@ -187,10 +187,10 @@ export function Collection({ title, subtitle, settings, products }: { title: str
         <Link href={more} className="group relative col-span-2 row-span-2 block min-h-80 overflow-hidden rounded-md bg-night">
           <ProductImage path={feature} alt="" sizes="(min-width: 1024px) 40vw, 100vw" className="opacity-90 transition duration-700 group-hover:scale-105" />
           <span className="absolute inset-0 flex flex-col justify-end bg-[linear-gradient(0deg,rgba(20,14,30,0.75),transparent_60%)] p-6 text-white sm:p-8">
-            <span className="text-[11.5px] font-medium uppercase tracking-[0.28em] text-white/80">Collection</span>
+            <span className="text-[11.5px] font-medium uppercase tracking-[0.28em] text-white/80">{lbl(settings, 'eyebrow', 'Collection')}</span>
             <span className="mt-1 font-display text-[clamp(1.9rem,3.2vw,2.6rem)] font-semibold leading-tight">{title ?? 'Collection'}</span>
             {subtitle && <span className="mt-1 max-w-sm text-[14px] text-white/85">{subtitle}</span>}
-            <span className="btn btn-light mt-4 w-fit">Shop now</span>
+            <span className="btn btn-light mt-4 w-fit">{lbl(settings, 'button', 'Shop now')}</span>
           </span>
         </Link>
         {shown.map((p) => <MiniCard key={p.id} product={p} />)}
@@ -219,7 +219,7 @@ export function Banners({ eyebrow, settings, fallbackImage }: { eyebrow: string 
             {eyebrow && <p className="text-[12px] font-medium uppercase tracking-[0.28em] text-brand-ink">{eyebrow}</p>}
             {b.title && <h2 className="font-display text-[clamp(2rem,3.6vw,3rem)] font-semibold leading-[1.05] text-night">{b.title}</h2>}
             {b.subtitle && <p className="max-w-sm text-[15px] leading-relaxed text-ink/70">{b.subtitle}</p>}
-            {b.link && <Link href={b.link} className="btn btn-primary mt-2 w-fit px-7">Explore now</Link>}
+            {b.link && <Link href={b.link} className="btn btn-primary mt-2 w-fit px-7">{lbl(settings, 'button', 'Explore now')}</Link>}
           </div>
         </div>
       </section>

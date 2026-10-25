@@ -166,3 +166,15 @@ describe('order numbers in links', () => {
     for (const v of ['Order12', 'Orderxyz', '', 'DROP TABLE']) expect(canonicalRef(v)).toBeNull();
   });
 });
+
+describe('home section labels', () => {
+  it('uses the admin wording when set, the default otherwise', async () => {
+    const { lbl, parseSettings } = await import('@/lib/home-sections');
+    const st = parseSettings('product_row', { layout: 'grid', labels: { grid_button: 'সব দেখুন' } });
+    expect(st.layout).toBe('grid');
+    expect(lbl(st, 'grid_button', 'View all products')).toBe('সব দেখুন');
+    expect(lbl(st, 'view_all', 'View all')).toBe('View all');
+    expect(lbl(parseSettings('newsletter', {}), 'button', 'Subscribe')).toBe('Subscribe');
+    expect(lbl(undefined, 'x', 'Default')).toBe('Default');
+  });
+});

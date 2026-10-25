@@ -66,6 +66,8 @@ const image = z
   .transform((v) => v || null);
 const text = (max: number) => z.string().trim().max(max).default('');
 const uuidList = z.array(z.uuid()).max(48).default([]);
+// Small texts a section shows (buttons, badges, captions). Blank keeps the default.
+const labels = z.record(z.string().regex(/^[a-z0-9_]{1,30}$/), z.string().trim().max(60)).default({});
 
 const productList = z.object({
   source: z.enum(PRODUCT_SOURCES).default('featured'),
@@ -79,15 +81,16 @@ export const SETTINGS_SCHEMA = {
     slides: z.array(z.object({ image, title: text(120), subtitle: text(200), button: text(30), link })).max(8).default([]),
     button: text(30),
     link,
+    labels,
   }),
   quick_links: z.object({ links: z.array(z.object({ label: text(40), href: link })).max(10).default([]) }),
   notice: z.object({ link_label: text(40), link }),
-  benefits: z.object({}),
-  category_tiles: z.object({ category_ids: uuidList }),
-  collection: productList.extend({ image, link }),
+  benefits: z.object({ labels }),
+  category_tiles: z.object({ category_ids: uuidList, labels }),
+  collection: productList.extend({ image, link, labels }),
   // layout 'grid': a plain grid (e.g. "All products", 20 items) with a View all button under it.
-  product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid']).default('row') }),
-  banners: z.object({ items: z.array(z.object({ image, title: text(80), subtitle: text(160), link })).max(3).default([]) }),
+  product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid']).default('row'), labels }),
+  banners: z.object({ items: z.array(z.object({ image, title: text(80), subtitle: text(160), link })).max(3).default([]), labels }),
   about: z.object({ image, link, link_label: text(40) }),
   testimonials: productList.extend({
     products_title: text(80),
@@ -99,9 +102,55 @@ export const SETTINGS_SCHEMA = {
     link,
     // When the deal ends (ISO date-time). Empty: no countdown.
     ends_at: z.string().trim().max(40).nullable().default(null).transform((v) => (v && !Number.isNaN(Date.parse(v)) ? v : null)),
+    labels,
   }),
-  newsletter: z.object({}),
+  newsletter: z.object({ labels }),
 } satisfies Record<SectionType, z.ZodType>;
+
+/** The texts each section lets the admin rename; "fallback" is what shows when left blank. */
+export const LABEL_FIELDS: Partial<Record<SectionType, { key: string; name: string; fallback: string }[]>> = {
+  hero: [
+    { key: 'eyebrow', name: 'Small text above the heading', fallback: 'Your shop tagline' },
+    { key: 'button2', name: 'Second button', fallback: 'Explore collection / New arrivals' },
+    { key: 'chip1', name: 'ShopEase point 1', fallback: 'Best prices' },
+    { key: 'chip1_text', name: 'ShopEase point 1 – small text', fallback: 'Every day' },
+    { key: 'chip2', name: 'ShopEase point 2', fallback: 'Cash on delivery' },
+    { key: 'chip2_text', name: 'ShopEase point 2 – small text', fallback: 'Pay at your door' },
+    { key: 'chip3', name: 'ShopEase point 3', fallback: 'Fast delivery' },
+    { key: 'chip3_text', name: 'ShopEase point 3 – small text', fallback: 'All over Bangladesh' },
+  ],
+  benefits: [1, 2, 3, 4, 5].flatMap((i) => [
+    { key: `b${i}_title`, name: `Card ${i} – title`, fallback: 'Automatic (from Settings)' },
+    { key: `b${i}_text`, name: `Card ${i} – small text`, fallback: 'Automatic (from Settings)' },
+  ]),
+  category_tiles: [
+    { key: 'view_all', name: '“View all” link', fallback: 'View all categories' },
+    { key: 'tile', name: 'Text under each category', fallback: 'Shop now' },
+  ],
+  collection: [
+    { key: 'view_all', name: '“View all” link', fallback: 'View all' },
+    { key: 'badge', name: 'Badge on each product (NovaTrend)', fallback: 'Bestseller' },
+    { key: 'eyebrow', name: 'Small text on the photo (Luxora)', fallback: 'Collection' },
+    { key: 'button', name: 'Button on the photo (Luxora)', fallback: 'Shop now' },
+  ],
+  product_row: [
+    { key: 'view_all', name: '“View all” link (slider)', fallback: 'View all' },
+    { key: 'grid_button', name: 'Button under the grid', fallback: 'View all products' },
+    { key: 'badge', name: 'Badge on each product', fallback: 'New / Hot' },
+  ],
+  banners: [{ key: 'button', name: 'Button / link text', fallback: 'Shop now' }],
+  deal: [{ key: 'button', name: 'Button text', fallback: 'Shop the deal' }],
+  newsletter: [
+    { key: 'button', name: 'Button text', fallback: 'Subscribe' },
+    { key: 'placeholder', name: 'Text inside the email box', fallback: 'Enter your email' },
+  ],
+};
+
+/** A section's own wording for `key`, or the default. */
+export function lbl(settings: unknown, key: string, fallback: string): string {
+  const v = (settings as { labels?: Record<string, string> } | null | undefined)?.labels?.[key];
+  return v && v.trim() ? v.trim() : fallback;
+}
 
 export type SectionSettings = { [K in SectionType]: z.infer<(typeof SETTINGS_SCHEMA)[K]> };
 

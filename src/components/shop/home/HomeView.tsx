@@ -6,7 +6,7 @@ import {
   type HomeSectionRow,
 } from '@/lib/catalog';
 import { formatTaka } from '@/lib/format';
-import { parseSettings, SECTION_TYPES, type SectionSettings, type SectionType, type ThemeKey } from '@/lib/home-sections';
+import { lbl, parseSettings, SECTION_TYPES, type SectionSettings, type SectionType, type ThemeKey } from '@/lib/home-sections';
 import type { ProductWithRelations } from '@/lib/types';
 
 /** Used when a theme's sections cannot be read: a short version of the Luxora layout. */
@@ -74,14 +74,17 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
             return <QuickLinks key={key} settings={s.settings as SectionSettings['quick_links']} />;
           case 'notice':
             return <Notice key={key} text={s.subtitle ?? s.title} settings={s.settings as SectionSettings['notice']} />;
-          case 'benefits':
-            return lux ? <Benefits key={key} items={benefits} /> : <ThemeBenefits key={key} theme={t} items={benefits} />;
+          case 'benefits': {
+            // Each card's wording can be renamed in the admin; blank keeps the automatic text.
+            const items = benefits.map((b, n) => ({ ...b, title: lbl(s.settings, `b${n + 1}_title`, b.title), text: lbl(s.settings, `b${n + 1}_text`, b.text) }));
+            return lux ? <Benefits key={key} items={items} /> : <ThemeBenefits key={key} theme={t} items={items} />;
+          }
           case 'category_tiles': {
             const ids = (s.settings as SectionSettings['category_tiles']).category_ids;
             const chosen = ids.length ? ids.map((id) => categories.find((c) => c.id === id)).filter((c): c is (typeof categories)[number] => !!c) : categories;
             return lux
               ? <CategoryTiles key={key} title={s.title} subtitle={s.subtitle} categories={chosen} images={covers} />
-              : <ThemeCategories key={key} theme={t} title={s.title} categories={chosen} covers={covers} />;
+              : <ThemeCategories key={key} theme={t} title={s.title} categories={chosen} covers={covers} settings={s.settings as SectionSettings['category_tiles']} />;
           }
           case 'collection':
             return lux || theme !== 'novatrend'
@@ -89,7 +92,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <BestSellers key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['collection']} products={products} />;
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
-            if (st.layout === 'grid') return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} products={products.slice(0, st.limit)} />;
+            if (st.layout === 'grid') return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} />;
             return lux
               ? <ProductRowSection key={key} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />
               : <ThemeProductRow key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;
@@ -109,7 +112,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'deal':
             return <Deal key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['deal']} product={products[0] ?? null} />;
           case 'newsletter':
-            return <NewsletterBand key={key} theme={theme} title={s.title} subtitle={s.subtitle} />;
+            return <NewsletterBand key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['newsletter']} />;
           default:
             return null;
         }
