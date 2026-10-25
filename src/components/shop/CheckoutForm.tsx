@@ -7,9 +7,11 @@ import { describeStockProblem } from '@/lib/db-errors';
 import { toOrderItems } from '@/lib/cart';
 import { trackPixel } from '@/lib/facebook/pixel';
 import { formatTaka, toNumber } from '@/lib/format';
+import type { PaymentOptions } from '@/lib/payments/settings';
 import type { DeliveryZone } from '@/lib/types';
 import { useCart } from './CartProvider';
 import { lineProblem, useQuote } from './CartView';
+import { defaultChoice, PaymentPicker, type PayChoice } from './PaymentPicker';
 
 const initial: CheckoutState = { ok: false };
 
@@ -26,7 +28,7 @@ function Field({
   );
 }
 
-export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = true }: { zones: DeliveryZone[]; codTerms: string; returnDays: number; couponsEnabled?: boolean }) {
+export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = true, payments }: { zones: DeliveryZone[]; codTerms: string; returnDays: number; couponsEnabled?: boolean; payments: PaymentOptions }) {
   const { lines, ready } = useCart();
   const [state, action, submitting] = useActionState(placeOrder, initial);
   const [zoneId, setZoneId] = useState<string>(state.values?.zoneId || zones[0]?.id || '');
@@ -38,6 +40,11 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
   const [coupon, setCoupon] = useState<string | null>(state.values?.couponCode || null);
   const { quote, error: quoteError, pending: quoting } = useQuote(zoneId || null, state.stock ? JSON.stringify(state.stock) : '', coupon);
   const couponError = coupon && quote?.coupon?.error ? quote.coupon.error : null;
+  const [pay, setPay] = useState<PayChoice>(() => {
+    const m = state.values?.paymentMethod;
+    return m === 'bkash' || m === 'nagad' ? { method: m, mode: state.values?.paymentMode === 'manual' ? 'manual' : 'merchant' } : defaultChoice(payments);
+  });
+  const cod = pay.method === 'cod';
 
   // Facebook Pixel: InitiateCheckout once per visit to this page.
   const sent = useRef(false);
@@ -147,6 +154,8 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
             <textarea id="note" name="note" maxLength={500} rows={2} placeholder="Landmark, best time to call…" defaultValue={v.note} className="input" />
           </Field>
         </section>
+
+        <PaymentPicker options={payments} choice={pay} onChange={setPay} total={quote?.total ?? null} errors={fe} values={v} />
       </div>
 
       <aside className="card h-fit space-y-5 p-5 sm:p-6 lg:sticky lg:top-24">
@@ -202,24 +211,24 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
             <dd>{quote?.delivery_charge == null ? '…' : quote.delivery_charge === 0 ? 'Free' : formatTaka(quote.delivery_charge)}</dd>
           </div>
           <div className="flex justify-between text-base font-semibold">
-            <dt>Total to pay on delivery</dt>
+            <dt>{cod ? 'Total to pay on delivery' : 'Total to pay now'}</dt>
             <dd>{quote?.total == null ? '…' : formatTaka(quote.total)}</dd>
           </div>
         </dl>
 
-        <div className="rounded-2xl bg-accent/10 p-4 text-sm">
+        {cod && <div className="rounded-2xl bg-accent/10 p-4 text-sm">
           <p className="font-semibold">Cash on delivery</p>
           <p className="mt-1 text-ink/80">{codTerms}</p>
           <p className="mt-1 text-ink/80">Returns accepted within {returnDays} day{returnDays === 1 ? '' : 's'} of delivery.</p>
-        </div>
+        </div>}
 
         {quoteError && <p className="error" role="alert">{quoteError}</p>}
         {problems.length > 0 && <p className="error">Some items need attention. <Link href="/cart" className="underline">Fix in cart</Link></p>}
 
         <button type="submit" className="btn btn-primary w-full" disabled={!canSubmit} aria-busy={submitting}>
-          {submitting ? 'Placing your order…' : `Place order${quote?.total != null ? ` · ${formatTaka(quote.total)}` : ''}`}
+          {submitting ? 'Placing your order…' : `${!cod && pay.mode === 'merchant' ? 'Place order & pay' : 'Place order'}${quote?.total != null ? ` · ${formatTaka(quote.total)}` : ''}`}
         </button>
-        <p className="text-center text-xs text-muted">No payment now. You pay the rider when the parcel arrives.</p>
+        <p className="text-center text-xs text-muted">{cod ? 'No payment now. You pay the rider when the parcel arrives.' : pay.mode === 'merchant' ? 'You will pay on the secure payment page next.' : 'We confirm your order after checking the payment.'}</p>
       </aside>
     </form>
   );

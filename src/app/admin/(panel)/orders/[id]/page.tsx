@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CourierPanel } from '@/components/admin/CourierPanel';
+import { PaymentPanel } from '@/components/admin/PaymentPanel';
 import type { CourierOptions, OrderRow } from '@/components/admin/OrdersTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { StatusForm } from '@/components/admin/StatusForm';
@@ -116,7 +117,12 @@ export default async function OrderDetailPage({ params, searchParams }: { params
             <p className="whitespace-pre-line text-sm">{order.address}</p>
             <p className="text-sm text-muted">{[order.area, order.district].filter(Boolean).join(', ')}</p>
             {order.note && <p className="rounded-xl bg-accent/10 p-3 text-sm"><span className="font-semibold">Note: </span>{order.note}</p>}
-            <p className="text-xs text-muted">Placed {formatDateTime(order.created_at)} · Cash on delivery</p>
+            <p className="text-xs text-muted">Placed {formatDateTime(order.created_at)}</p>
+          </section>
+
+          <section className="card p-5">
+            <h2 className="mb-3 font-semibold">Payment</h2>
+            <PaymentPanel order={order} canEdit={can.has('orders_edit')} />
           </section>
 
           <section className="card p-5">

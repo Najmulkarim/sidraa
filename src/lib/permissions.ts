@@ -72,6 +72,7 @@ export function capabilitiesFor(role: AdminRole, granted: readonly string[]): Se
 export const SETTINGS_TABS = [
   { key: 'store', label: 'Store', need: 'store_settings' },
   { key: 'delivery', label: 'Delivery', need: 'store_settings' },
+  { key: 'payments', label: 'Payments', need: 'store_settings' },
   { key: 'courier', label: 'Courier', need: 'courier_settings' },
   { key: 'facebook', label: 'Facebook & tracking', need: 'marketing' },
   { key: 'staff', label: 'Staff & roles', need: 'staff' },

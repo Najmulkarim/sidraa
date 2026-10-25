@@ -26,6 +26,8 @@ export type OrderRow = {
   note: string | null;
   total: number | string;
   paid_amount: number | string;
+  payment_method?: string;
+  payment_status?: string;
   assigned_to: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -242,6 +244,11 @@ export function OrdersTable({
                   <td className="whitespace-nowrap px-3 py-4 font-mono">
                     <p className="text-[13.5px] font-bold">{formatTaka(total)}</p>
                     <p className="text-[11px] text-muted">Paid {formatTaka(paid)}</p>
+                    {o.payment_method && o.payment_method !== 'cod' && (
+                      <p className={`mt-0.5 w-fit rounded px-1.5 text-[10.5px] font-bold text-white ${o.payment_status === 'paid' ? 'bg-ok' : o.payment_status === 'failed' ? 'bg-bad' : o.payment_method === 'bkash' ? 'bg-[#e2136e]' : 'bg-[#f6921e]'}`}>
+                        {o.payment_method === 'bkash' ? 'bKash' : 'Nagad'} · {o.payment_status === 'paid' ? 'paid' : o.payment_status === 'failed' ? 'not paid' : 'check'}
+                      </p>
+                    )}
                     {['cancelled', 'fake', 'returned', 'lost'].includes(o.status) ? (
                       <p className="text-[11px] font-semibold text-muted">Not collected</p>
                     ) : (

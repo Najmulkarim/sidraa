@@ -10,6 +10,10 @@ import { clientIp, hashKey, hit, LIMITS } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createPublicClient } from '@/lib/supabase/public';
 import { LAST_ORDER_COOKIE } from '@/lib/cart';
+import { SITE_URL } from '@/lib/env';
+import { normalizeBdPhone } from '@/lib/phone';
+import { bkashCreate, BkashError } from '@/lib/payments/bkash';
+import { allows, paymentOptions, readPaymentSettings } from '@/lib/payments/settings';
 import type { ActionState, Quote, TrackResult } from '@/lib/types';
 import { cartLinesSchema, checkoutSchema, fieldErrors, formToObject, trackSchema } from '@/lib/validation';
 
@@ -41,7 +45,7 @@ export async function quoteCart(items: unknown, zoneId: string | null, coupon: s
 
 export type CheckoutState = ActionState & { stock?: StockProblem[] };
 
-const ECHO_FIELDS = ['customerName', 'customerPhone', 'address', 'district', 'area', 'zoneId', 'note', 'couponCode'] as const;
+const ECHO_FIELDS = ['customerName', 'customerPhone', 'address', 'district', 'area', 'zoneId', 'note', 'couponCode', 'paymentMethod', 'paymentMode', 'paymentSender', 'paymentTrxId'] as const;
 
 /**
  * Checkout: Zod → rate limits → place_order() (one transaction: lock rows,
@@ -58,6 +62,17 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   }
   const input = parsed.data;
   const admin = createAdminClient();
+
+  // Payment: only what Settings → Payments switched on; a manual TrxID can pay for one order only.
+  const paySettings = await readPaymentSettings();
+  const mode = input.paymentMethod === 'cod' ? null : (input.paymentMode ?? null);
+  if (!allows(paymentOptions(paySettings), input.paymentMethod, mode)) {
+    return { ok: false, message: 'That payment option is not available. Please choose another.', fieldErrors: { paymentMethod: 'Not available' }, values };
+  }
+  if (mode === 'manual' && input.paymentTrxId) {
+    const { data: used } = await admin.from('orders').select('id').eq('payment_method', input.paymentMethod).ilike('payment_trx_id', input.paymentTrxId).limit(1);
+    if (used?.length) return { ok: false, message: 'This Transaction ID was already used for another order.', fieldErrors: { paymentTrxId: 'Already used' }, values };
+  }
 
   // A retry of an order that already went through skips the limits and
   // lands on the same confirmation page.
@@ -110,6 +125,30 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     return { ok: false, message: 'Something went wrong. Please try again.', values };
   }
 
+  let payUrl: string | null = null;
+  if (row.created && input.paymentMethod !== 'cod') {
+    const { data: o } = await admin.from('orders').select('id, total').eq('public_ref', row.public_ref).single<{ id: string; total: number | string }>();
+    const { error: payErr } = await admin.from('orders').update({
+      payment_method: input.paymentMethod,
+      payment_mode: mode,
+      payment_status: 'pending',
+      payment_sender: mode === 'manual' ? normalizeBdPhone(input.paymentSender ?? '') : null,
+      payment_trx_id: mode === 'manual' ? input.paymentTrxId : null,
+    }).eq('public_ref', row.public_ref);
+    if (payErr) console.error('[checkout] saving payment details failed', row.public_ref, payErr);
+    if (mode === 'merchant' && input.paymentMethod === 'bkash' && o) {
+      try {
+        const p = await bkashCreate(paySettings, { amount: Number(o.total), invoice: row.public_ref, payer: input.customerPhone, callbackURL: `${SITE_URL}/api/pay/bkash/callback` });
+        await admin.from('orders').update({ payment_gateway_id: p.paymentID }).eq('id', o.id);
+        payUrl = p.bkashURL;
+      } catch (e) {
+        // The order is saved; the confirmation page offers to try bKash again or pay on delivery.
+        console.error('[checkout] bKash create', e instanceof BkashError ? e.message : e);
+        await admin.from('orders').update({ payment_status: 'failed' }).eq('id', o.id);
+      }
+    }
+  }
+
   if (row.created) {
     // Facebook Conversions API, after the response (never slows checkout).
     const jar = await cookies();
@@ -136,7 +175,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     path: '/order',
     maxAge: 60 * 60 * 24,
   });
-  redirect(`/order/${row.public_ref}`);
+  redirect(payUrl ?? `/order/${row.public_ref}`);
 }
 
 // --------------------------------------------------------------- tracking

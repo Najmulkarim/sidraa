@@ -83,6 +83,20 @@ export const checkoutSchema = z.object({
   note: optionalText(500),
   couponCode: z.preprocess(blankToUndefined, z.string().trim().toUpperCase().max(24).optional()),
   items: jsonField(cartLinesSchema),
+  paymentMethod: z.preprocess((v) => (v === 'bkash' || v === 'nagad' ? v : 'cod'), z.enum(['cod', 'bkash', 'nagad'])),
+  paymentMode: z.preprocess((v) => (v === 'manual' || v === 'merchant' ? v : undefined), z.enum(['manual', 'merchant']).optional()),
+  paymentSender: z.preprocess(blankToUndefined, z.string().trim().max(20).optional()),
+  paymentTrxId: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() ? v.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : undefined),
+    z.string().max(40).optional(),
+  ),
+}).superRefine((p, ctx) => {
+  if (p.paymentMethod === 'cod') return;
+  if (!p.paymentMode) ctx.addIssue({ code: 'custom', path: ['paymentMethod'], message: 'Choose how you will pay' });
+  if (p.paymentMode === 'manual') {
+    if (!p.paymentSender || !normalizeBdPhone(p.paymentSender)) ctx.addIssue({ code: 'custom', path: ['paymentSender'], message: 'Enter the number you sent the money from' });
+    if (!p.paymentTrxId || !/^[A-Z0-9]{6,20}$/.test(p.paymentTrxId)) ctx.addIssue({ code: 'custom', path: ['paymentTrxId'], message: 'Enter the Transaction ID from the payment SMS' });
+  }
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

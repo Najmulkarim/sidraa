@@ -5,12 +5,14 @@ import { deleteZone } from '@/actions/admin-settings';
 import { CourierSettingsForm, type CourierSettingsView } from '@/components/admin/CourierSettingsForm';
 import { LogoUploader } from '@/components/admin/LogoUploader';
 import { MarketingSettingsForm, type MarketingView } from '@/components/admin/MarketingSettingsForm';
+import { PaymentSettingsForm } from '@/components/admin/PaymentSettingsForm';
 import { SettingsForm } from '@/components/admin/SettingsForm';
 import { StaffManager, type StaffMember } from '@/components/admin/StaffManager';
 import { ZoneForm } from '@/components/admin/ZoneForm';
 import { requireAdmin } from '@/lib/auth';
 import { SITE_URL } from '@/lib/env';
 import { formatDateTime } from '@/lib/format';
+import { readPaymentSettings } from '@/lib/payments/settings';
 import { isPermission, SETTINGS_TABS, type Permission, type SettingsTab } from '@/lib/permissions';
 import type { DeliveryZone, StoreSettings } from '@/lib/types';
 
@@ -45,6 +47,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {tab === 'store' && <StoreTab supabase={supabase} />}
       {tab === 'delivery' && <DeliveryTab supabase={supabase} />}
+      {tab === 'payments' && <PaymentsTab />}
       {tab === 'courier' && <CourierTab supabase={supabase} />}
       {tab === 'facebook' && <FacebookTab supabase={supabase} />}
       {tab === 'staff' && <StaffTab supabase={supabase} meId={user.id} />}
@@ -102,6 +105,25 @@ async function CourierTab({ supabase }: { supabase: Db }) {
       </p>
       <CourierSettingsForm settings={data as CourierSettingsView} siteUrl={SITE_URL} />
     </div>
+  );
+}
+
+/** Secrets never reach the browser: only a masked hint like ••••1234. */
+const mask = (v: string | null) => (v ? `••••${v.slice(-4)}` : null);
+
+async function PaymentsTab() {
+  const s = await readPaymentSettings();
+  return (
+    <PaymentSettingsForm
+      settings={{
+        ...s,
+        bkash_app_key: mask(s.bkash_app_key),
+        bkash_app_secret: mask(s.bkash_app_secret),
+        bkash_password: mask(s.bkash_password),
+        nagad_public_key: mask(s.nagad_public_key),
+        nagad_private_key: mask(s.nagad_private_key),
+      }}
+    />
   );
 }
 

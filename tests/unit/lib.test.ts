@@ -188,3 +188,26 @@ describe('discount badge', () => {
     expect(discountBadge(1000, 1000, 'amount')).toBeNull();
   });
 });
+
+describe('checkout payment fields', () => {
+  const base = {
+    idempotencyKey: 'b0000000-0000-4000-8000-000000000001', customerName: 'Rina Akter', customerPhone: '01711222333',
+    address: 'House 1, Road 2, Mirpur', district: 'Dhaka', zoneId: 'b0000000-0000-4000-8000-000000000002',
+    items: JSON.stringify([{ variantId: 'b0000000-0000-4000-8000-000000000003', quantity: 1 }]),
+  };
+  it('defaults to cash on delivery', async () => {
+    const { checkoutSchema } = await import('@/lib/validation');
+    const r = checkoutSchema.safeParse(base);
+    expect(r.success && r.data.paymentMethod).toBe('cod');
+  });
+  it('manual bKash needs the sender number and a TrxID', async () => {
+    const { checkoutSchema } = await import('@/lib/validation');
+    expect(checkoutSchema.safeParse({ ...base, paymentMethod: 'bkash', paymentMode: 'manual' }).success).toBe(false);
+    const ok = checkoutSchema.safeParse({ ...base, paymentMethod: 'bkash', paymentMode: 'manual', paymentSender: '01811222333', paymentTrxId: ' 9jk7a2b3cd ' });
+    expect(ok.success && ok.data.paymentTrxId).toBe('9JK7A2B3CD');
+  });
+  it('merchant bKash needs nothing extra', async () => {
+    const { checkoutSchema } = await import('@/lib/validation');
+    expect(checkoutSchema.safeParse({ ...base, paymentMethod: 'bkash', paymentMode: 'merchant' }).success).toBe(true);
+  });
+});

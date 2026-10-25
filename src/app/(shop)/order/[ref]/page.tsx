@@ -20,7 +20,10 @@ export const metadata: Metadata = { title: 'Order received', robots: { index: fa
  * else with the link sees the reference and a pointer to tracking, which
  * needs the phone digits.
  */
-export default async function OrderPage({ params }: { params: Promise<{ ref: string }> }) {
+const WALLET = { bkash: 'bKash', nagad: 'Nagad' } as const;
+
+export default async function OrderPage({ params, searchParams }: { params: Promise<{ ref: string }>; searchParams: Promise<{ pay?: string }> }) {
+  const { pay } = await searchParams;
   const { ref: rawRef } = await params;
   const ref = canonicalRef(decodeURIComponent(rawRef));
   const [jar, settings] = await Promise.all([cookies(), getSettings()]);
@@ -82,6 +85,23 @@ export default async function OrderPage({ params }: { params: Promise<{ ref: str
           </p>
         </header>
 
+        {order.payment_method !== 'cod' && (() => {
+          const wallet = WALLET[order.payment_method];
+          if (order.payment_status === 'paid') {
+            return <p className="rounded-2xl bg-ok/10 p-4 text-center text-sm font-semibold text-ok">Paid {formatTaka(order.total)} by {wallet}{order.payment_trx_id ? ` · TrxID ${order.payment_trx_id}` : ''}. Thank you!</p>;
+          }
+          if (order.payment_mode === 'manual') {
+            return <p className="rounded-2xl bg-soft p-4 text-center text-sm">We received your {wallet} Transaction ID <b className="font-mono">{order.payment_trx_id}</b>. We will check the payment and call you to confirm.</p>;
+          }
+          return (
+            <div className="space-y-3 rounded-2xl border border-bad/30 bg-bad/5 p-4 text-center text-sm">
+              <p className="font-semibold text-bad">{pay === 'cancelled' ? 'You cancelled the payment.' : 'The payment was not completed.'} Your order is saved.</p>
+              <p className="text-ink/75">Try {wallet} again, or simply pay the rider in cash when the parcel arrives.</p>
+              <a href={`/order/${order.public_ref}/pay`} className="btn btn-primary">Pay with {wallet} again</a>
+            </div>
+          );
+        })()}
+
         <StatusSteps status={order.status} />
 
         <section>
@@ -102,7 +122,7 @@ export default async function OrderPage({ params }: { params: Promise<{ ref: str
             <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatTaka(order.subtotal)}</dd></div>
             {Number(order.discount) > 0 && <div className="flex justify-between text-ok"><dt>Discount{order.coupon_code ? ` (${order.coupon_code})` : ''}</dt><dd>− {formatTaka(order.discount)}</dd></div>}
             <div className="flex justify-between"><dt className="text-muted">Delivery ({order.zone_name})</dt><dd>{Number(order.delivery_charge) === 0 ? 'Free' : formatTaka(order.delivery_charge)}</dd></div>
-            <div className="flex justify-between text-base font-semibold"><dt>Pay on delivery</dt><dd>{formatTaka(order.total)}</dd></div>
+            <div className="flex justify-between text-base font-semibold"><dt>{order.payment_status === 'paid' ? 'Paid' : order.payment_method === 'cod' || order.payment_status === 'failed' ? 'Pay on delivery' : 'To pay'}</dt><dd>{formatTaka(order.total)}</dd></div>
           </dl>
         </section>
 
@@ -121,7 +141,7 @@ export default async function OrderPage({ params }: { params: Promise<{ ref: str
           </div>
         </section>
 
-        <div className="rounded-2xl bg-accent/10 p-4 text-sm">{settings.cod_terms}</div>
+        {order.payment_status !== 'paid' && <div className="rounded-2xl bg-accent/10 p-4 text-sm">{settings.cod_terms}</div>}
 
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/products" className="btn btn-primary">Continue shopping</Link>

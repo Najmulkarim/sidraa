@@ -111,7 +111,12 @@ export type Order = {
   discount: Numeric;
   delivery_charge: Numeric;
   total: Numeric;
-  payment_method: 'cod';
+  payment_method: 'cod' | 'bkash' | 'nagad';
+  payment_mode: 'manual' | 'merchant' | null;
+  /** none = cash on delivery; pending = waiting for the gateway or for staff to check the TrxID. */
+  payment_status: 'none' | 'pending' | 'paid' | 'failed';
+  payment_sender: string | null;
+  payment_trx_id: string | null;
   stock_released: boolean;
   confirmed_at: string | null;
   processing_at: string | null;

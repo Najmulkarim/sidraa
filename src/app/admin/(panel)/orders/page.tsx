@@ -52,7 +52,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   let query = supabase
     .from('orders')
     .select(
-      'id, public_ref, status, customer_name, customer_phone, address, area, district, note, total, paid_amount, assigned_to, deleted_at, created_at, source,' +
+      'id, public_ref, status, customer_name, customer_phone, address, area, district, note, total, paid_amount, payment_method, payment_status, assigned_to, deleted_at, created_at, source,' +
         ' courier, courier_consignment_id, courier_tracking_code, courier_status, courier_error,' +
         ' items:order_items(id, product_name, variant_label, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))',
       { count: 'exact' },
