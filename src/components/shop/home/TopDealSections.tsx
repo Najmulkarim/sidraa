@@ -19,12 +19,12 @@ const TILE_BG = ['bg-[#1f2a44]', 'bg-[#e11d48]', 'bg-[#efe3ff]', 'bg-[#0f9d8a]',
 const TILE_DARK = [true, true, false, true, true, true];
 const pic = (c: Category, covers: Record<string, string | null>) => (c.image_path && !c.image_path.startsWith('/demo/') ? c.image_path : covers[c.id] ?? c.image_path ?? null);
 
-function Heading({ children, extra, href }: { children: ReactNode; extra?: ReactNode; href?: string }) {
+function Heading({ children, extra, href, link = 'View all' }: { children: ReactNode; extra?: ReactNode; href?: string; link?: string }) {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3 border-b-2 border-night/80 pb-2">
       <h2 className="flex items-center gap-2 font-display text-[1.05rem] font-bold uppercase tracking-wide text-night"><Icon name="tag" size={17} className="text-brand" />{children}</h2>
       {extra}
-      {href && <Link href={href} className="ml-auto text-[13px] font-semibold text-night hover:text-brand">View all</Link>}
+      {href && <Link href={href} className="ml-auto text-[13px] font-semibold text-night hover:text-brand">{link}</Link>}
     </div>
   );
 }
@@ -40,9 +40,9 @@ export function TopHero({ title, subtitle, settings, store, products, categories
   const extra = settings.slides.slice(1, 7).filter((s) => s.image || s.title);
   const tiles = (extra.length
     ? extra.map((s) => ({ image: s.image, title: s.title, subtitle: s.subtitle, link: s.link || '/products' }))
-    : categories.slice(0, 6).map((c) => ({ image: pic(c, covers), title: c.name, subtitle: 'Shop now', link: `/category/${c.slug}` }))).slice(0, 6);
+    : categories.slice(0, 6).map((c) => ({ image: pic(c, covers), title: c.name, subtitle: lbl(settings, 'tile_text', 'Shop now'), link: `/category/${c.slug}` }))).slice(0, 6);
   // An even grid: fill a gap with the whole shop.
-  if (tiles.length % 2 === 1) tiles.push({ image: photos[1] ?? null, title: 'Shop all', subtitle: 'Every style', link: '/products' });
+  if (tiles.length % 2 === 1) tiles.push({ image: photos[1] ?? null, title: lbl(settings, 'shop_all', 'Shop all'), subtitle: lbl(settings, 'shop_all_text', 'Every style'), link: '/products' });
   return (
     <section className="container-page mt-4 grid gap-3 lg:grid-cols-[1.45fr_1fr]">
       <Link href={big.link} className="group relative flex min-h-60 overflow-hidden rounded-2xl bg-[linear-gradient(115deg,#ffd166,#fbbf24)] sm:min-h-80">
@@ -90,7 +90,7 @@ export function TopCircles({ categories, covers }: { categories: Category[]; cov
   );
 }
 
-function MiniList({ title, products, href }: { title: string; products: ProductWithRelations[]; href: string }) {
+function MiniList({ title, products, href, button }: { title: string; products: ProductWithRelations[]; href: string; button: string }) {
   if (!products.length) return null;
   return (
     <section className="overflow-hidden rounded-xl border border-line bg-white">
@@ -111,27 +111,28 @@ function MiniList({ title, products, href }: { title: string; products: ProductW
           );
         })}
       </ul>
-      <Link href={href} className="m-3 block rounded-lg bg-[#e8edf8] py-2 text-center text-[12.5px] font-bold uppercase text-night hover:bg-night hover:text-white">View all items</Link>
+      <Link href={href} className="m-3 block rounded-lg bg-[#e8edf8] py-2 text-center text-[12.5px] font-bold uppercase text-night hover:bg-night hover:text-white">{button}</Link>
     </section>
   );
 }
 
 /** Left column: special items, the tall offer, recommended items. */
-export function TopSidebar({ featured, latest, offer }: { featured: ProductWithRelations[]; latest: ProductWithRelations[]; offer: { image: string | null; title: string; subtitle: string; link: string } | null }) {
+export function TopSidebar({ featured, latest, offer, settings }: { featured: ProductWithRelations[]; latest: ProductWithRelations[]; offer: { image: string | null; title: string; subtitle: string; link: string } | null; settings?: SectionSettings['banners'] }) {
+  const button = lbl(settings, 'list_button', 'View all items');
   return (
     <>
-      <MiniList title="Special items" products={featured} href="/products" />
+      <MiniList title={lbl(settings, 'list1', 'Special items')} products={featured} href="/products" button={button} />
       {offer && (
         <Link href={offer.link} className="group relative block aspect-[3/4] overflow-hidden rounded-xl bg-[#14532d]">
           <ProductImage path={offer.image} alt="" sizes="250px" className="opacity-85 transition duration-700 group-hover:scale-105" />
           <span className="absolute inset-x-0 top-0 space-y-1.5 bg-[linear-gradient(180deg,rgba(0,0,0,.55),transparent)] p-5 text-center text-white">
             <b className="block font-display text-[1.3rem] uppercase leading-tight">{offer.title}</b>
             {offer.subtitle && <span className="block text-[12.5px] font-semibold uppercase">{offer.subtitle}</span>}
-            <span className="inline-block rounded bg-[#fbbf24] px-3 py-1 text-[12px] font-bold uppercase text-night">Shop now</span>
+            <span className="inline-block rounded bg-[#fbbf24] px-3 py-1 text-[12px] font-bold uppercase text-night">{lbl(settings, 'button', 'Shop now')}</span>
           </span>
         </Link>
       )}
-      <MiniList title="Recommended items" products={latest} href="/products?sort=new" />
+      <MiniList title={lbl(settings, 'list2', 'Recommended items')} products={latest} href="/products?sort=new" button={button} />
     </>
   );
 }
@@ -159,7 +160,7 @@ export function TopProducts({ title, settings, products, categories, covers }: {
   if (!products.length) return null;
   return (
     <section className="container-page mt-8">
-      <Heading href={settings.link || '/products'}>{title ?? 'Fashion & accessories'}</Heading>
+      <Heading href={settings.link || '/products'} link={lbl(settings, 'view_all', 'View all')}>{title ?? 'Fashion & accessories'}</Heading>
       {categories.length > 1 && (
         <ul className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
           {categories.slice(0, 8).map((c) => (

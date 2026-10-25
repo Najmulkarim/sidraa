@@ -2,15 +2,18 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
-import { activateTheme } from '@/actions/admin-home';
+import { activateTheme, setThemeHidden } from '@/actions/admin-home';
 import { THEME_GROUPS, THEME_INFO, THEMES, type ThemeGroup, type ThemeKey } from '@/lib/home-sections';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { notify } from './Toaster';
 
-/** Theme gallery: the live theme on top, group filters, then one card per theme (preview, edit, one click to go live). */
-export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing: ThemeKey; photos: string[] }) {
+/** Theme gallery: the live theme on top, group filters, then one card per theme (preview, edit, go live, delete); deleted ones can be restored. */
+export function ThemePicker({ live, editing, hidden, photos }: { live: ThemeKey; editing: ThemeKey; hidden: ThemeKey[]; photos: string[] }) {
   const [current, setCurrent] = useState(live);
+  const [gone, setGone] = useState<ThemeKey[]>(hidden);
+  // Delete asks first.
+  const [ask, setAsk] = useState<ThemeKey | null>(null);
   const [group, setGroup] = useState<ThemeGroup | 'all'>('all');
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<ThemeKey | null>(null);
@@ -28,11 +31,25 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
     });
   }
 
+  function hide(t: ThemeKey, value: boolean) {
+    setMsg(null);
+    setBusy(t);
+    start(async () => {
+      const r = await setThemeHidden(t, value);
+      if (r.ok) setGone((cur) => (value ? [...cur.filter((x) => x !== t), t] : cur.filter((x) => x !== t)));
+      setMsg({ ok: r.ok, text: r.message ?? '' });
+      notify(r.ok, r.message);
+      setBusy(null);
+      setAsk(null);
+    });
+  }
+
   const liveInfo = THEME_INFO[current];
-  const shown = THEMES.filter((t) => group === 'all' || THEME_INFO[t].group === group);
+  const kept = THEMES.filter((t) => !gone.includes(t));
+  const shown = kept.filter((t) => group === 'all' || THEME_INFO[t].group === group);
   const chips: { key: ThemeGroup | 'all'; name: string; count: number }[] = [
-    { key: 'all', name: 'All themes', count: THEMES.length },
-    ...THEME_GROUPS.map((g) => ({ key: g.key, name: g.name, count: THEMES.filter((t) => THEME_INFO[t].group === g.key).length })),
+    { key: 'all', name: 'All themes', count: kept.length },
+    ...THEME_GROUPS.map((g) => ({ key: g.key, name: g.name, count: kept.filter((t) => THEME_INFO[t].group === g.key).length })),
   ];
 
   return (
@@ -52,7 +69,7 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
             <div className="flex items-center gap-2"><dt className="w-20 shrink-0 text-muted">Colours</dt><dd><Swatches colors={liveInfo.swatches} /></dd></div>
           </dl>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Link href={`/admin/homepage?theme=${current}`} className="btn btn-primary btn-sm"><Icon name="pencil" size={14} /> Edit sections</Link>
+            <Link href={`/admin/homepage?theme=${current}#sections`} className="btn btn-primary btn-sm"><Icon name="pencil" size={14} /> Edit sections</Link>
             <a href="/" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm"><Icon name="external" size={14} /> View shop</a>
           </div>
         </div>
@@ -83,6 +100,11 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
                 <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="absolute inset-0 grid place-items-center bg-night/0 opacity-0 transition group-hover:bg-night/45 group-hover:opacity-100 focus-visible:bg-night/45 focus-visible:opacity-100" aria-label={`Preview ${info.name} in a new tab`}>
                   <span className="btn btn-sm bg-white px-3 text-night"><Icon name="eye" size={14} /> Preview</span>
                 </a>
+                {!isLive && (
+                  <button type="button" disabled={pending} onClick={() => setAsk(t)} className="absolute left-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-bad shadow ring-1 ring-line transition hover:bg-bad hover:text-white" title="Delete this theme" aria-label={`Delete ${info.name}`}>
+                    <Icon name="trash" size={14} />
+                  </button>
+                )}
                 {isLive && <span className="absolute right-1.5 top-1.5 rounded-full bg-ok px-2 py-0.5 text-[10px] font-bold text-white shadow">LIVE</span>}
                 {!isLive && isEditing && <span className="absolute right-1.5 top-1.5 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white shadow">EDITING</span>}
               </div>
@@ -101,13 +123,47 @@ export function ThemePicker({ live, editing, photos }: { live: ThemeKey; editing
                     <button type="button" disabled={pending} onClick={() => activate(t)} className="btn btn-primary btn-sm min-w-0 flex-1 px-1.5 text-[11px] tracking-[0.04em] sm:text-[12px]">{busy === t ? '…' : 'Activate'}</button>
                   )}
                   <a href={`/preview/${t}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm px-2.5" title="Open a preview in a new tab" aria-label={`Preview ${info.name}`}><Icon name="eye" size={15} /></a>
-                  <Link href={`/admin/homepage?theme=${t}`} aria-current={isEditing ? 'page' : undefined} title="Edit this theme's sections" aria-label={`Edit ${info.name}`} className={`btn btn-sm px-2.5 ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={15} /></Link>
+                  <Link href={`/admin/homepage?theme=${t}#sections`} aria-current={isEditing ? 'page' : undefined} title="Edit this theme's sections" aria-label={`Edit ${info.name}`} className={`btn btn-sm px-2.5 ${isEditing ? 'bg-tint text-brand-ink' : 'btn-ghost'}`}><Icon name="pencil" size={15} /></Link>
                 </div>
               </div>
             </li>
           );
         })}
       </ul>
+      {shown.length === 0 && <p className="rounded-xl bg-soft px-4 py-6 text-center text-[13.5px] text-muted">No themes left in this group. Restore one below.</p>}
+
+      {gone.length > 0 && (
+        <div className="rounded-xl border border-dashed border-line p-4">
+          <p className="text-[13.5px] font-semibold">Deleted themes <span className="font-normal text-muted">({gone.length}) — kept with all their sections, restore any time</span></p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {gone.map((t) => (
+              <li key={t} className="flex items-center gap-2 rounded-full bg-soft py-1 pl-3.5 pr-1 text-[13px]">
+                <span className="font-medium text-ink/70">{THEME_INFO[t].name}</span>
+                <button type="button" disabled={pending} onClick={() => hide(t, false)} className="btn btn-sm rounded-full bg-white px-3 text-[11.5px] text-ok ring-1 ring-line hover:bg-ok hover:text-white">
+                  <Icon name="restore" size={13} /> {busy === t ? '…' : 'Restore'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {ask && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="del-theme" onClick={() => !pending && setAsk(null)}>
+          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-bad/10 text-bad"><Icon name="trash" size={22} /></span>
+            <div>
+              <h2 id="del-theme" className="text-lg font-bold">Delete “{THEME_INFO[ask].name}”?</h2>
+              <p className="mt-1 text-sm text-muted">It leaves your theme list. Its sections, texts and photos are kept, so you can restore it later from “Deleted themes”. Your live home page does not change.</p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" disabled={pending} onClick={() => setAsk(null)} className="btn btn-outline flex-1">Cancel</button>
+              <button type="button" disabled={pending} onClick={() => hide(ask, true)} autoFocus className="btn flex-1 bg-bad text-white hover:opacity-90">{pending ? 'Deleting…' : 'Delete theme'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {msg && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>{msg.text}</p>}
     </section>
   );

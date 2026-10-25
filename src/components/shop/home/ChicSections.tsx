@@ -91,7 +91,7 @@ export function ChicHero({ title, subtitle, settings, store, products, total }: 
               </span>
               <span className="leading-tight">
                 <b className="block text-[13.5px] text-night">{total} styles in the shop</b>
-                <span className="text-[12px] text-ink/60">Cash on delivery all over Bangladesh</span>
+                <span className="text-[12px] text-ink/60">{lbl(settings, 'note', 'Cash on delivery all over Bangladesh')}</span>
               </span>
             </div>
           )}

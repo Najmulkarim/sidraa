@@ -73,10 +73,29 @@ export async function activateTheme(theme: string): Promise<ActionState> {
   const { supabase } = await requirePermission('store_settings');
   const parsed = z.enum(THEMES).safeParse(theme);
   if (!parsed.success) return { ok: false, message: 'Unknown theme.' };
+  // A deleted theme goes live only after it is restored.
+  const { data: s } = await supabase.from('store_settings').select('hidden_themes').eq('id', 1).maybeSingle<{ hidden_themes: string[] | null }>();
+  if (s?.hidden_themes?.includes(parsed.data)) return { ok: false, message: 'This theme is deleted. Restore it first.' };
   const { error } = await supabase.from('store_settings').update({ home_theme: parsed.data }).eq('id', 1);
   if (error) return fail(error, 'activate theme');
   refresh();
   return { ok: true, message: 'Done — this theme is now your live home page.' };
+}
+
+/** Removes a theme from the Homepage list (hide = true) or brings it back. Its sections are kept; the live theme cannot be removed. */
+export async function setThemeHidden(theme: string, hide: boolean): Promise<ActionState> {
+  const { supabase } = await requirePermission('store_settings');
+  const parsed = z.enum(THEMES).safeParse(theme);
+  if (!parsed.success) return { ok: false, message: 'Unknown theme.' };
+  const { data: s, error: readError } = await supabase.from('store_settings').select('home_theme, hidden_themes').eq('id', 1).single<{ home_theme: string; hidden_themes: string[] | null }>();
+  if (readError || !s) return { ok: false, message: 'Run the latest database update (0029) in Supabase first.' };
+  if (hide && s.home_theme === parsed.data) return { ok: false, message: 'This theme is live. Activate another theme first, then delete this one.' };
+  const current = (s.hidden_themes ?? []).filter((t) => t !== parsed.data);
+  const next = hide ? [...current, parsed.data] : current;
+  const { error } = await supabase.from('store_settings').update({ hidden_themes: next }).eq('id', 1);
+  if (error) return fail(error, 'hide theme');
+  refresh();
+  return { ok: true, message: hide ? 'Theme deleted from your list. You can restore it any time under “Deleted themes”.' : 'Theme restored — it is back in your list, with all its sections.' };
 }
 
 /** Adds a section at the bottom of a theme, switched off so it can be filled in first. */

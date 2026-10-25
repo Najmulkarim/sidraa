@@ -6,7 +6,8 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 // Next.js injects small inline scripts for hydration, so script-src needs
 // 'unsafe-inline' unless you move to nonce-based CSP (see docs/security.md).
-const csp = [
+// frame-ancestors: no site may frame the shop, except the admin showing its own theme previews.
+const csp = (frameAncestors: string) => [
   "default-src 'self'",
   // connect.facebook.net: Meta Pixel (only loaded when a Pixel ID is set).
   `script-src 'self' 'unsafe-inline' https://connect.facebook.net${isDev ? " 'unsafe-eval'" : ''}`,
@@ -14,16 +15,17 @@ const csp = [
   `img-src 'self' data: blob: ${supabase.origin} https://www.facebook.com`,
   "font-src 'self'",
   `connect-src 'self' ${supabase.origin} ${supabase.origin.replace(/^http/, 'ws')} https://www.facebook.com https://connect.facebook.net`,
-  "frame-ancestors 'none'",
+  `frame-ancestors ${frameAncestors}`,
   "form-action 'self'",
-  "frame-src https://www.facebook.com",
+  // 'self': the Homepage editor shows /preview in a frame.
+  "frame-src 'self' https://www.facebook.com",
   "base-uri 'self'",
   "object-src 'none'",
 ].join('; ');
 
-const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
-  { key: 'X-Frame-Options', value: 'DENY' },
+const securityHeaders = (frame: 'none' | 'self') => [
+  { key: 'Content-Security-Policy', value: csp(`'${frame}'`) },
+  { key: 'X-Frame-Options', value: frame === 'none' ? 'DENY' : 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
@@ -47,7 +49,11 @@ const nextConfig: NextConfig = {
     qualities: [75, 90],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders('none') },
+      // Staff-only theme previews, shown beside the Homepage editor (same site only).
+      { source: '/preview/:path*', headers: securityHeaders('self') },
+    ];
   },
 };
 

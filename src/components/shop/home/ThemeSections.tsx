@@ -483,15 +483,15 @@ function GridCard({ product, serif }: { product: ProductWithRelations; serif: bo
 }
 
 /** "All products": centred heading, category chips, five-to-a-line boutique grid and a View all button. */
-export function ProductGridSection({ theme, title, subtitle, link, button, products, categories = [] }: {
-  theme: ThemeKey; title: string | null; subtitle: string | null; link: string; button: string; products: ProductWithRelations[]; categories?: Category[];
+export function ProductGridSection({ theme, title, subtitle, link, button, eyebrow = 'Shop the collection', products, categories = [] }: {
+  theme: ThemeKey; title: string | null; subtitle: string | null; link: string; button: string; eyebrow?: string; products: ProductWithRelations[]; categories?: Category[];
 }) {
   if (!products.length) return null;
   const serif = theme === 'luxora' || theme === 'luxe';
   return (
     <section className="reveal container-page mt-16">
       <div className="mb-8 text-center">
-        <p className="text-[11.5px] font-semibold uppercase tracking-[0.28em] text-brand">Shop the collection</p>
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.28em] text-brand">{eyebrow}</p>
         <h2 className={`mt-1.5 font-display text-night ${serif ? 'text-[clamp(2rem,3.6vw,2.8rem)] font-semibold' : 'text-[1.7rem] font-bold tracking-tight sm:text-[2rem]'}`}>{title ?? 'All products'}</h2>
         {subtitle && <p className="mx-auto mt-2 max-w-xl text-[14.5px] text-ink/65">{subtitle}</p>}
         <span className="mx-auto mt-4 block h-px w-16 bg-brand/40" aria-hidden="true" />

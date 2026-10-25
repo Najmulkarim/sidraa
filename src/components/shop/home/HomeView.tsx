@@ -38,8 +38,8 @@ function productsFor(s: ProductList): Promise<ProductWithRelations[]> {
 
 const HAS_PRODUCTS: SectionType[] = ['collection', 'product_row', 'testimonials', 'deal'];
 
-/** The whole home page for one theme (the live page and the admin preview). */
-export async function HomeView({ theme }: { theme: ThemeKey }) {
+/** The whole home page for one theme (the live page and the admin preview). anchors: each section gets an id the editor can scroll to. */
+export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; anchors?: boolean }) {
   const [settings, categories, zones, rows, covers, latest, featured, counts] = await Promise.all([
     getSettings(), getShopCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6), getCategoryCounts(),
   ]);
@@ -78,7 +78,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
     <>
       {!sections.some((s) => s.type === 'hero') && <h1 className="sr-only">{settings.store_name}</h1>}
       {(() => {
-      const body = sections.map((s, i) => {
+      const raw = sections.map((s, i) => {
         const key = s.id;
         const products = lists[i]!;
         switch (s.type) {
@@ -128,15 +128,15 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
             if (nova) return st.layout === 'grid' ? <NovaGrid key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} /> : <NovaFavourites key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} latest={latest} onSale={onSale} />;
-            if (st.layout === 'grid' && !market && !mega && !topdeal && !urban) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
+            if (st.layout === 'grid' && !market && !mega && !topdeal && !urban) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} eyebrow={lbl(st, 'eyebrow', 'Shop the collection')} products={products.slice(0, st.limit)} categories={categories} />;
             if (topdeal) return st.layout === 'grid' ? <MarketProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} /> : <TopProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} categories={categories} covers={covers} />;
             if (urban) return <UrbanProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} />;
             if (mega) return <MegaGrid key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} categories={categories} />;
             if (market && st.layout === 'trio') {
               return <MarketTrio key={key} lists={[
-                { title: 'New launches', href: '/products?sort=new', tone: 'bg-[#fff4dc]', products: latest },
-                { title: 'Trending now', href: '/products', tone: 'bg-[#fde3ea]', products: featured },
-                { title: 'On sale', href: '/products?sort=price-asc', tone: 'bg-[#dff1ec]', products: onSale },
+                { title: lbl(st, 'trio1', 'New launches'), href: '/products?sort=new', tone: 'bg-[#fff4dc]', products: latest },
+                { title: lbl(st, 'trio2', 'Trending now'), href: '/products', tone: 'bg-[#fde3ea]', products: featured },
+                { title: lbl(st, 'trio3', 'On sale'), href: '/products?sort=price-asc', tone: 'bg-[#dff1ec]', products: onSale },
               ]} />;
             }
             if (market) return <MarketProducts key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} />;
@@ -178,6 +178,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
             return null;
         }
       });
+      const body = anchors ? raw.map((el, i) => (el ? <div key={sections[i]!.id} id={`sec-${sections[i]!.id}`} className="scroll-mt-20">{el}</div> : null)) : raw;
       if (topdeal) {
         const split = sections.findIndex((s) => !['hero', 'benefits', 'category_tiles'].includes(s.type));
         if (split < 0) return body;
@@ -188,7 +189,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
             <div className="mt-8">
               <MegaFrame
                 top={null}
-                sidebar={<TopSidebar featured={featured} latest={latest} offer={offer ? { image: offer.image ?? photos[2] ?? null, title: offer.title, subtitle: offer.subtitle, link: offer.link || '/products' } : null} />}
+                sidebar={<TopSidebar featured={featured} latest={latest} offer={offer ? { image: offer.image ?? photos[2] ?? null, title: offer.title, subtitle: offer.subtitle, link: offer.link || '/products' } : null} settings={sideBanner?.settings as SectionSettings['banners'] | undefined} />}
               >
                 {body.slice(split)}
               </MegaFrame>
@@ -208,6 +209,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               latest={latest}
               benefits={benefits}
               offer={offer ? { image: offer.image ?? photos[2] ?? null, title: offer.title, subtitle: offer.subtitle, link: offer.link || '/products' } : null}
+              settings={sideBanner?.settings as SectionSettings['banners'] | undefined}
             />
           }
         >

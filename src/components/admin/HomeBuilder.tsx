@@ -6,6 +6,7 @@ import { labelFieldsFor, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LA
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
+import { ThemePreviewPane } from './ThemePreviewPane';
 import { useDragSort } from './useDragSort';
 import { notify } from './Toaster';
 
@@ -18,6 +19,7 @@ type Ctx = { products: PickProduct[]; categories: PickCategory[]; theme: string 
  * Home page builder: every section of the shop's home page in order. Drag
  * the handle (or use the arrows) to move a section, flip the switch to show
  * or hide it, open it to edit its heading, pictures, links and products.
+ * A live preview of the theme sits beside it and reloads after each save.
  */
 export function HomeBuilder({ sections, products, categories, theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; theme: string }) {
   const [items, setItems] = useState(sections);
@@ -27,6 +29,10 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
   const [newType, setNewType] = useState<SectionType>('collection');
   // The switch asks before saving: { section, the value it would get }.
   const [ask, setAsk] = useState<{ s: HomeSection; enabled: boolean } | null>(null);
+  // Preview: reloads when this goes up; "sheet" is the full-screen preview on smaller screens.
+  const [version, setVersion] = useState(0);
+  const [sheet, setSheet] = useState(false);
+  const changed = () => setVersion((v) => v + 1);
 
   function persistOrder(next: HomeSection[]) {
     setItems(next);
@@ -36,7 +42,10 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
         setItems(items);
         setMsg({ ok: false, text: r.message ?? 'Could not save the order.' });
         notify(false, r.message ?? 'Could not save the order.');
-      } else notify(true, 'New order saved — the home page shows it now.');
+      } else {
+        notify(true, 'New order saved — the home page shows it now.');
+        changed();
+      }
     });
   }
   const { list, dragging, handlers, handleProps, wasDrag } = useDragSort(items, persistOrder, { handleOnlyTouch: true });
@@ -57,6 +66,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
       const r = await setHomeSectionEnabled(s.id, enabled);
       const now = typeof r.enabled === 'boolean' ? r.enabled : r.ok ? enabled : s.enabled;
       setItems((cur) => cur.map((x) => (x.id === s.id ? { ...x, enabled: now } : x)));
+      if (r.ok) changed();
       setMsg({ ok: r.ok, text: r.message ?? (r.ok ? 'Saved.' : 'Could not change it.') });
       notify(r.ok, r.message ?? (r.ok ? 'Saved.' : 'Could not change it.'));
       setAsk(null);
@@ -67,7 +77,10 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
     if (!window.confirm(`Delete the "${s.title || SECTION_INFO[s.type].label}" section? This cannot be undone.`)) return;
     start(async () => {
       const r = await deleteHomeSection(s.id);
-      if (r.ok) setItems((cur) => cur.filter((x) => x.id !== s.id));
+      if (r.ok) {
+        setItems((cur) => cur.filter((x) => x.id !== s.id));
+        changed();
+      }
       setMsg({ ok: r.ok, text: r.message ?? '' });
       notify(r.ok, r.message);
     });
@@ -78,6 +91,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
       const r = await addHomeSection(newType, theme);
       setMsg({ ok: r.ok, text: r.message ?? '' });
       notify(r.ok, r.message);
+      if (r.ok) changed();
       if (r.ok && r.id) {
         // The server re-renders the page with the new row; open it once it arrives.
         setOpen(r.id);
@@ -94,77 +108,89 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
   }
 
   return (
-    <div className="space-y-4">
-      {msg && (
-        <p role="status" className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>
-          {msg.text}
-        </p>
-      )}
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_23rem] xl:items-start xl:gap-6">
+      <div className="min-w-0 space-y-4">
+        <button type="button" onClick={() => setSheet(true)} className="btn btn-outline btn-sm w-full xl:hidden"><Icon name="eye" size={15} /> Show live preview</button>
+        {msg && (
+          <p role="status" className={`rounded-xl px-4 py-3 text-sm ${msg.ok ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad'}`}>
+            {msg.text}
+          </p>
+        )}
 
-      <ol className="space-y-2.5">
-        {list.map((s, i) => (
-          <li key={s.id} data-sort-index={i} className={`card overflow-hidden transition ${dragging === i ? 'scale-[1.01] shadow-xl ring-2 ring-brand' : ''} ${s.enabled ? '' : 'opacity-75'}`}>
-            {/* The top row is the grip: mouse anywhere on it, finger on the ⠿ handle. */}
-            <div {...handlers(i)} className="flex select-none items-center gap-2 p-3 sm:gap-3">
-              <span {...handleProps} className="grid h-9 w-8 shrink-0 select-none place-items-center rounded-md text-lg text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-soft text-[12px] font-bold text-muted">{i + 1}</span>
-              <button type="button" data-draggable onClick={() => { if (!wasDrag()) setOpen(open === s.id ? null : s.id); }} className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing">
-                <span className="block truncate text-[14px] font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
-                <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s)}</span>
-              </button>
-              <Switch checked={s.enabled} disabled={pending} onChange={(v) => setAsk({ s, enabled: v })} label={s.enabled ? 'On' : 'Off'} />
-              <div className="flex gap-1">
-                <IconBtn label="Move up" disabled={i === 0 || pending} onClick={() => move(i, -1)}><Icon name="arrow" size={15} className="-rotate-90" /></IconBtn>
-                <IconBtn label="Move down" disabled={i === items.length - 1 || pending} onClick={() => move(i, 1)}><Icon name="arrow" size={15} className="rotate-90" /></IconBtn>
+        <ol className="space-y-2.5">
+          {list.map((s, i) => (
+            <li key={s.id} data-sort-index={i} className={`card overflow-hidden transition ${dragging === i ? 'scale-[1.01] shadow-xl ring-2 ring-brand' : ''} ${s.enabled ? '' : 'opacity-75'}`}>
+              {/* The top row is the grip: mouse anywhere on it, finger on the ⠿ handle. */}
+              <div {...handlers(i)} className="flex select-none items-center gap-2 p-3 sm:gap-3">
+                <span {...handleProps} className="grid h-9 w-8 shrink-0 select-none place-items-center rounded-md text-lg text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-soft text-[12px] font-bold text-muted">{i + 1}</span>
+                <button type="button" data-draggable onClick={() => { if (!wasDrag()) setOpen(open === s.id ? null : s.id); }} className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing">
+                  <span className="block truncate text-[14px] font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
+                  <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s)}</span>
+                </button>
+                <Switch checked={s.enabled} disabled={pending} onChange={(v) => setAsk({ s, enabled: v })} label={s.enabled ? 'On' : 'Off'} />
+                <div className="flex gap-1">
+                  <IconBtn label="Move up" disabled={i === 0 || pending} onClick={() => move(i, -1)}><Icon name="arrow" size={15} className="-rotate-90" /></IconBtn>
+                  <IconBtn label="Move down" disabled={i === items.length - 1 || pending} onClick={() => move(i, 1)}><Icon name="arrow" size={15} className="rotate-90" /></IconBtn>
+                </div>
+                <IconBtn label={open === s.id ? 'Close' : 'Edit'} onClick={() => setOpen(open === s.id ? null : s.id)}><Icon name={open === s.id ? 'x' : 'pencil'} size={15} /></IconBtn>
               </div>
-              <IconBtn label={open === s.id ? 'Close' : 'Edit'} onClick={() => setOpen(open === s.id ? null : s.id)}><Icon name={open === s.id ? 'x' : 'pencil'} size={15} /></IconBtn>
-            </div>
-            {open === s.id && (
-              <SectionEditor
-                key={s.id}
-                section={s}
-                ctx={{ products, categories, theme }}
-                onSaved={(saved) => setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x)))}
-                onDelete={() => remove(s)}
-                onMove={(d) => move(i, d)}
-                first={i === 0}
-                last={i === items.length - 1}
-              />
-            )}
-          </li>
-        ))}
-      </ol>
+              {open === s.id && (
+                <SectionEditor
+                  key={s.id}
+                  section={s}
+                  ctx={{ products, categories, theme }}
+                  onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); }}
+                  onDelete={() => remove(s)}
+                  onMove={(d) => move(i, d)}
+                  first={i === 0}
+                  last={i === items.length - 1}
+                />
+              )}
+            </li>
+          ))}
+        </ol>
 
-      {ask && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="toggle-title" onClick={() => !pending && setAsk(null)}>
-          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <span className={`grid h-12 w-12 place-items-center rounded-full ${ask.enabled ? 'bg-ok/15 text-ok' : 'bg-bad/10 text-bad'}`}><Icon name={ask.enabled ? 'eye' : 'x'} size={22} /></span>
-            <div>
-              <h2 id="toggle-title" className="text-lg font-bold">{ask.enabled ? 'Show this section?' : 'Hide this section?'}</h2>
-              <p className="mt-1 text-sm text-muted">
-                “{ask.s.title || SECTION_INFO[ask.s.type].label}” will be {ask.enabled ? 'shown on' : 'removed from'} the live home page as soon as you save.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button type="button" disabled={pending} onClick={() => setAsk(null)} className="btn btn-outline flex-1">Cancel</button>
-              <button type="button" disabled={pending} onClick={confirmToggle} autoFocus className={`btn flex-1 text-white ${ask.enabled ? 'bg-[#16a34a] hover:bg-[#15803d]' : 'bg-bad hover:opacity-90'}`}>
-                {pending ? 'Saving…' : ask.enabled ? 'Save — turn ON' : 'Save — turn OFF'}
-              </button>
+        {ask && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="toggle-title" onClick={() => !pending && setAsk(null)}>
+            <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <span className={`grid h-12 w-12 place-items-center rounded-full ${ask.enabled ? 'bg-ok/15 text-ok' : 'bg-bad/10 text-bad'}`}><Icon name={ask.enabled ? 'eye' : 'x'} size={22} /></span>
+              <div>
+                <h2 id="toggle-title" className="text-lg font-bold">{ask.enabled ? 'Show this section?' : 'Hide this section?'}</h2>
+                <p className="mt-1 text-sm text-muted">
+                  “{ask.s.title || SECTION_INFO[ask.s.type].label}” will be {ask.enabled ? 'shown on' : 'removed from'} the live home page as soon as you save.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" disabled={pending} onClick={() => setAsk(null)} className="btn btn-outline flex-1">Cancel</button>
+                <button type="button" disabled={pending} onClick={confirmToggle} autoFocus className={`btn flex-1 text-white ${ask.enabled ? 'bg-[#16a34a] hover:bg-[#15803d]' : 'bg-bad hover:opacity-90'}`}>
+                  {pending ? 'Saving…' : ask.enabled ? 'Save — turn ON' : 'Save — turn OFF'}
+                </button>
+              </div>
             </div>
           </div>
+        )}
+
+        <div className="card flex flex-wrap items-end gap-3 p-4">
+          <div className="field min-w-56 flex-1">
+            <label htmlFor="new-type" className="label">Add a section</label>
+            <select id="new-type" value={newType} onChange={(e) => setNewType(e.target.value as SectionType)} className="input">
+              {SECTION_TYPES.map((t) => <option key={t} value={t}>{SECTION_INFO[t].label}</option>)}
+            </select>
+            <p className="hint">{SECTION_INFO[newType].hint}</p>
+          </div>
+          <button type="button" onClick={add} disabled={pending} className="btn btn-primary"><Icon name="plus" size={16} /> Add section</button>
+        </div>
+      </div>
+
+      <aside className="sticky top-20 hidden h-[calc(100dvh-6.5rem)] xl:block" aria-label="Live preview">
+        <ThemePreviewPane theme={theme} version={version} focus={open} />
+      </aside>
+      {sheet && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-night/60 p-2 backdrop-blur-sm sm:p-6 xl:hidden" role="dialog" aria-modal="true" aria-label="Live preview">
+          <div className="mx-auto h-full w-full max-w-md"><ThemePreviewPane theme={theme} version={version} focus={open} onClose={() => setSheet(false)} /></div>
         </div>
       )}
-
-      <div className="card flex flex-wrap items-end gap-3 p-4">
-        <div className="field min-w-56 flex-1">
-          <label htmlFor="new-type" className="label">Add a section</label>
-          <select id="new-type" value={newType} onChange={(e) => setNewType(e.target.value as SectionType)} className="input">
-            {SECTION_TYPES.map((t) => <option key={t} value={t}>{SECTION_INFO[t].label}</option>)}
-          </select>
-          <p className="hint">{SECTION_INFO[newType].hint}</p>
-        </div>
-        <button type="button" onClick={add} disabled={pending} className="btn btn-primary"><Icon name="plus" size={16} /> Add section</button>
-      </div>
     </div>
   );
 }

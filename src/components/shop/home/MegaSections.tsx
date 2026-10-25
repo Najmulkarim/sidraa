@@ -36,15 +36,16 @@ export function MegaFrame({ sidebar, top, children }: { sidebar: ReactNode; top:
 }
 
 /** Sidebar: category list, a tall offer picture, latest products, service points. */
-export function MegaSidebar({ categories, covers, latest, benefits, offer }: {
+export function MegaSidebar({ categories, covers, latest, benefits, offer, settings }: {
   categories: Category[]; covers: Record<string, string | null>; latest: ProductWithRelations[];
   benefits: { icon: IconName; title: string; text: string; href: string }[];
   offer: { image: string | null; title: string; subtitle: string; link: string } | null;
+  settings?: SectionSettings['banners'];
 }) {
   return (
     <>
       <nav aria-label="All categories" className="overflow-hidden rounded-xl border border-line bg-white">
-        <p className="flex items-center gap-2 bg-brand px-4 py-3 text-[14px] font-bold uppercase tracking-wide text-white"><Icon name="menu" size={18} /> All categories</p>
+        <p className="flex items-center gap-2 bg-brand px-4 py-3 text-[14px] font-bold uppercase tracking-wide text-white"><Icon name="menu" size={18} /> {lbl(settings, 'cats_title', 'All categories')}</p>
         <ul className="divide-y divide-line">
           {categories.slice(0, 12).map((c) => (
             <li key={c.id}>
@@ -55,7 +56,7 @@ export function MegaSidebar({ categories, covers, latest, benefits, offer }: {
               </Link>
             </li>
           ))}
-          <li><Link href="/products" className="flex items-center gap-2 px-4 py-2.5 text-[13.5px] font-semibold text-brand hover:bg-tint"><Icon name="plus" size={14} /> All products</Link></li>
+          <li><Link href="/products" className="flex items-center gap-2 px-4 py-2.5 text-[13.5px] font-semibold text-brand hover:bg-tint"><Icon name="plus" size={14} /> {lbl(settings, 'all_products', 'All products')}</Link></li>
         </ul>
       </nav>
 
@@ -65,14 +66,14 @@ export function MegaSidebar({ categories, covers, latest, benefits, offer }: {
           <span className="absolute inset-x-0 top-0 space-y-1 bg-[linear-gradient(180deg,rgba(20,14,30,.7),transparent)] p-5 text-white">
             <b className="block font-display text-[1.35rem] leading-tight">{offer.title}</b>
             {offer.subtitle && <span className="block text-[12.5px] font-semibold uppercase tracking-wide text-white/85">{offer.subtitle}</span>}
-            <span className="inline-block pt-1 text-[13px] font-semibold underline">Shop now</span>
+            <span className="inline-block pt-1 text-[13px] font-semibold underline">{lbl(settings, 'button', 'Shop now')}</span>
           </span>
         </Link>
       )}
 
       {latest.length > 0 && (
         <section>
-          <h2 className="mb-3 border-b-2 border-brand pb-2 font-display text-[15px] font-bold uppercase text-night">Latest products</h2>
+          <h2 className="mb-3 border-b-2 border-brand pb-2 font-display text-[15px] font-bold uppercase text-night">{lbl(settings, 'list2', 'Latest products')}</h2>
           <ul className="space-y-3">
             {latest.slice(0, 4).map((p) => {
               const d = info(p);

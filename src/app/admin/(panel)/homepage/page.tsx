@@ -12,9 +12,14 @@ type ProductRow = { id: string; sku: string; name: string; status: string; image
 /** Themes (one click to go live) and each theme's sections: on/off, order, headings, pictures and products. */
 export default async function HomepageAdminPage({ searchParams }: { searchParams: Promise<{ theme?: string }> }) {
   const [{ supabase }, sp] = await Promise.all([requirePermission('store_settings'), searchParams]);
-  const { data: s } = await supabase.from('store_settings').select('home_theme').eq('id', 1).maybeSingle<{ home_theme: string }>();
+  // hidden_themes arrives with database update 0029; until then nothing is hidden.
+  const withHidden = await supabase.from('store_settings').select('home_theme, hidden_themes').eq('id', 1).maybeSingle<{ home_theme: string; hidden_themes: string[] | null }>();
+  const s: { home_theme: string; hidden_themes?: string[] | null } | null = withHidden.error
+    ? (await supabase.from('store_settings').select('home_theme').eq('id', 1).maybeSingle<{ home_theme: string }>()).data
+    : withHidden.data;
   const live: ThemeKey = isTheme(s?.home_theme) ? s.home_theme : 'luxora';
-  const editing: ThemeKey = isTheme(sp.theme) ? sp.theme : live;
+  const hidden: ThemeKey[] = (s?.hidden_themes ?? []).filter(isTheme).filter((t) => t !== live);
+  const editing: ThemeKey = isTheme(sp.theme) && !hidden.includes(sp.theme) ? sp.theme : live;
 
   const [{ data: rows, error }, { data: cats }, { data: prods }] = await Promise.all([
     supabase.from('home_sections').select('id, type, title, subtitle, enabled, sort_order, settings').eq('theme', editing).order('sort_order').order('created_at'),
@@ -40,9 +45,9 @@ export default async function HomepageAdminPage({ searchParams }: { searchParams
         <a href="/" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">View live home page</a>
       </header>
 
-      <ThemePicker live={live} editing={editing} photos={products.filter((p) => p.status === 'published' && p.image).map((p) => p.image as string).slice(0, 8)} />
+      <ThemePicker live={live} editing={editing} hidden={hidden} photos={products.filter((p) => p.status === 'published' && p.image).map((p) => p.image as string).slice(0, 8)} />
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-line pt-5">
+      <div id="sections" className="flex scroll-mt-20 flex-wrap items-baseline justify-between gap-2 border-t border-line pt-5">
         <h2 className="text-lg font-bold">
           Sections of <span className="text-brand-ink">{THEME_INFO[editing].name}</span>
           {editing === live ? <span className="badge badge-ok ml-2 align-middle">Live</span> : <span className="badge ml-2 align-middle">Not live</span>}
