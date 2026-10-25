@@ -119,6 +119,8 @@ export function OrdersTable({
     startTransition(async () => {
       const r = await fn();
       flash(r);
+      // Done: start the next job with a fresh selection.
+      setSelected(new Set());
       router.refresh();
     });
   const arm = (key: string, then: () => void) => {

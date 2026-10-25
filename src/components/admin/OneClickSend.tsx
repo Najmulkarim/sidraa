@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { autoSendToCourier } from '@/actions/admin-courier';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
@@ -14,6 +15,7 @@ const KEY = 'sidraa:courier-capacity';
 export function OneClickSend({ couriers, defaultCourier, ready }: { couriers: CourierName[]; defaultCourier: CourierName | null; ready: number }) {
   const [courier, setCourier] = useState<CourierName>(defaultCourier && couriers.includes(defaultCourier) ? defaultCourier : couriers[0]!);
   const [cap, setCap] = useState(20);
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -31,6 +33,7 @@ export function OneClickSend({ couriers, defaultCourier, ready }: { couriers: Co
     start(async () => {
       const r = await autoSendToCourier(courier, count);
       setMsg({ ok: r.ok, text: r.message ?? '' });
+      router.refresh();
     });
   }
 
