@@ -85,6 +85,9 @@ export type Product = {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  /** From approved customer reviews only (null / 0 until the first one). */
+  rating_avg: Numeric | null;
+  rating_count: number;
 };
 
 export type ProductWithRelations = Product & {

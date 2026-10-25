@@ -5,12 +5,14 @@ import { AddToCart } from '@/components/shop/AddToCart';
 import { Gallery } from '@/components/shop/Gallery';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { ProductGrid } from '@/components/shop/ProductCard';
-import { getProductBySlug, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
+import { getProductBySlug, getProductReviews, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { parseDescription, splitBullet } from '@/lib/product-content';
 import { Icon } from '@/components/icons';
+import { ProductReviews } from '@/components/shop/ProductReviews';
+import { Stars } from '@/components/shop/Stars';
 
 export const revalidate = 300;
 
@@ -44,7 +46,7 @@ export default async function ProductPage({ params }: Props) {
   const [product, settings, zones] = await Promise.all([getProductBySlug(slug), getSettings(), getZones()]);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product.id, product.category_id, 6);
+  const [related, reviews] = await Promise.all([getRelatedProducts(product.id, product.category_id, 6), getProductReviews(product.id)]);
   const variants = product.variants
     .filter((v) => v.is_active)
     .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock, sku: v.sku }));
@@ -74,6 +76,10 @@ export default async function ProductPage({ params }: Props) {
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       url: productUrl,
     },
+    // Only real, approved reviews.
+    ...(product.rating_count > 0 && product.rating_avg !== null
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(product.rating_avg), reviewCount: product.rating_count, bestRating: 5, worstRating: 1 } }
+      : {}),
   };
 
   const header = (
@@ -91,6 +97,7 @@ export default async function ProductPage({ params }: Props) {
           </span>
         )}
         <span className={inStock ? 'text-ok' : 'text-bad'}>{inStock ? 'In stock' : 'Out of stock'}</span>
+        {product.rating_count > 0 && <a href="#reviews" className="hover:underline"><Stars avg={product.rating_avg} count={product.rating_count} size={14} /></a>}
       </p>
     </header>
   );
@@ -223,6 +230,8 @@ export default async function ProductPage({ params }: Props) {
           )}
         </div>
       </VariantImageProvider>
+
+      <ProductReviews product={product} reviews={reviews} />
 
       {related.length > 0 && (
         <section className="mt-14 border-t border-line pt-8">

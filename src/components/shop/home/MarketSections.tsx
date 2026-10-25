@@ -8,6 +8,7 @@ import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { Countdown } from './Countdown';
 import { info } from './ThemeSections';
+import { Stars } from '../Stars';
 
 /**
  * "Market" home theme: a busy store front — mini category tiles, a big
@@ -121,7 +122,10 @@ export function MarketCard({ product, stockBar }: { product: ProductWithRelation
             <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-soft"><span className="block h-full rounded-full bg-brand" style={{ width: `${Math.max(8, Math.min(100, (left / 30) * 100))}%` }} /></span>
           </span>
         )}
-        <div className="mt-auto flex justify-end pt-2">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+          {product.rating_count > 0
+            ? <Stars avg={product.rating_avg} count={product.rating_count} />
+            : <span className="flex min-w-0 items-center gap-1 text-[11.5px] font-medium text-ink/55"><Icon name="cash" size={14} className="shrink-0 text-[#16a34a]" /><span className="truncate">Cash on delivery</span></span>}
           <CartIconButton productId={product.id} productName={product.name} productSlug={product.slug} imagePath={d.image} price={d.min} variantId={d.single} soldOut={d.stock <= 0} look="icon" />
         </div>
       </div>

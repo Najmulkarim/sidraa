@@ -10,6 +10,7 @@ import { imageUrl } from '@/lib/env';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
+import { Stars } from '../Stars';
 
 /** Home page sections (luxury layout). Each is fed by app/(shop)/page.tsx. */
 
@@ -148,6 +149,7 @@ export function MiniCard({ product, className = '' }: { product: ProductWithRela
         {soldOut && <span className="absolute inset-x-2 bottom-2 rounded-sm bg-white/90 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-night">Sold out</span>}
       </span>
       <span className="mt-3 line-clamp-1 block font-display text-[1.08rem] font-semibold text-night group-hover:text-brand">{product.name}</span>
+      <Stars avg={product.rating_avg} count={product.rating_count} className="mt-1" />
       <span className="mt-0.5 flex items-baseline justify-center gap-2 text-[14px]">
         <span className="font-medium text-night">{formatTaka(min)}</span>
         {off && <s className="text-[12.5px] text-ink/45">{formatTaka(compare)}</s>}

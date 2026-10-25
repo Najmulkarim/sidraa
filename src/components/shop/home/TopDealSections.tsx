@@ -8,6 +8,7 @@ import { ProductImage } from '../ProductImage';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { info } from './ThemeSections';
+import { Stars } from '../Stars';
 
 /**
  * "TopDeal" home theme: navy deals store — a big banner with six small
@@ -148,6 +149,7 @@ function SideCard({ product }: { product: ProductWithRelations }) {
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Link href={`/product/${product.slug}`} className="line-clamp-2 text-[13.5px] font-medium text-night hover:text-brand">{product.name}</Link>
+        <Stars avg={product.rating_avg} count={product.rating_count} />
         <p className="flex items-baseline gap-1.5"><b className="text-[15px] text-night">{formatTaka(d.min)}</b>{d.off > 0 && <s className="text-[12px] text-ink/40">{formatTaka(d.compare)}</s>}</p>
         <div className="mt-auto"><CartIconButton productId={product.id} productName={product.name} productSlug={product.slug} imagePath={d.image} price={d.min} variantId={d.single} soldOut={d.stock <= 0} look="wide" /></div>
       </div>

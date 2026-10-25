@@ -7,6 +7,7 @@ import { ProductImage } from '../ProductImage';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { Head, info } from './ThemeSections';
+import { Stars } from '../Stars';
 
 /**
  * "Chic" home theme: soft cream page, hero photo on a big brand-colour
@@ -160,6 +161,7 @@ function ChicCard({ product, badge }: { product: ProductWithRelations; badge?: s
       </Link>
       <div className="flex flex-1 flex-col gap-1.5 p-3.5">
         <Link href={`/product/${product.slug}`} className="line-clamp-1 text-[14.5px] font-semibold text-night hover:text-brand">{product.name}</Link>
+        <Stars avg={product.rating_avg} count={product.rating_count} />
         <p className="flex items-baseline gap-2">
           <span className="text-[16px] font-bold text-brand">{formatTaka(d.min)}</span>
           {d.off > 0 && <s className="text-[12.5px] text-ink/40">{formatTaka(d.compare)}</s>}

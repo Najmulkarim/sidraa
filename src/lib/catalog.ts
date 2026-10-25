@@ -15,7 +15,7 @@ import { sizeRank } from './sizes';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
-  'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at,' +
+  'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at, rating_avg, rating_count,' +
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
   ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active)';
 
@@ -337,4 +337,21 @@ export function stockLabel(stock: number): { text: string; tone: 'ok' | 'low' | 
   if (stock <= 0) return { text: 'Sold out', tone: 'out' };
   if (stock <= 3) return { text: `Only ${stock} left`, tone: 'low' };
   return { text: 'In stock', tone: 'ok' };
+}
+
+export type PublicReview = { id: string; name: string; rating: number; comment: string | null; verified: boolean; created_at: string };
+
+/** A product's approved reviews, newest first. "verified": written from a delivered order. */
+export function getProductReviews(productId: string): Promise<PublicReview[]> {
+  return cachedRead(`reviews:${productId}`, async () => {
+    const { data, error } = await createPublicClient()
+      .from('product_reviews')
+      .select('id, name, rating, comment, order_id, created_at')
+      .eq('product_id', productId)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => ({ id: r.id, name: r.name, rating: r.rating, comment: r.comment, verified: r.order_id !== null, created_at: r.created_at }));
+  }, [])();
 }

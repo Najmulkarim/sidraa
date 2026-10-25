@@ -10,6 +10,7 @@ import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { NovaSlides, NovaTabs } from './NovaClient';
 import { info } from './ThemeSections';
+import { Stars } from '../Stars';
 
 /**
  * "Nova" home theme: navy and orange editorial store — a full-width photo
@@ -218,6 +219,7 @@ export function NovaCard({ product, badge, tall = false }: { product: ProductWit
         </span>
       </div>
       <Link href={`/product/${product.slug}`} className="mt-2.5 line-clamp-1 text-[13px] text-[var(--nova-ink)] hover:text-[var(--nova)]">{product.name}</Link>
+      <Stars avg={product.rating_avg} count={product.rating_count} className="mt-1" />
       <p className="flex items-baseline gap-1.5"><b className="text-[13.5px] font-semibold text-[var(--nova-ink)]">{formatTaka(d.min)}</b>{d.off > 0 && <s className="text-[11.5px] text-ink/40">{formatTaka(d.compare)}</s>}</p>
       <Dots product={product} />
     </div>

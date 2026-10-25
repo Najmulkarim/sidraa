@@ -10,6 +10,7 @@ import { imageUrl } from '@/lib/env';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings, type ThemeKey } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
+import { Stars } from '../Stars';
 
 /**
  * Home sections for the ShopEase, Luxe and NovaTrend themes. Each component
@@ -250,6 +251,7 @@ export function ShopCard({ theme, product, badge }: { theme: ShopTheme; product:
       </Link>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <Link href={`/product/${product.slug}`} className="line-clamp-1 text-[14px] font-medium text-night hover:text-brand">{product.name}</Link>
+        <Stars avg={product.rating_avg} count={product.rating_count} />
         <div className={`mt-auto flex items-center gap-2 ${theme === 'luxe' ? 'flex-col items-stretch' : 'justify-between'}`}>
           <p className="flex items-baseline gap-1.5">
             <span className="text-[15px] font-bold text-night">{formatTaka(d.min)}</span>
@@ -472,6 +474,7 @@ function GridCard({ product, serif }: { product: ProductWithRelations; serif: bo
       <div className="mt-3 space-y-0.5 px-0.5">
         {product.category && <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-ink/45">{product.category.name}</p>}
         <Link href={`/product/${product.slug}`} className={`line-clamp-1 text-night transition hover:text-brand ${serif ? 'font-display text-[1.12rem] font-semibold' : 'text-[14.5px] font-medium'}`}>{product.name}</Link>
+        <Stars avg={product.rating_avg} count={product.rating_count} />
         <p className="flex items-baseline gap-2">
           <span className="text-[15px] font-semibold text-night">{formatTaka(d.min)}</span>
           {d.badge && <s className="text-[12.5px] text-ink/40">{formatTaka(d.compare)}</s>}

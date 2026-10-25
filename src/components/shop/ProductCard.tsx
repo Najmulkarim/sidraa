@@ -4,6 +4,7 @@ import { isPreorder, priceRange, sellable, variantLabel } from '@/lib/catalog';
 import type { ProductWithRelations } from '@/lib/types';
 import { ProductImage } from './ProductImage';
 import { QuickAdd } from './QuickAdd';
+import { Stars } from './Stars';
 
 export function ProductCard({ product, priority = false, badge }: { product: ProductWithRelations; priority?: boolean; badge?: string }) {
   const { min, max } = priceRange(product);
@@ -46,6 +47,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
         <h3 className="line-clamp-1 text-[13.5px] font-medium">
           <Link href={`/product/${product.slug}`} className="hover:text-brand">{product.name}</Link>
         </h3>
+        <Stars avg={product.rating_avg} count={product.rating_count} />
         <p className="flex flex-wrap items-baseline gap-x-2 text-[13.5px]">
           <span className="font-semibold text-brand">
             {min !== max ? 'From ' : ''}

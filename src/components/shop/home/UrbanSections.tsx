@@ -6,6 +6,7 @@ import { Icon, type IconName } from '../../icons';
 import { ProductImage } from '../ProductImage';
 import { CartIconButton } from './CartIconButton';
 import { info } from './ThemeSections';
+import { Stars } from '../Stars';
 
 /**
  * "Urban" home theme: clean city look — a full-width photo hero with a dark
@@ -51,6 +52,7 @@ function Card({ product, badge }: { product: ProductWithRelations; badge?: strin
         {(d.badge || badge) && <span className="absolute right-2 top-2 grid h-7 min-w-7 place-items-center rounded-full bg-brand px-1.5 text-[10.5px] font-bold text-white">{d.badge ?? badge}</span>}
       </Link>
       <Link href={`/product/${product.slug}`} className="mt-2.5 line-clamp-1 text-[14px] font-semibold text-night hover:text-brand">{product.name}</Link>
+      <Stars avg={product.rating_avg} count={product.rating_count} className="self-center" />
       <p className="text-[14px] font-bold text-night">{formatTaka(d.min)}{d.off > 0 && <s className="ml-1.5 text-[12px] font-normal text-ink/40">{formatTaka(d.compare)}</s>}</p>
       <div className="mt-2 flex justify-center"><CartIconButton productId={product.id} productName={product.name} productSlug={product.slug} imagePath={d.image} price={d.min} variantId={d.single} soldOut={d.stock <= 0} look="wide" /></div>
     </div>
