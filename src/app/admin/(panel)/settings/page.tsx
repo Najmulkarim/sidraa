@@ -158,13 +158,14 @@ async function FacebookTab({ supabase }: { supabase: Db }) {
     supabase.rpc('get_marketing_settings'),
     supabase.from('capi_events').select('id, event_name, event_id, ok, response, created_at').order('created_at', { ascending: false }).limit(15),
   ]);
+  const { data: saved } = await createAdminClient().from('marketing_settings').select('updated_at').eq('id', 1).maybeSingle<{ updated_at: string }>();
   // Catalog columns hold a token, so they are read on the server only (masked below).
   const { data: cat } = await createAdminClient().from('marketing_settings').select('catalog_feed_id, catalog_token, catalog_pushed_at, catalog_push_result').eq('id', 1).maybeSingle<{ catalog_feed_id: string | null; catalog_token: string | null; catalog_pushed_at: string | null; catalog_push_result: string | null }>();
   if (error || !data) return <p className="card p-5 text-sm text-bad">Could not load the Facebook settings.</p>;
   const log = (events ?? []) as { id: number; event_name: string; event_id: string; ok: boolean; response: string | null; created_at: string }[];
   return (
     <div className="space-y-6">
-      <MarketingSettingsForm settings={data as MarketingView} siteUrl={SITE_URL} />
+      <MarketingSettingsForm key={String(saved?.updated_at ?? '')} settings={{ ...(data as MarketingView), updated_at: saved?.updated_at ?? null }} siteUrl={SITE_URL} />
       <CatalogFeedCard feedUrl={`${SITE_URL}${FEED_PATH}`} feedId={cat?.catalog_feed_id ?? null} token={mask(cat?.catalog_token ?? null)} lastAt={cat?.catalog_pushed_at ?? null} lastResult={cat?.catalog_push_result ?? null} />
       <section className="card overflow-hidden">
         <h2 className="p-5 pb-3 font-semibold">Recent Conversions API events</h2>

@@ -154,7 +154,14 @@ export async function saveMarketingSettings(_prev: ActionState, formData: FormDa
   if (Object.keys(errors).length) return { ok: false, message: Object.values(errors)[0]!, fieldErrors: errors };
 
   const admin = createAdminClient();
-  const { data: before } = await admin.from('marketing_settings').select('capi_token').eq('id', 1).maybeSingle<{ capi_token: string | null }>();
+  const [{ data: before }, { data: px }] = await Promise.all([
+    admin.from('marketing_settings').select('capi_token, capi_test_code').eq('id', 1).maybeSingle<{ capi_token: string | null; capi_test_code: string | null }>(),
+    admin.from('store_settings').select('fb_pixel_id').eq('id', 1).maybeSingle<{ fb_pixel_id: string | null }>(),
+  ]);
+  // Nothing typed and nothing stored: say so instead of a green "Saved".
+  if (!pixel && !token && !testCode && !clearToken && !px?.fb_pixel_id && !before?.capi_token && !before?.capi_test_code) {
+    return { ok: false, message: 'The boxes were empty — nothing was saved. Type the Pixel ID and paste the access token, then Save.', fieldErrors: { fbPixelId: 'Enter the Pixel (Dataset) ID' } };
+  }
   const nextToken = clearToken ? null : token || before?.capi_token || null;
   if (capiEnabled && !pixel) return { ok: false, message: 'Add the Pixel ID to use the Conversions API.', fieldErrors: { fbPixelId: 'Required for the Conversions API' } };
   if (capiEnabled && !nextToken) return { ok: false, message: 'Add the access token to use the Conversions API.', fieldErrors: { capiToken: 'Required for the Conversions API' } };
