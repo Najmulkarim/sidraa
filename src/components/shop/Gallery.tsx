@@ -45,7 +45,7 @@ export function Gallery({ images, name }: { images: { id: string; storage_path: 
         </div>
         {images.length > 1 && (
           <>
-            <span className="absolute right-4 top-4 rounded-full bg-night/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+            <span className="absolute right-4 top-4 rounded-full bg-night/60 px-2.5 py-1 text-[12px] font-semibold text-white backdrop-blur">
               {active + 1} / {images.length}
             </span>
             <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5" aria-hidden="true">

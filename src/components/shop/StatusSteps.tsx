@@ -16,7 +16,7 @@ export function StatusSteps({ status }: { status: OrderStatus }) {
         {steps.map((s) => (
           <li key={s.key} className="space-y-2" aria-current={s.current ? 'step' : undefined}>
             <span className={`block h-1.5 rounded-full ${s.done ? 'bg-brand' : 'bg-line'}`} />
-            <span className={`block text-[11px] sm:text-xs ${s.current ? 'font-semibold text-ink' : 'text-muted'}`}>{s.label}</span>
+            <span className={`block text-xs ${s.current ? 'font-semibold text-ink' : 'text-muted'}`}>{s.label}</span>
           </li>
         ))}
       </ol>

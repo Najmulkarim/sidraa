@@ -31,11 +31,11 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
         />
         <span className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {soldOut ? (
-            <span className="rounded-md bg-night px-2 py-0.5 text-[10.5px] font-bold uppercase text-white">Sold out</span>
+            <span className="rounded-md bg-night px-2 py-0.5 text-[11px] font-bold uppercase text-white">Sold out</span>
           ) : discount > 0 ? (
-            <span className="rounded-md bg-brand px-2 py-0.5 text-[10.5px] font-bold text-white">−{discount}%</span>
+            <span className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">−{discount}%</span>
           ) : badge ? (
-            <span className="rounded-md bg-plum px-2 py-0.5 text-[10.5px] font-bold uppercase text-white">{badge}</span>
+            <span className="rounded-md bg-plum px-2 py-0.5 text-[11px] font-bold uppercase text-white">{badge}</span>
           ) : null}
         </span>
       </Link>
@@ -56,10 +56,10 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
               img ? (
                 <span key={c} title={c} className="relative block h-5 w-5 overflow-hidden rounded-full border border-line bg-tint"><ProductImage path={img} alt="" sizes="20px" /></span>
               ) : (
-                <span key={c} title={c} className="rounded-full border border-line px-1.5 text-[10px] text-muted">{c}</span>
+                <span key={c} title={c} className="rounded-full border border-line px-1.5 text-[11px] text-muted">{c}</span>
               ),
             )}
-            {colors.length > 5 && <span className="text-[11px] text-muted">+{colors.length - 5}</span>}
+            {colors.length > 5 && <span className="text-xs text-muted">+{colors.length - 5}</span>}
           </p>
         )}
         <div className="mt-auto pt-1.5">

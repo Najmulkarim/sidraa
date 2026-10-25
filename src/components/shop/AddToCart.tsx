@@ -174,7 +174,7 @@ export function AddToCart({
               return o.image ? (
                 <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (sold out)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
                   <span className="relative block aspect-[4/5] overflow-hidden rounded-lg bg-tint"><ProductImage path={o.image} alt="" sizes="72px" /></span>
-                  <span className={`mt-1 block truncate text-[11.5px] ${struck ? 'text-muted line-through' : ''}`}>{o.value}</span>
+                  <span className={`mt-1 block truncate text-[12px] ${struck ? 'text-muted line-through' : ''}`}>{o.value}</span>
                 </button>
               ) : (
                 <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (sold out)' : ''}`} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} min-h-11 min-w-14 px-4 ${active ? 'bg-brand text-white' : 'bg-card'} ${struck && !active ? 'text-muted line-through' : ''}`}>
@@ -234,7 +234,7 @@ export function AddToCart({
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-[17px] font-semibold leading-tight">{formatTaka(shownPrice)}</p>
-              <p className="truncate text-[11.5px] text-muted">{chosen}</p>
+              <p className="truncate text-[12px] text-muted">{chosen}</p>
             </div>
             <button type="button" tabIndex={barVisible ? 0 : -1} className="btn btn-outline btn-sm h-11 px-3" onClick={() => addFromBar(false)} aria-label="Add to cart">
               <Icon name="bag" size={18} />

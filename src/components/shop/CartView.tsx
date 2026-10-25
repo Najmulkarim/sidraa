@@ -52,11 +52,12 @@ export function CartView() {
   const { lines, ready, dispatch } = useCart();
   const { quote, error, pending } = useQuote(null);
 
-  if (!ready) return <p className="text-muted">Loading your cart…</p>;
+  // A <section> (not the empty-cart <div>) so React swaps the node instead of moving it: no layout shift.
+  if (!ready) return <section className="card min-h-60 animate-pulse bg-soft" aria-busy="true"><span className="sr-only">Loading your cart…</span></section>;
 
   if (lines.length === 0) {
     return (
-      <div className="card p-10 text-center">
+      <div className="card grid min-h-60 place-content-center justify-items-center p-10 text-center">
         <p className="font-display text-3xl">Your cart is empty</p>
         <p className="mt-2 text-muted">Find something you love and it will wait for you here.</p>
         <Link href="/products" className="btn btn-primary mt-6">Start shopping</Link>

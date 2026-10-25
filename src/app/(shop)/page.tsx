@@ -77,12 +77,12 @@ export default async function HomePage() {
         <div className="container-page relative grid items-center gap-6 pb-24 pt-10 md:grid-cols-[1.1fr_1fr] md:pb-28 md:pt-14">
           <div className="relative z-10 space-y-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-block rounded-full border border-white/70 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              <span className="inline-block rounded-full border border-white/70 bg-white/15 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.12em]">
                 {settings.tagline ?? 'New season'}
               </span>
               {/* Phones don't show the hero art, so the discount rides here. */}
               {discount > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase text-brand shadow-lg md:hidden">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[12px] font-bold uppercase text-brand shadow-lg md:hidden">
                   <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand/60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-brand" /></span>
                   Up to {discount}% off
                 </span>
@@ -97,7 +97,7 @@ export default async function HomePage() {
               <Link href="/products" className="btn btn-light">Shop now</Link>
               <Link href="/products?sort=new" className="btn btn-glass">Explore new in</Link>
             </div>
-            <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-[11.5px]">
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-[12.5px]">
               {[
                 ['cash', 'Cash on delivery'],
                 ['return', `${settings.return_policy_days}-day returns`],
@@ -135,7 +135,7 @@ export default async function HomePage() {
                 <span className="hidden h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/20 sm:grid"><Icon name={b.icon} size={22} /></span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-bold uppercase leading-tight">{b.title}</span>
-                  <span className="block text-[11.5px] text-white/85">{b.text}</span>
+                  <span className="block text-[12px] text-white/85">{b.text}</span>
                 </span>
               </Link>
             </li>
@@ -180,7 +180,7 @@ export default async function HomePage() {
             <span className="relative z-10 max-w-[55%] space-y-2">
               <span className="block text-[20px] font-bold uppercase leading-tight">{p.title}</span>
               <span className="block text-[12px] text-white/85">{p.text}</span>
-              <span className="mt-2 inline-flex rounded-md bg-white px-3 py-1.5 text-[11px] font-bold uppercase text-brand">Shop now</span>
+              <span className="mt-2 inline-flex rounded-md bg-white px-3 py-1.5 text-[12px] font-bold uppercase text-brand">Shop now</span>
             </span>
             <img src={p.image} alt="" className="absolute inset-y-0 right-0 h-full w-[55%] object-cover transition duration-500 [mask-image:linear-gradient(90deg,transparent,black_45%)] group-hover:scale-105" />
           </Link>
@@ -207,7 +207,7 @@ export default async function HomePage() {
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25 text-accent"><Icon name={f.icon} size={21} /></span>
               <span>
                 <span className="block text-[12.5px] font-bold uppercase">{f.title}</span>
-                <span className="block text-[11.5px] text-white/70">{f.text}</span>
+                <span className="block text-[12px] text-white/70">{f.text}</span>
               </span>
             </li>
           ))}

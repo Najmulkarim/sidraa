@@ -66,7 +66,7 @@ export function Footer({ settings, categories }: { settings: StoreSettings; cate
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 py-5 text-center text-[11.5px] text-white/50">
+      <div className="border-t border-white/10 py-5 text-center text-[12px] text-white/60">
         © {year} {settings.store_name}. All prices in Bangladeshi Taka (৳).
       </div>
     </footer>

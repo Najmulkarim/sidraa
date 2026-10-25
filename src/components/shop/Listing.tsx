@@ -84,7 +84,10 @@ export async function Listing({
       </p>
 
       {products.length > 0 ? (
-        <ProductGrid products={products} priorityCount={4} />
+        <section aria-labelledby="listing-heading">
+          <h2 id="listing-heading" className="sr-only">Products</h2>
+          <ProductGrid products={products} priorityCount={4} />
+        </section>
       ) : (
         <div className="card p-10 text-center">
           <p className="font-display text-2xl">Nothing here yet</p>

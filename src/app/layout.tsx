@@ -5,7 +5,7 @@ import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import './globals.css';
 
-const heading = Playfair_Display({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-heading', display: 'swap' });
+const heading = Playfair_Display({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading', display: 'swap' });
 const body = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
 
 export async function generateMetadata(): Promise<Metadata> {

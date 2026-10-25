@@ -39,7 +39,7 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
   return (
     <>
       {/* One scrolling line on phones (the copy is doubled for a seamless loop), centred text from tablets up. */}
-      <div className="overflow-hidden bg-night py-2 text-[11.5px] tracking-wide text-white/90">
+      <div className="overflow-hidden bg-night py-2 text-[12px] tracking-wide text-white/90">
         <p className="hidden px-4 text-center md:block">{announce.join('  •  ')}</p>
         <p className="flex w-max animate-[ticker_22s_linear_infinite] whitespace-nowrap motion-reduce:w-full motion-reduce:whitespace-normal motion-reduce:px-4 motion-reduce:text-center md:hidden">
           <span className="sr-only">{announce.join('. ')}</span>
@@ -68,7 +68,7 @@ export function Header({ settings, categories, zones }: { settings: StoreSetting
             <Link href="/products" className="flex flex-col items-center gap-0.5 text-ink hover:text-brand md:hidden" aria-label="Search">
               <Icon name="search" size={22} />
             </Link>
-            <Link href="/track" className="flex flex-col items-center gap-0.5 text-ink hover:text-brand">
+            <Link href="/track" className="flex flex-col items-center gap-0.5 text-ink hover:text-brand" aria-label="Track your order">
               <Icon name="truck" size={23} />
               <span className="hidden text-[11px] text-muted sm:block">Track</span>
             </Link>
