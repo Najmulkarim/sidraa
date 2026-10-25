@@ -49,3 +49,11 @@ export function Toaster() {
     </div>
   );
 }
+
+/** A popup when a page opens after a save that redirected here (e.g. ?saved=1). */
+export function NotifyOnLoad({ ok = true, text }: { ok?: boolean; text: string }) {
+  useEffect(() => {
+    notify(ok, text);
+  }, [ok, text]);
+  return null;
+}

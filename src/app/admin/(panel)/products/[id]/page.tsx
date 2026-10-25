@@ -6,6 +6,7 @@ import { ImageManager } from '@/components/admin/ImageManager';
 import { ProductForm } from '@/components/admin/ProductForm';
 import { requirePermission } from '@/lib/auth';
 import { sizeRank } from '@/lib/catalog';
+import { NotifyOnLoad } from '@/components/admin/Toaster';
 import type { Category, Product, ProductImage, Variant } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Edit product' };
@@ -43,8 +44,8 @@ export default async function EditProductPage({
         )}
       </header>
 
-      {sp.created && <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok">Product created.</p>}
-      {sp.saved && <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok" role="status">Saved.</p>}
+      {sp.created && <><NotifyOnLoad text="Product created." /><p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok">Product created.</p></>}
+      {sp.saved && <><NotifyOnLoad text="Product saved." /><p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok" role="status">Saved.</p></>}
       {sp.note && <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">{sp.note.slice(0, 500)}</p>}
       {sp.error === 'delete' && <p className="rounded-xl bg-bad/10 px-4 py-3 text-sm text-bad">This product could not be deleted. Archive it instead.</p>}
 

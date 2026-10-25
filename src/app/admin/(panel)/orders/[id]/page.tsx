@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CourierPanel } from '@/components/admin/CourierPanel';
 import { PaymentPanel } from '@/components/admin/PaymentPanel';
+import { NotifyOnLoad } from '@/components/admin/Toaster';
 import type { CourierOptions, OrderRow } from '@/components/admin/OrdersTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { StatusForm } from '@/components/admin/StatusForm';
@@ -52,7 +53,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <Link href={`/admin/orders/${order.id}/slip`} target="_blank" className="btn btn-outline btn-sm">Print packing slip</Link>
         </span>
       </header>
-      {saved && <p role="status" className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok">Order saved. Totals and stock were recalculated.</p>}
+      {saved && <><NotifyOnLoad text="Order saved." /><p role="status" className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok">Order saved. Totals and stock were recalculated.</p></>}
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
