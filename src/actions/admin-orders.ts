@@ -139,10 +139,10 @@ export async function deleteOrder(orderId: string): Promise<ActionState> {
   const { error } = await supabase.rpc('delete_order', { p_order_id: orderId });
   if (error) {
     const m = mapDbError(error);
-    return { ok: false, message: m.code === 'BAD_TRANSITION' ? 'Orders with the courier or delivered cannot be deleted.' : m.message };
+    return { ok: false, message: m.message };
   }
   refresh(orderId, true);
-  return { ok: true, message: 'Order deleted. Find it under the Deleted tab.' };
+  return { ok: true, message: 'Order deleted and its items put back in stock. Find it under the Deleted tab.' };
 }
 
 export async function restoreOrder(orderId: string): Promise<ActionState> {
@@ -151,7 +151,7 @@ export async function restoreOrder(orderId: string): Promise<ActionState> {
   const { error } = await supabase.rpc('restore_order', { p_order_id: orderId });
   if (error) return fail(error, 'restore');
   refresh(orderId);
-  return { ok: true, message: 'Order restored (it stays cancelled).' };
+  return { ok: true, message: 'Order restored — its items are taken out of stock again.' };
 }
 
 export type EditorData = {

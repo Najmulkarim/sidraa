@@ -351,7 +351,7 @@ export function OrdersTable({
                           </button>
                           <button
                             type="button"
-                            disabled={!perms.del || busy || o.status === 'shipped' || o.status === 'delivered'}
+                            disabled={!perms.del || busy}
                             title={armed === `delete:${o.id}` ? 'Click again to delete' : 'Delete'}
                             aria-label={`Delete ${o.public_ref}`}
                             onClick={() => arm(`delete:${o.id}`, () => run(() => deleteOrder(o.id)))}
