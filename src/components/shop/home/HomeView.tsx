@@ -1,5 +1,6 @@
 import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
+import { MegaBanner, MegaDeals, MegaFrame, MegaGrid, MegaMobileCategories, MegaNotice, MegaSidebar } from './MegaSections';
 import { MarketBanners, MarketCategoryGrid, MarketDeals, MarketHero, MarketProducts, MarketTiles, MarketTrio } from './MarketSections';
 import { ChicBenefits, ChicCategories, ChicHero, ChicOffer, ChicProductRow } from './ChicSections';
 import { BestSellers, Deal, NewsletterBand, ProductGridSection, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
@@ -61,18 +62,22 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
   const lux = theme === 'luxora';
   const chic = theme === 'chic';
   const market = theme === 'market';
+  const mega = theme === 'mega';
+  // Mega: a banners section marked "sidebar" becomes the tall offer in the left column.
+  const sideBanner = mega ? sections.find((s) => s.type === 'banners' && lbl(s.settings, 'place', 'main') === 'sidebar') : undefined;
   const onSale = market && sections.some((s) => s.type === 'product_row' && (s.settings as SectionSettings['product_row']).layout === 'trio') ? await getOnSale(4) : [];
   const t = theme as ShopTheme;
 
   return (
     <>
       {!sections.some((s) => s.type === 'hero') && <h1 className="sr-only">{settings.store_name}</h1>}
-      {sections.map((s, i) => {
+      {(() => {
+      const body = sections.map((s, i) => {
         const key = s.id;
         const products = lists[i]!;
         switch (s.type) {
           case 'hero':
-            if (market) return <MarketHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} />;
+            if (market || mega) return <MarketHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} />;
             if (chic) return <ChicHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={latest.length ? latest : featured} total={Object.values(counts).reduce((a, b) => a + b, 0)} />;
             return lux
               ? <HeroSection key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} fallbackImage={photos[0] ?? null} />
@@ -80,6 +85,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'quick_links':
             return <QuickLinks key={key} settings={s.settings as SectionSettings['quick_links']} />;
           case 'notice':
+            if (mega) return <MegaNotice key={key} title={s.title} text={s.subtitle} settings={s.settings as SectionSettings['notice']} />;
             return <Notice key={key} text={s.subtitle ?? s.title} settings={s.settings as SectionSettings['notice']} />;
           case 'benefits': {
             // Each card's wording can be renamed in the admin; blank keeps the automatic text.
@@ -106,7 +112,8 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <BestSellers key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['collection']} products={products} />;
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
-            if (st.layout === 'grid' && !market) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
+            if (st.layout === 'grid' && !market && !mega) return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} button={lbl(st, 'grid_button', 'View all products')} products={products.slice(0, st.limit)} categories={categories} />;
+            if (mega) return <MegaGrid key={key} title={s.title} settings={st} products={products.slice(0, st.limit)} categories={categories} />;
             if (market && st.layout === 'trio') {
               return <MarketTrio key={key} lists={[
                 { title: 'New launches', href: '/products?sort=new', tone: 'bg-[#fff4dc]', products: latest },
@@ -121,6 +128,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <ThemeProductRow key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;
           }
           case 'banners':
+            if (mega) return s === sideBanner ? null : <MegaBanner key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             if (market) return <MarketBanners key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             if (chic) return <ChicOffer key={key} eyebrow={s.title} settings={s.settings as SectionSettings['banners']} images={photos.slice(1)} />;
             return lux
@@ -135,6 +143,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           case 'about':
             return <About key={key} title={s.title} text={s.subtitle} settings={s.settings as SectionSettings['about']} store={settings} />;
           case 'deal':
+            if (mega) return <MegaDeals key={key} title={s.title} settings={s.settings as SectionSettings['deal']} products={products.slice(0, (s.settings as SectionSettings['deal']).limit)} />;
             if (market) return <MarketDeals key={key} title={s.title} settings={s.settings as SectionSettings['deal']} products={products.slice(0, (s.settings as SectionSettings['deal']).limit)} />;
             return <Deal key={key} theme={theme} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['deal']} product={products[0] ?? null} />;
           case 'newsletter':
@@ -142,7 +151,26 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
           default:
             return null;
         }
-      })}
+      });
+      if (!mega) return body;
+      const offer = (sideBanner?.settings as SectionSettings['banners'] | undefined)?.items.find((b) => b.image || b.title);
+      return (
+        <MegaFrame
+          top={<MegaMobileCategories categories={categories} covers={covers} />}
+          sidebar={
+            <MegaSidebar
+              categories={categories}
+              covers={covers}
+              latest={latest}
+              benefits={benefits}
+              offer={offer ? { image: offer.image ?? photos[2] ?? null, title: offer.title, subtitle: offer.subtitle, link: offer.link || '/products' } : null}
+            />
+          }
+        >
+          {body}
+        </MegaFrame>
+      );
+      })()}
       {lists.every((l) => l.length === 0) && latest.length === 0 && (
         <section className="container-page mt-16 text-center text-muted"><p>No products are published yet. Add some in the admin panel.</p></section>
       )}

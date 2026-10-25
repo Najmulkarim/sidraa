@@ -381,6 +381,7 @@ const HERO_SIZE: Record<string, { w: number; h: number; aspect: string; where: s
   shopease: { w: 1600, h: 1600, aspect: 'aspect-square', where: 'square, on the dark card (a product on a plain or transparent background looks best)' },
   luxe: { w: 2000, h: 1500, aspect: 'aspect-[4/3]', where: 'landscape photo with rounded corners' },
   novatrend: { w: 1600, h: 1600, aspect: 'aspect-square', where: 'square photo in the middle of the floating cards' },
+  mega: { w: 1600, h: 1000, aspect: 'aspect-[16/10]', where: 'slide 1 = big banner, slides 2 and 3 = the two small banners beside it; the photo sits on the right half' },
   market: { w: 1600, h: 1000, aspect: 'aspect-[16/10]', where: 'slide 1 = big banner (1600 × 1000), slides 2 and 3 = the two small banners (800 × 500); the photo sits on the right half' },
   chic: { w: 1400, h: 1700, aspect: 'aspect-[14/17]', where: 'portrait photo in an arch on the colour circle (a person facing the camera looks best)' },
 };

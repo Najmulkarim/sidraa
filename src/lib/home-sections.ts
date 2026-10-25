@@ -9,13 +9,14 @@ import { z } from 'zod';
 export const SECTION_TYPES = ['hero', 'quick_links', 'notice', 'benefits', 'category_tiles', 'collection', 'product_row', 'banners', 'about', 'testimonials', 'gallery', 'deal', 'newsletter'] as const;
 
 /** Home page themes: each has its own sections; store_settings.home_theme picks the live one. */
-export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market'] as const;
+export const THEMES = ['luxora', 'shopease', 'luxe', 'novatrend', 'chic', 'market', 'mega'] as const;
 export type ThemeKey = (typeof THEMES)[number];
 export const THEME_INFO: Record<ThemeKey, { name: string; tagline: string; swatches: string[] }> = {
   luxora: { name: 'Luxora', tagline: 'Soft blush, elegant serif, editorial and calm.', swatches: ['var(--cream)', 'var(--night)', 'var(--brand)'] },
   shopease: { name: 'ShopEase', tagline: 'Bold deals store: dark hero card, deal of the day, newsletter band.', swatches: ['var(--night)', 'var(--brand)', '#fff4f7'] },
   luxe: { name: 'Luxe Fashion', tagline: 'Bright boutique: photo hero, category circles, promo cards, reviews.', swatches: ['#fff', 'var(--brand)', 'var(--cream)'] },
   novatrend: { name: 'NovaTrend', tagline: 'Modern and punchy: floating product cards, best sellers, flash sale.', swatches: ['#fff', 'var(--night)', 'var(--brand)'] },
+  mega: { name: 'Mega', tagline: 'Department store: dark header, category sidebar, daily deals, trending grid.', swatches: ['var(--night)', 'var(--brand)', '#f3eef0'] },
   market: { name: 'Market', tagline: 'Big-store layout: search bar, flash deals, category grid, many product rows.', swatches: ['#fff', 'var(--brand)', '#fde3c4'] },
   chic: { name: 'Chic', tagline: 'Soft and feminine: photo on a colour circle, pastel category cards, offer band.', swatches: ['var(--cream)', 'var(--brand)', '#fff'] },
 };
@@ -141,7 +142,10 @@ export const LABEL_FIELDS: Partial<Record<SectionType, { key: string; name: stri
     { key: 'grid_button', name: 'Button under the grid', fallback: 'View all products' },
     { key: 'badge', name: 'Badge on each product', fallback: 'New / Hot' },
   ],
-  banners: [{ key: 'button', name: 'Button / link text', fallback: 'Shop now' }],
+  banners: [
+    { key: 'button', name: 'Button / link text', fallback: 'Shop now' },
+    { key: 'place', name: 'Mega theme: “sidebar” shows the first banner in the left column', fallback: 'main' },
+  ],
   deal: [{ key: 'button', name: 'Button text', fallback: 'Shop the deal' }],
   newsletter: [
     { key: 'button', name: 'Button text', fallback: 'Subscribe' },

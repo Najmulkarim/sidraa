@@ -51,7 +51,8 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
   const icon = 'grid h-10 w-10 place-items-center rounded-full text-night transition hover:bg-white/70 hover:text-brand';
 
   // Market theme: help links on top, a big search box with a category picker, the phone number, and a category bar.
-  if (theme === 'market') {
+  if (theme === 'market' || theme === 'mega') {
+    const dark = theme === 'mega';
     const bar = [{ href: '/', label: 'Home' }, { href: '/products', label: 'Shop all' }, { href: '/products?sort=new', label: 'New arrivals' }, ...categories.slice(0, 8).map((c) => ({ href: `/category/${c.slug}`, label: c.name }))];
     return (
       <>
@@ -67,12 +68,12 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
             </div>
           </div>
         )}
-        <header className={`${show.sticky ? 'sticky top-0' : 'relative'} z-30 bg-white shadow-[0_1px_0_var(--line)]`}>
+        <header className={`${show.sticky ? 'sticky top-0' : 'relative'} z-30 ${dark ? 'bg-night text-white' : 'bg-white shadow-[0_1px_0_var(--line)]'}`}>
           <div className="container-page flex h-16 items-center gap-2 md:h-[76px] md:gap-6">
-            <MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} />
-            <Link href="/" className="flex shrink-0 items-center" aria-label={`${settings.store_name} home`}><Logo settings={settings} className="h-10 md:h-11" /></Link>
+            <span className={dark ? '[&_summary]:text-white' : ''}><MobileMenu links={links} logo={<Logo settings={settings} className="h-9" />} /></span>
+            <Link href="/" className="flex shrink-0 items-center" aria-label={`${settings.store_name} home`}><Logo settings={settings} variant={dark ? 'dark' : 'light'} className="h-10 md:h-11" /></Link>
             {show.search && (
-              <form action="/products" role="search" className="mx-auto hidden h-11 w-full max-w-xl overflow-hidden rounded-full border-[1.5px] border-brand/40 bg-white focus-within:border-brand md:flex">
+              <form action="/products" role="search" className="mx-auto hidden h-11 w-full max-w-xl overflow-hidden rounded-full border-[1.5px] border-brand/40 bg-white text-night focus-within:border-brand md:flex">
                 <label htmlFor="mk-cat" className="sr-only">Category</label>
                 <select id="mk-cat" name="category" defaultValue="" className="max-w-40 border-r border-line bg-soft px-3 text-[13px] font-semibold outline-none">
                   <option value="">All categories</option>
@@ -87,22 +88,22 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
               {show.call && tel && (
                 <a href={`tel:${tel}`} className="mr-2 hidden items-center gap-2 lg:flex">
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-tint text-brand"><Icon name="phone" size={18} /></span>
-                  <span className="leading-tight"><b className="block text-[14px] text-night">{settings.phone}</b><span className="text-[11.5px] text-muted">Call to order</span></span>
+                  <span className="leading-tight"><b className={`block text-[14px] ${dark ? 'text-white' : 'text-night'}`}>{settings.phone}</b><span className={`text-[11.5px] ${dark ? 'text-white/60' : 'text-muted'}`}>Hotline · call to order</span></span>
                 </a>
               )}
-              {show.track && <Link href="/track" className={icon} aria-label="Track your order" title="Track order"><Icon name="truck" size={21} /></Link>}
-              <CartBadge />
+              {show.track && <Link href="/track" className={dark ? 'grid h-10 w-10 place-items-center rounded-full text-white hover:bg-white/10' : icon} aria-label="Track your order" title="Track order"><Icon name="truck" size={21} /></Link>}
+              <span className={dark ? 'rounded-full bg-white' : ''}><CartBadge /></span>
             </div>
           </div>
           {show.search && (
             <form action="/products" role="search" className="container-page flex pb-3 md:hidden">
               <label htmlFor="mk-q-m" className="sr-only">Search products</label>
-              <input id="mk-q-m" name="q" type="search" placeholder="Search products…" maxLength={80} className="h-10 min-w-0 flex-1 rounded-l-full border-[1.5px] border-r-0 border-brand/40 px-4 text-[14px] outline-none focus:border-brand" />
+              <input id="mk-q-m" name="q" type="search" placeholder="Search products…" maxLength={80} className="h-10 min-w-0 flex-1 rounded-l-full border-[1.5px] border-r-0 border-brand/40 bg-white px-4 text-[14px] text-night outline-none focus:border-brand" />
               <button className="rounded-r-full bg-brand px-4 text-white" aria-label="Search"><Icon name="search" size={17} /></button>
             </form>
           )}
           {show.menu && (
-            <nav className="hidden bg-brand text-white md:block" aria-label="Categories">
+            <nav className={`hidden md:block ${dark ? 'border-t border-white/10 bg-night text-white' : 'bg-brand text-white'}`} aria-label="Categories">
               <ul className="container-page flex h-11 items-center gap-6 overflow-x-auto text-[13.5px] font-semibold [scrollbar-width:none]">
                 {bar.map((l) => <li key={l.href} className="shrink-0"><Link href={l.href} className="opacity-90 hover:opacity-100 hover:underline">{l.label}</Link></li>)}
               </ul>

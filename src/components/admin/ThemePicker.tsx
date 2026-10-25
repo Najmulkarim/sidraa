@@ -117,6 +117,21 @@ function ThemeThumb({ theme, photos }: { theme: ThemeKey; photos: string[] }) {
       </div>
     );
   }
+  if (theme === 'mega') {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {bar(true)}
+        <span className="flex gap-1 bg-night px-2 pb-1.5"><span className="h-2 w-10 rounded-sm bg-brand" /><span className="h-2 flex-1 rounded-sm bg-white/80" /></span>
+        <div className="grid flex-1 grid-cols-[28%_1fr] gap-1 p-1.5">
+          <span className="flex flex-col gap-0.5 rounded bg-soft p-1">{[0, 1, 2, 3, 4, 5].map((n) => <span key={n} className="h-1.5 rounded-sm bg-night/20" />)}</span>
+          <span className="grid grid-rows-[1fr_auto] gap-1">
+            <span className="grid grid-cols-[2fr_1fr] gap-1"><Pic i={0} className="rounded" /><span className="grid gap-1"><Pic i={1} className="rounded" /><Pic i={2} className="rounded" /></span></span>
+            <span className="grid grid-cols-5 gap-0.5">{[3, 4, 5, 6, 7].map((n) => <Pic key={n} i={n} className="aspect-square rounded-sm" />)}</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
   if (theme === 'market') {
     return (
       <div className="flex h-full flex-col bg-white">
