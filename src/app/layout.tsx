@@ -21,7 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = s.tagline ?? `Shop ${s.store_name} online. Cash on delivery across Bangladesh.`;
   return {
     metadataBase: new URL(SITE_URL),
-    icons: { icon: '/brand/favicon.png' },
+    icons: { icon: '/brand/favicon.png', apple: '/brand/apple-icon.png' },
+    // "Add to Home Screen" opens the shop full-screen, like an app.
+    appleWebApp: { capable: true, title: s.store_name, statusBarStyle: 'default' },
     title: { default: s.store_name, template: `%s · ${s.store_name}` },
     description,
     openGraph: { siteName: s.store_name, type: 'website', locale: 'en_BD' },
@@ -33,6 +35,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#ffffff',
+  viewportFit: 'cover',
 };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;

@@ -53,6 +53,14 @@ html {
   background: var(--paper);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
+  /* App feel on phones: no grey flash on tap, no rubber-band bounce sideways. */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-x: none;
+}
+
+/* Buttons and links press in slightly under the finger. */
+@media (hover: none) {
+  .btn:active, a.card:active { transform: scale(0.97); }
 }
 
 /* Fonts per home theme (variables come from next/font in app/layout.tsx). */

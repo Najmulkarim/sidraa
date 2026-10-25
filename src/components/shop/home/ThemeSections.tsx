@@ -187,18 +187,18 @@ export function ThemeCategories({ theme, title, categories, covers }: { theme: S
     return (
       <section className="container-page mt-10">
         {title && <Head theme={theme} title={title} />}
-        <ul className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:justify-between md:px-0">
+        <AutoScroll label={title ?? 'Categories'}>
           {categories.map((c) => (
-            <li key={c.id} className="shrink-0">
-              <Link href={`/category/${c.slug}`} className="group flex w-20 flex-col items-center gap-2 text-center">
+            <div key={c.id} className="w-[27%] shrink-0 snap-start sm:w-24 md:w-28">
+              <Link href={`/category/${c.slug}`} className="group flex flex-col items-center gap-2 text-center active:scale-95">
                 <span className="relative block aspect-square w-full overflow-hidden rounded-full bg-cream ring-2 ring-transparent transition group-hover:ring-brand">
-                  {imageUrl(pic(c)) ? <ProductImage path={pic(c)} alt="" sizes="80px" /> : <span className="grid h-full place-items-center font-display text-2xl text-brand/60">{c.name[0]}</span>}
+                  {imageUrl(pic(c)) ? <ProductImage path={pic(c)} alt="" sizes="112px" /> : <span className="grid h-full place-items-center font-display text-2xl text-brand/60">{c.name[0]}</span>}
                 </span>
                 <span className="text-[12.5px] font-medium text-night">{c.name}</span>
               </Link>
-            </li>
+            </div>
           ))}
-        </ul>
+        </AutoScroll>
       </section>
     );
   }
@@ -400,9 +400,9 @@ export function ThemeBanners({ theme, eyebrow, settings, images }: { theme: Shop
   }
   return (
     <section className="container-page mt-10">
-      <ul className={`grid gap-4 ${items.length === 1 ? '' : items.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+      <AutoScroll label="Offers">
         {items.map((b, i) => (
-          <li key={i}>
+          <div key={i} className={`shrink-0 snap-start ${items.length === 1 ? 'w-full' : items.length === 2 ? 'w-[86%] md:w-[calc((100%-1rem)/2)]' : 'w-[86%] md:w-[calc((100%-2rem)/3)]'}`}>
             <Link href={b.link || '/products'} className={`group grid h-full min-h-44 grid-cols-[1.1fr_1fr] overflow-hidden rounded-2xl ${tints[i % tints.length]}`}>
               <span className="flex flex-col justify-center gap-1.5 p-5">
                 {b.title && <span className="font-display text-[1.35rem] font-semibold leading-tight text-night">{b.title}</span>}
@@ -411,9 +411,9 @@ export function ThemeBanners({ theme, eyebrow, settings, images }: { theme: Shop
               </span>
               <span className="relative"><ProductImage path={b.image ?? images[i] ?? images[0] ?? null} alt="" sizes="(min-width: 768px) 16vw, 45vw" className="transition duration-500 group-hover:scale-105" /></span>
             </Link>
-          </li>
+          </div>
         ))}
-      </ul>
+      </AutoScroll>
     </section>
   );
 }

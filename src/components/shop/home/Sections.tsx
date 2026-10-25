@@ -108,12 +108,12 @@ export function CategoryTiles({ title, subtitle, categories, images }: { title: 
   return (
     <section className="reveal container-page mt-16">
       <SectionHead title={title ?? 'Find your signature look'} subtitle={subtitle} />
-      <ul className="-mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:gap-7 md:mx-0 md:flex-wrap md:justify-center md:px-0">
+      <AutoScroll label={title ?? 'Categories'}>
         {categories.map((c) => {
           const path = c.image_path && !c.image_path.startsWith('/demo/') ? c.image_path : images[c.id] ?? c.image_path ?? null;
           return (
-            <li key={c.id} className="shrink-0 snap-start">
-              <Link href={`/category/${c.slug}`} className="group flex w-28 flex-col items-center gap-3 text-center sm:w-36">
+            <div key={c.id} className="w-[30%] shrink-0 snap-start sm:w-32 md:w-36">
+              <Link href={`/category/${c.slug}`} className="group flex flex-col items-center gap-3 text-center active:scale-95">
                 <span className="relative block aspect-square w-full overflow-hidden rounded-full bg-cream ring-1 ring-line transition duration-300 group-hover:ring-4 group-hover:ring-[color-mix(in_oklab,var(--brand)_35%,white)]">
                   {imageUrl(path) ? (
                     <ProductImage path={path} alt="" sizes="150px" className="transition duration-500 group-hover:scale-105" />
@@ -123,10 +123,10 @@ export function CategoryTiles({ title, subtitle, categories, images }: { title: 
                 </span>
                 <span className="text-[13.5px] font-medium text-night group-hover:text-brand">{c.name}</span>
               </Link>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </AutoScroll>
     </section>
   );
 }
@@ -226,7 +226,9 @@ export function Banners({ eyebrow, settings, fallbackImage }: { eyebrow: string 
     );
   }
   return (
-    <section className={`reveal container-page mt-16 grid gap-4 ${items.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+    <section className="reveal container-page mt-16">
+      {/* Phones: swipe or let it slide; tablets and up: side by side. */}
+      <AutoScroll label="Collections">
       {items.map((b, i) => {
         const inner: ReactNode = (
           <>
@@ -239,9 +241,10 @@ export function Banners({ eyebrow, settings, fallbackImage }: { eyebrow: string 
             )}
           </>
         );
-        const cls = 'group relative block aspect-[4/3] overflow-hidden rounded-md bg-cream';
+        const cls = `group relative block aspect-[4/3] shrink-0 snap-start overflow-hidden rounded-md bg-cream ${items.length === 2 ? 'w-[86%] md:w-[calc((100%-1rem)/2)]' : 'w-[86%] md:w-[calc((100%-2rem)/3)]'}`;
         return b.link ? <Link key={i} href={b.link} className={cls}>{inner}</Link> : <div key={i} className={cls}>{inner}</div>;
       })}
+      </AutoScroll>
     </section>
   );
 }

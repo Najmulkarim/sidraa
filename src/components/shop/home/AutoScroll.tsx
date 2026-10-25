@@ -11,6 +11,18 @@ import { Icon } from '../../icons';
 export function AutoScroll({ children, autoplay = true, interval = 3500, label }: { children: ReactNode; autoplay?: boolean; interval?: number; label: string }) {
   const row = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  // Only rows wider than the screen move or show arrows.
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const check = () => setOverflows(el.scrollWidth > el.clientWidth + 4);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   function step(dir: 1 | -1) {
     const el = row.current;
@@ -25,11 +37,11 @@ export function AutoScroll({ children, autoplay = true, interval = 3500, label }
   }
 
   useEffect(() => {
-    if (!autoplay || paused) return;
+    if (!autoplay || paused || !overflows) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t = setInterval(() => step(1), interval);
     return () => clearInterval(t);
-  }, [autoplay, paused, interval]);
+  }, [autoplay, paused, overflows, interval]);
 
   return (
     <div
@@ -43,10 +55,10 @@ export function AutoScroll({ children, autoplay = true, interval = 3500, label }
       <div ref={row} role="region" aria-label={label} className="-mx-4 flex snap-x scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [&>:first-child]:ms-auto [&>:last-child]:me-auto [scrollbar-width:none] md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden">
         {children}
       </div>
-      <button type="button" onClick={() => step(-1)} aria-label="Previous" className="absolute -left-4 top-[38%] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-card text-ink opacity-0 shadow-lg ring-1 ring-line transition hover:text-brand group-hover/auto:opacity-100 md:grid">
+      <button type="button" onClick={() => step(-1)} aria-label="Previous" className={`absolute -left-4 top-[38%] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-card text-ink opacity-0 shadow-lg ring-1 ring-line transition hover:text-brand group-hover/auto:opacity-100 ${overflows ? 'md:grid' : ''}`}>
         <Icon name="arrow" size={18} className="rotate-180" />
       </button>
-      <button type="button" onClick={() => step(1)} aria-label="Next" className="absolute -right-4 top-[38%] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-card text-ink opacity-0 shadow-lg ring-1 ring-line transition hover:text-brand group-hover/auto:opacity-100 md:grid">
+      <button type="button" onClick={() => step(1)} aria-label="Next" className={`absolute -right-4 top-[38%] hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-card text-ink opacity-0 shadow-lg ring-1 ring-line transition hover:text-brand group-hover/auto:opacity-100 ${overflows ? 'md:grid' : ''}`}>
         <Icon name="arrow" size={18} />
       </button>
     </div>
