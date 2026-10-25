@@ -7,7 +7,7 @@ import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { ProductGrid } from '@/components/shop/ProductCard';
 import { getProductBySlug, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
 import { imageUrl, SITE_URL } from '@/lib/env';
-import { formatTaka, toNumber } from '@/lib/format';
+import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { parseDescription, splitBullet } from '@/lib/product-content';
 import { Icon } from '@/components/icons';
 
@@ -192,7 +192,7 @@ export default async function ProductPage({ params }: Props) {
       <VariantImageProvider>
         {/* minmax(0, …) columns: the thumbnail strip scrolls instead of widening the page. */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <Gallery images={product.images} name={product.name} badge={percentOff > 0 ? `-${percentOff}%` : null} />
+          <Gallery images={product.images} name={product.name} badge={discountBadge(min, compare, product.discount_style)} />
 
           {variants.length > 0 ? (
             <AddToCart

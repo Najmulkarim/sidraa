@@ -66,6 +66,8 @@ export type Product = {
   description: string | null;
   base_price: Numeric;
   compare_at_price: Numeric | null;
+  /** How the discount badge reads: percent (20% OFF) or amount (৳200 OFF). */
+  discount_style: 'percent' | 'amount';
   status: ProductStatus;
   is_featured: boolean;
   seo_title: string | null;

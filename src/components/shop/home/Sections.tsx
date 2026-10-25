@@ -7,7 +7,7 @@ import { HeroLuxury, type HeroSlide } from './HeroLuxury';
 import { TestimonialSlider } from './TestimonialSlider';
 import { priceRange, totalStock } from '@/lib/catalog';
 import { imageUrl } from '@/lib/env';
-import { formatTaka, toNumber } from '@/lib/format';
+import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 
@@ -136,7 +136,7 @@ export function CategoryTiles({ title, subtitle, categories, images }: { title: 
 export function MiniCard({ product, className = '' }: { product: ProductWithRelations; className?: string }) {
   const { min } = priceRange(product);
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
-  const off = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
+  const off = discountBadge(min, compare, product.discount_style);
   const soldOut = totalStock(product) <= 0;
   const second = product.images[1]?.storage_path;
   return (
@@ -144,13 +144,13 @@ export function MiniCard({ product, className = '' }: { product: ProductWithRela
       <span className="relative block aspect-[3/4] overflow-hidden rounded-md bg-cream">
         <ProductImage path={product.images[0]?.storage_path} alt={product.name} sizes="(min-width: 1024px) 14vw, (min-width: 640px) 25vw, 45vw" className={`transition duration-700 ${second ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`} />
         {second && <ProductImage path={second} alt="" sizes="(min-width: 1024px) 14vw, 45vw" className="opacity-0 transition duration-700 group-hover:opacity-100" />}
-        {off > 0 && <span className="absolute left-2 top-2 rounded-sm bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-white">−{off}%</span>}
+        {off && <span className="absolute left-2 top-2 rounded-sm bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-white">{off}</span>}
         {soldOut && <span className="absolute inset-x-2 bottom-2 rounded-sm bg-white/90 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-night">Sold out</span>}
       </span>
       <span className="mt-3 line-clamp-1 block font-display text-[1.08rem] font-semibold text-night group-hover:text-brand">{product.name}</span>
       <span className="mt-0.5 flex items-baseline justify-center gap-2 text-[14px]">
         <span className="font-medium text-night">{formatTaka(min)}</span>
-        {off > 0 && <s className="text-[12.5px] text-ink/45">{formatTaka(compare)}</s>}
+        {off && <s className="text-[12.5px] text-ink/45">{formatTaka(compare)}</s>}
       </span>
     </Link>
   );

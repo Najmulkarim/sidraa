@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug';
 import type { Category, Product, ProductImage as ProductImageRow, Variant } from '@/lib/types';
 import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
+import { DiscountFields } from './DiscountFields';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
@@ -321,18 +322,12 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="field">
-              <label htmlFor="basePrice" className="label">Price ৳</label>
-              <input id="basePrice" name="basePrice" inputMode="decimal" required defaultValue={product ? String(product.base_price) : ''} className="input" />
-              <FieldError state={state} name="basePrice" />
-            </div>
-            <div className="field">
-              <label htmlFor="compareAtPrice" className="label">Compare-at ৳</label>
-              <input id="compareAtPrice" name="compareAtPrice" inputMode="decimal" defaultValue={product?.compare_at_price == null ? '' : String(product.compare_at_price)} className="input" />
-              <FieldError state={state} name="compareAtPrice" />
-            </div>
-          </div>
+          <DiscountFields
+            basePrice={product ? Number(product.base_price) : null}
+            compareAtPrice={product?.compare_at_price == null ? null : Number(product.compare_at_price)}
+            style={product?.discount_style === 'amount' ? 'amount' : 'percent'}
+            errors={{ basePrice: <FieldError state={state} name="basePrice" />, compareAtPrice: <FieldError state={state} name="compareAtPrice" /> }}
+          />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isFeatured" defaultChecked={product?.is_featured ?? false} className="h-4 w-4 accent-[var(--brand)]" />
             Feature on the home page

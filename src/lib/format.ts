@@ -102,3 +102,11 @@ export function resolveRange(
       return { preset: '7d', from: addDays(today, -6), to: today };
   }
 }
+
+/** Discount badge text: "20% OFF" or "৳200 OFF" (as the admin entered it); null when there is no discount. */
+export function discountBadge(price: number, compare: number | null, style: string | null | undefined): string | null {
+  if (compare === null || !(compare > price)) return null;
+  if (style === 'amount') return `${formatTaka(compare - price)} OFF`;
+  const pct = Math.round((1 - price / compare) * 100);
+  return pct > 0 ? `${pct}% OFF` : null;
+}

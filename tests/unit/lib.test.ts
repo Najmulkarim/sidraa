@@ -178,3 +178,13 @@ describe('home section labels', () => {
     expect(lbl(undefined, 'x', 'Default')).toBe('Default');
   });
 });
+
+describe('discount badge', () => {
+  it('reads as % or ৳ the way the admin entered it', async () => {
+    const { discountBadge } = await import('@/lib/format');
+    expect(discountBadge(800, 1000, 'percent')).toBe('20% OFF');
+    expect(discountBadge(800, 1000, 'amount')).toBe('৳200 OFF');
+    expect(discountBadge(1000, null, 'percent')).toBeNull();
+    expect(discountBadge(1000, 1000, 'amount')).toBeNull();
+  });
+});

@@ -141,6 +141,7 @@ export const productSchema = z
     description: optionalText(10_000),
     basePrice: money('Price'),
     compareAtPrice: optionalMoney('Compare-at price'),
+    discountStyle: z.preprocess((v) => (v === 'amount' ? 'amount' : 'percent'), z.enum(['percent', 'amount'])),
     status: z.enum(['draft', 'published', 'archived']),
     isFeatured: checkbox,
     seoTitle: optionalText(70),
@@ -152,7 +153,7 @@ export const productSchema = z
   })
   .superRefine((p, ctx) => {
     if (p.compareAtPrice !== undefined && p.compareAtPrice <= p.basePrice) {
-      ctx.addIssue({ code: 'custom', path: ['compareAtPrice'], message: 'Compare-at price must be higher than the price' });
+      ctx.addIssue({ code: 'custom', path: ['compareAtPrice'], message: 'The discount must leave a price above ৳0' });
     }
     if (p.variants.some((v) => v.option3) && !p.option3Label) {
       ctx.addIssue({ code: 'custom', path: ['option3Label'], message: 'Name the third option (e.g. Sleeve)' });

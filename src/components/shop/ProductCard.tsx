@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatTaka, toNumber } from '@/lib/format';
+import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { priceRange, totalStock, variantLabel } from '@/lib/catalog';
 import type { ProductWithRelations } from '@/lib/types';
 import { ProductImage } from './ProductImage';
@@ -12,7 +12,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   const image = product.images[0];
   const active = product.variants.filter((v) => v.is_active);
   const single = active.length === 1 && variantLabel(active[0]!) === '' ? active[0]! : null;
-  const discount = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
+  const discount = discountBadge(min, compare, product.discount_style);
   // Colour photos as small swatches under the name.
   const colors = [...new Map(active.filter((v) => v.color).map((v) => [v.color, v.image_path ?? null])).entries()];
   const hasColor = active.some((v) => v.color);
@@ -32,8 +32,8 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
         <span className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {soldOut ? (
             <span className="rounded-md bg-night px-2 py-0.5 text-[11px] font-bold uppercase text-white">Sold out</span>
-          ) : discount > 0 ? (
-            <span className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">−{discount}%</span>
+          ) : discount ? (
+            <span className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-bold text-white">{discount}</span>
           ) : badge ? (
             <span className="rounded-md bg-plum px-2 py-0.5 text-[11px] font-bold uppercase text-white">{badge}</span>
           ) : null}
@@ -48,7 +48,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
             {min !== max ? 'From ' : ''}
             {formatTaka(min)}
           </span>
-          {discount > 0 && <s className="text-[12px] text-muted">{formatTaka(compare)}</s>}
+          {discount && <s className="text-[12px] text-muted">{formatTaka(compare)}</s>}
         </p>
         {colors.length > 1 && (
           <p className="flex items-center gap-1" aria-label={`${colors.length} colours: ${colors.map(([c]) => c).join(', ')}`}>
