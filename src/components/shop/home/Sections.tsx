@@ -165,7 +165,7 @@ export function ProductRowSection({ title, subtitle, settings, products }: { tit
       <SectionHead title={title ?? 'Most loved this week'} subtitle={subtitle} href={settings.link || '/products'} />
       <AutoScroll autoplay={settings.autoplay} label={title ?? 'Products'}>
         {products.map((p) => (
-          <div key={p.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[22%] lg:w-[calc((100%-7*1rem)/8)] lg:min-w-40">
+          <div key={p.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[22%] lg:w-[calc((100%-5*1rem)/6)]">
             <MiniCard product={p} />
           </div>
         ))}
