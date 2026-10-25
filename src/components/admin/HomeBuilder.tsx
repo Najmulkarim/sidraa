@@ -218,6 +218,15 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
       )}
       {t === 'benefits' && <p className="text-[13px] text-muted">These cards come from Settings (cash on delivery, free delivery threshold, return days). Nothing to fill in here.</p>}
       {t === 'category_tiles' && <CategoryPicker ids={(settings as SectionSettings['category_tiles']).category_ids} categories={ctx.categories} onChange={(category_ids) => set({ category_ids })} />}
+      {t === 'product_row' && (
+        <div className="field max-w-xs">
+          <span className="label">Show as</span>
+          <select value={(settings as SectionSettings['product_row']).layout} onChange={(e) => set({ layout: e.target.value })} className="input">
+            <option value="row">Slider (one row)</option>
+            <option value="grid">Grid with a View all button</option>
+          </select>
+        </div>
+      )}
       {(t === 'collection' || t === 'product_row') && (
         <ProductListEditor settings={settings as SectionSettings['collection']} set={set} ctx={ctx} withImage={t === 'collection'} autoplay={t === 'product_row' ? (settings as SectionSettings['product_row']).autoplay : undefined} />
       )}

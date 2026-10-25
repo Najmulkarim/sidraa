@@ -1,6 +1,6 @@
 import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
-import { BestSellers, Deal, NewsletterBand, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
+import { BestSellers, Deal, NewsletterBand, ProductGridSection, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
 import {
   getShopCategories, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
@@ -89,6 +89,7 @@ export async function HomeView({ theme }: { theme: ThemeKey }) {
               : <BestSellers key={key} theme={t} title={s.title} settings={s.settings as SectionSettings['collection']} products={products} />;
           case 'product_row': {
             const st = s.settings as SectionSettings['product_row'];
+            if (st.layout === 'grid') return <ProductGridSection key={key} theme={theme} title={s.title} subtitle={s.subtitle} link={st.link} products={products.slice(0, st.limit)} />;
             return lux
               ? <ProductRowSection key={key} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />
               : <ThemeProductRow key={key} theme={t} title={s.title} subtitle={s.subtitle} settings={st} products={products.slice(0, st.limit)} />;

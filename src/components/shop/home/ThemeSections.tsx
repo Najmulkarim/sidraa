@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Icon, type IconName } from '../../icons';
+import { ProductGrid } from '../ProductCard';
 import { ProductImage } from '../ProductImage';
 import { NewsletterForm } from '../NewsletterForm';
 import { AutoScroll } from './AutoScroll';
@@ -440,6 +441,26 @@ export function ReviewCards({ theme, title, settings }: { theme: ShopTheme; titl
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+// --------------------------------------------------------- product grid
+
+/** A grid of products (e.g. "All products", 20 of them) with a View all button under it. */
+export function ProductGridSection({ theme, title, subtitle, link, products }: { theme: ThemeKey; title: string | null; subtitle: string | null; link: string; products: ProductWithRelations[] }) {
+  if (!products.length) return null;
+  const serif = theme === 'luxora' || theme === 'luxe';
+  return (
+    <section className="reveal container-page mt-14">
+      <div className="mb-6 text-center">
+        <h2 className={`font-display text-night ${serif ? 'text-[clamp(1.9rem,3.4vw,2.6rem)] font-semibold' : 'text-[1.6rem] font-bold tracking-tight sm:text-[1.9rem]'}`}>{title ?? 'All products'}</h2>
+        {subtitle && <p className="mt-1.5 text-[14.5px] text-ink/65">{subtitle}</p>}
+      </div>
+      <ProductGrid products={products} priorityCount={0} />
+      <div className="mt-8 text-center">
+        <Link href={link || '/products'} className="btn btn-primary px-8">View all products <Icon name="arrow" size={16} /></Link>
+      </div>
     </section>
   );
 }

@@ -29,7 +29,7 @@ export const SECTION_INFO: Record<SectionType, { label: string; hint: string }> 
   benefits: { label: 'Benefit cards', hint: 'Cash on delivery, free delivery, check before paying, returns — from your settings.' },
   category_tiles: { label: 'Category tiles', hint: 'Picture tiles for your categories. Pick which ones and their order, or leave empty for all.' },
   collection: { label: 'Collection (feature photo + products)', hint: 'A large feature photo with a grid of products and a "View more" tile.' },
-  product_row: { label: 'Product slider', hint: 'A row of products that scrolls sideways.' },
+  product_row: { label: 'Product slider / grid', hint: 'A row of products that scrolls sideways, or a grid (e.g. All products) with a View all button.' },
   banners: { label: 'Promo banners', hint: 'One to three banner pictures side by side, each with its own link.' },
   about: { label: 'About / brand story', hint: 'A short story about the shop with a photo.' },
   testimonials: { label: 'Customer favourites + reviews', hint: 'A few products on the left and real customer comments on the right (a slider). Only add comments customers actually sent you.' },
@@ -85,7 +85,8 @@ export const SETTINGS_SCHEMA = {
   benefits: z.object({}),
   category_tiles: z.object({ category_ids: uuidList }),
   collection: productList.extend({ image, link }),
-  product_row: productList.extend({ link, autoplay: z.boolean().default(true) }),
+  // layout 'grid': a plain grid (e.g. "All products", 20 items) with a View all button under it.
+  product_row: productList.extend({ link, autoplay: z.boolean().default(true), layout: z.enum(['row', 'grid']).default('row') }),
   banners: z.object({ items: z.array(z.object({ image, title: text(80), subtitle: text(160), link })).max(3).default([]) }),
   about: z.object({ image, link, link_label: text(40) }),
   testimonials: productList.extend({
