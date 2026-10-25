@@ -40,7 +40,7 @@ export default async function HomepageAdminPage({ searchParams }: { searchParams
         <a href="/" target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm">View live home page</a>
       </header>
 
-      <ThemePicker live={live} editing={editing} />
+      <ThemePicker live={live} editing={editing} photos={products.filter((p) => p.status === 'published' && p.image).map((p) => p.image as string).slice(0, 8)} />
 
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-line pt-5">
         <h2 className="text-lg font-bold">
