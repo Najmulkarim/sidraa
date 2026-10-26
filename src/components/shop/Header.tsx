@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { imageUrl } from '@/lib/env';
-import { formatTaka } from '@/lib/format';
+import { freeDelivery } from '@/lib/delivery';
 import { parseStorefront } from '@/lib/storefront';
 import type { Category, DeliveryZone, StoreSettings } from '@/lib/types';
 import { Icon } from '../icons';
@@ -27,10 +27,10 @@ export function Header({ settings, categories, zones, theme = 'luxora' }: { sett
   // Settings → Storefront: which header parts show.
   const show = parseStorefront(settings.storefront).header;
   // The shop's own announcement (Settings → Store) replaces the automatic one.
-  const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
+  const free = freeDelivery(zones);
   const announce = settings.announcement ?? [
     'Cash on delivery all over Bangladesh',
-    freeOver.length ? `Free delivery on orders over ${formatTaka(Math.min(...freeOver))}` : null,
+    free ? `Free delivery ${free.text}` : null,
     `Easy ${settings.return_policy_days}-day returns`,
   ].filter(Boolean).join('  •  ');
   const links = [

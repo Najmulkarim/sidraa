@@ -11,6 +11,7 @@ import {
   getShopCategories, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
 } from '@/lib/catalog';
+import { freeDelivery } from '@/lib/delivery';
 import { formatTaka } from '@/lib/format';
 import { lbl, parseSettings, SECTION_TYPES, type SectionSettings, type SectionType, type ThemeKey } from '@/lib/home-sections';
 import type { ProductWithRelations } from '@/lib/types';
@@ -51,11 +52,11 @@ export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; an
   const photos = [...featured, ...lists.flat(), ...latest].map((p) => p.images[0]?.storage_path).filter((x): x is string => !!x);
   const discount = maxDiscount([...lists.flat(), ...featured]);
 
-  const freeOver = zones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
+  const free = freeDelivery(zones);
   const fastest = zones[0]?.eta_text;
   // Benefit strip: every line here is something the shop actually does.
   const benefits: { icon: IconName; title: string; text: string; href: string }[] = [
-    { icon: 'truck', title: freeOver.length ? 'Free delivery' : 'Nationwide delivery', text: freeOver.length ? `On orders over ${formatTaka(Math.min(...freeOver))}` : fastest ? `Inside Dhaka in ${fastest}` : 'All over Bangladesh', href: '/info/delivery' },
+    { icon: 'truck', title: free ? 'Free delivery' : 'Nationwide delivery', text: free ? `Over ${free.over}${free.where ? ` · ${free.where}` : ''}` : fastest ? `Inside Dhaka in ${fastest}` : 'All over Bangladesh', href: '/info/delivery' },
     { icon: 'return', title: `Easy ${settings.return_policy_days}-day returns`, text: 'Hassle-free exchange', href: '/info/returns' },
     { icon: 'cash', title: 'Cash on delivery', text: 'Pay when it reaches you', href: '/info/delivery' },
     { icon: settings.phone ? 'phone' : 'eye', title: settings.phone ? 'Here to help' : 'Check before paying', text: settings.phone ?? 'Open the parcel with the rider', href: settings.phone ? `tel:${settings.phone.replace(/[^\d+]/g, '')}` : '/info/delivery' },

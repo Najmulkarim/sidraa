@@ -6,6 +6,7 @@ import { Gallery } from '@/components/shop/Gallery';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { ProductGrid } from '@/components/shop/ProductCard';
 import { getProductBySlug, getProductReviews, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
+import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
@@ -57,7 +58,7 @@ export default async function ProductPage({ params }: Props) {
   const content = parseDescription(product.description);
   const productUrl = `${SITE_URL}/product/${product.slug}`;
   const activeZones = zones.filter((z) => z.is_active !== false);
-  const freeOver = activeZones.map((z) => (z.free_over === null ? null : Number(z.free_over))).filter((n): n is number => n !== null);
+  const free = freeDelivery(activeZones);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -113,7 +114,7 @@ export default async function ProductPage({ params }: Props) {
           </li>
         ))}
       </ul>
-      {freeOver.length > 0 && <p className="font-semibold text-ok">FREE delivery on orders over {formatTaka(Math.min(...freeOver))}</p>}
+      {free && <p className="font-semibold text-ok">FREE delivery {free.text}</p>}
     </div>
   );
 
