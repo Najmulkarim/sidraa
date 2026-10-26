@@ -48,7 +48,8 @@ export function MobileMenu({ links, logo }: { links: { href: string; label: stri
       >
         <Icon name="menu" size={22} />
       </summary>
-      <nav className="fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-xs animate-[drawer-in_0.3s_cubic-bezier(0.2,0.8,0.2,1)] flex-col overflow-y-auto bg-card shadow-2xl">
+      {/* Own text colour: the dark headers (TopDeal, Mega, Nova) set white text, which would vanish on this white panel. */}
+      <nav className="fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-xs animate-[drawer-in_0.3s_cubic-bezier(0.2,0.8,0.2,1)] flex-col overflow-y-auto bg-card text-ink shadow-2xl">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           {logo}
           <button type="button" onClick={close} className="grid h-10 w-10 place-items-center rounded-full transition active:scale-90 hover:bg-tint" aria-label="Close menu">
@@ -57,7 +58,7 @@ export function MobileMenu({ links, logo }: { links: { href: string; label: stri
         </div>
         <form action="/products" role="search" className="m-4 flex overflow-hidden rounded-full border-[1.5px] border-[color-mix(in_oklab,var(--brand)_25%,white)]">
           <label htmlFor="drawer-search" className="sr-only">Search products</label>
-          <input id="drawer-search" name="q" type="search" placeholder="Search products…" maxLength={80} className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-base outline-none" />
+          <input id="drawer-search" name="q" type="search" placeholder="Search products…" maxLength={80} className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-base text-ink outline-none placeholder:text-muted" />
           <button className="grid w-12 place-items-center bg-[linear-gradient(120deg,var(--accent),var(--brand))] text-white" aria-label="Search">
             <Icon name="search" size={18} />
           </button>
@@ -71,7 +72,7 @@ export function MobileMenu({ links, logo }: { links: { href: string; label: stri
                   href={l.href}
                   onClick={close}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-medium transition active:scale-[0.98] ${active ? 'bg-tint text-brand' : 'hover:bg-tint hover:text-brand'}`}
+                  className={`flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-medium transition active:scale-[0.98] ${active ? 'bg-tint text-brand' : 'text-ink hover:bg-tint hover:text-brand'}`}
                 >
                   {l.label}
                   <Icon name="arrow" size={16} className="opacity-40" />
