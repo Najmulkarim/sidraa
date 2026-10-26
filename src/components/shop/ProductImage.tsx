@@ -41,5 +41,6 @@ export function ProductImage({
   }
   // SVG illustrations and files under /public are served as they are.
   const unoptimized = src.startsWith('/') || src.endsWith('.svg');
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} quality={quality} unoptimized={unoptimized} className={`object-cover ${className}`} />;
+  // priority: the photo at the top of the page — fetched first, never lazy (Next 16 replaces `priority` with these).
+  return <Image src={src} alt={alt} fill sizes={sizes} loading={priority ? 'eager' : undefined} fetchPriority={priority ? 'high' : undefined} quality={quality} unoptimized={unoptimized} className={`object-cover ${className}`} />;
 }

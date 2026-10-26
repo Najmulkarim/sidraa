@@ -24,12 +24,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   const description = s.tagline ?? `Shop ${s.store_name} online. Cash on delivery across Bangladesh.`;
   const sf = parseStorefront(s.storefront);
-  const favicon = imageUrl(sf.favicon);
+  const uploaded = imageUrl(sf.favicon);
+  // A small copy through the image optimiser: the upload itself can be large.
+  const icon = (w: number) => (uploaded && !uploaded.startsWith('/') ? `/_next/image?url=${encodeURIComponent(uploaded)}&w=${w}&q=75` : uploaded);
+  const favicon = icon(64);
   const og = imageUrl(sf.og_image);
   const title = sf.site_title || s.store_name;
   return {
     metadataBase: new URL(SITE_URL),
-    icons: { icon: favicon ?? '/brand/favicon.png', apple: favicon ?? '/brand/apple-icon.png' },
+    icons: { icon: favicon ?? '/brand/favicon.png', apple: icon(256) ?? '/brand/apple-icon.png' },
     // "Add to Home Screen" opens the shop full-screen, like an app.
     appleWebApp: { capable: true, title: s.store_name, statusBarStyle: 'default' },
     title: { default: title, template: `%s · ${s.store_name}` },

@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
     dangerouslyAllowLocalIP: isDev,
     // 90 for hero banners (HD), 75 everywhere else.
     qualities: [75, 90],
+    // AVIF where the browser supports it (about a third smaller than WebP).
+    formats: ['image/avif', 'image/webp'],
   },
   async headers() {
     return [

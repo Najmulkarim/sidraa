@@ -267,7 +267,15 @@ export function escapeLike(term: string): string {
   return term.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-export async function listProducts(params: ListParams): Promise<{ products: ProductWithRelations[]; total: number; page: number; pages: number }> {
+type ProductList = { products: ProductWithRelations[]; total: number; page: number; pages: number };
+
+/** A page of products, cached for five minutes or until the next catalog change. */
+export function listProducts(params: ListParams): Promise<ProductList> {
+  const key = JSON.stringify([params.q?.trim().slice(0, 80).toLowerCase() ?? '', params.category ?? '', params.sort ?? '', !!params.inStock, Math.floor(params.page ?? 1)]);
+  return cachedRead(`list:${key}`, () => readProductList(params), { products: [], total: 0, page: 1, pages: 1 })();
+}
+
+async function readProductList(params: ListParams): Promise<ProductList> {
   const page = Math.max(1, Math.min(500, Math.floor(params.page ?? 1)));
   const from = (page - 1) * PAGE_SIZE;
   const select = params.inStock ? PRODUCT_SELECT.replace('variants:product_variants(', 'variants:product_variants!inner(') : PRODUCT_SELECT;
@@ -294,7 +302,8 @@ export async function listProducts(params: ListParams): Promise<{ products: Prod
   }
 
   const { data, count, error } = await query.order('id').range(from, from + PAGE_SIZE - 1);
-  if (error) console.error('[catalog] list', error.message);
+  // Thrown, not returned, so a failed read is never cached.
+  if (error) throw new Error(error.message);
   const total = count ?? 0;
   return {
     products: ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations),

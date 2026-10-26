@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { cookies, headers } from 'next/headers';
 import { after } from 'next/server';
 import { sendPurchaseEvent } from '@/lib/facebook/capi';
@@ -10,6 +10,7 @@ import { clientIp, hashKey, hit, LIMITS } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createPublicClient } from '@/lib/supabase/public';
 import { LAST_ORDER_COOKIE } from '@/lib/cart';
+import { CATALOG_TAG } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import { normalizeBdPhone } from '@/lib/phone';
 import { bkashCreate, BkashError } from '@/lib/payments/bkash';
@@ -165,6 +166,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     for (const s of (slugs as unknown as { product: { slug: string } | null }[] | null) ?? []) {
       if (s.product?.slug) revalidatePath(`/product/${s.product.slug}`);
     }
+    // Product lists and the home page show stock too.
+    updateTag(CATALOG_TAG);
   }
 
   // Lets this browser (and only this one) see the full confirmation.
