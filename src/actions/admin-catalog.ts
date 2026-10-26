@@ -108,6 +108,8 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     }
   }
 
+  // Cost per variation (staff-only table): saved after each variation, by its id.
+  const variantCosts: { id: string; cost: number | null }[] = [];
   for (const v of p.variants) {
     // Variation photos must be this product's own photos (the database checks too).
     const imagePath = v.imagePath && photos.has(v.imagePath) ? v.imagePath : null;
@@ -117,6 +119,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     if (v.id) {
       const { error } = await supabase.from('product_variants').update(fields).eq('id', v.id);
       if (error) return bail(`${label}: ${fail(error, 'update variant').message}`);
+      variantCosts.push({ id: v.id, cost: v.cost });
     } else {
       const { data, error } = await supabase
         .from('product_variants')
@@ -124,6 +127,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
         .select('id, sku')
         .single<{ id: string; sku: string }>();
       if (error || !data) return bail(`${label}: ${fail(error, 'insert variant').message}`);
+      variantCosts.push({ id: data.id, cost: v.cost });
       if (v.openingStock > 0) {
         const { error: stockError } = await supabase.rpc('adjust_stock', {
           p_variant_id: data.id,
@@ -135,6 +139,18 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
       }
     }
   }
+
+  // Cost prices: set, or cleared when the box is emptied.
+  const costErrors = await Promise.all([
+    p.costPrice === undefined
+      ? supabase.from('product_costs').delete().eq('product_id', productId)
+      : supabase.from('product_costs').upsert({ product_id: productId, cost: p.costPrice, updated_at: new Date().toISOString() }),
+    ...variantCosts.filter((c) => c.cost === null).map((c) => supabase.from('variant_costs').delete().eq('variant_id', c.id)),
+    ...(variantCosts.some((c) => c.cost !== null)
+      ? [supabase.from('variant_costs').upsert(variantCosts.filter((c) => c.cost !== null).map((c) => ({ variant_id: c.id, cost: c.cost, updated_at: new Date().toISOString() })))]
+      : []),
+  ]);
+  if (costErrors.some((r) => r.error)) notes.push('Cost price not saved — run the latest database update (0033) in Supabase.');
 
   refreshStore();
   // Redirect so the form remounts with the saved variant ids.

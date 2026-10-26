@@ -132,6 +132,8 @@ export const variantInputSchema = z.object({
   /** One of the product's photos (checked again by the database). */
   imagePath: z.preprocess((v) => (v === '' || v === undefined ? null : v), z.string().max(300).nullable()).default(null),
   price: z.preprocess((v) => (v === '' || v === null || v === undefined ? null : v), money('Variant price').nullable()),
+  /** What one piece of this variation costs the shop; empty = the product's cost price. */
+  cost: z.preprocess((v) => (v === '' || v === null || v === undefined ? null : v), money('Cost').nullable()).default(null),
   isActive: z.boolean().default(true),
   openingStock: z.coerce.number().int().min(0).max(100_000).default(0),
 });
@@ -155,6 +157,8 @@ export const productSchema = z
     description: optionalText(10_000),
     basePrice: money('Price'),
     compareAtPrice: optionalMoney('Compare-at price'),
+    /** What one piece costs the shop (for profit). Staff-only, never on the shop. */
+    costPrice: optionalMoney('Cost price'),
     discountStyle: z.preprocess((v) => (v === 'amount' ? 'amount' : 'percent'), z.enum(['percent', 'amount'])),
     status: z.enum(['draft', 'published', 'archived']),
     isFeatured: checkbox,

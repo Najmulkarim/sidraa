@@ -21,6 +21,7 @@ type VariantRow = {
   option3: string;
   imagePath: string | null;
   price: string;
+  cost: string;
   isActive: boolean;
   stock?: number;
   openingStock: string;
@@ -28,9 +29,9 @@ type VariantRow = {
 
 let seq = 0;
 const newKey = () => `new-${++seq}`;
-const blankRow = (): VariantRow => ({ key: newKey(), sku: '', color: '', size: '', option3: '', imagePath: null, price: '', isActive: true, openingStock: '0' });
+const blankRow = (): VariantRow => ({ key: newKey(), sku: '', color: '', size: '', option3: '', imagePath: null, price: '', cost: '', isActive: true, openingStock: '0' });
 
-function toRow(v: Variant): VariantRow {
+function toRow(v: Variant, cost?: number): VariantRow {
   return {
     key: v.id,
     id: v.id,
@@ -40,6 +41,7 @@ function toRow(v: Variant): VariantRow {
     option3: v.option3 ?? '',
     imagePath: v.image_path ?? null,
     price: v.price === null ? '' : String(v.price),
+    cost: cost === undefined ? '' : String(cost),
     isActive: v.is_active,
     stock: v.stock,
     openingStock: '0',
@@ -49,13 +51,14 @@ function toRow(v: Variant): VariantRow {
 const same = (a: { color: string; size: string; option3: string }, b: { color: string; size: string; option3: string }) =>
   a.color.toLowerCase() === b.color.toLowerCase() && a.size.toLowerCase() === b.size.toLowerCase() && a.option3.toLowerCase() === b.option3.toLowerCase();
 
-export function ProductForm({ product, variants, categories, images = [] }: { product?: Product; variants?: Variant[]; categories: Category[]; images?: ProductImageRow[] }) {
+/** costs: the product's cost price and per-variation costs (staff-only data). */
+export function ProductForm({ product, variants, categories, images = [], costs }: { product?: Product; variants?: Variant[]; categories: Category[]; images?: ProductImageRow[]; costs?: { product: number | null; variants: Record<string, number> } }) {
   const { state, onSubmit, pending } = useKeepValuesAction(saveProduct);
   const [name, setName] = useState(product?.name ?? '');
   const [slug, setSlug] = useState(product?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(!!product);
   const [labels, setLabels] = useState({ color: product?.color_label ?? 'Color', size: product?.size_label ?? 'Size', option3: product?.option3_label ?? '' });
-  const [rows, setRows] = useState<VariantRow[]>(variants && variants.length > 0 ? variants.map(toRow) : [blankRow()]);
+  const [rows, setRows] = useState<VariantRow[]>(variants && variants.length > 0 ? variants.map((v) => toRow(v, costs?.variants[v.id])) : [blankRow()]);
   const [gen, setGen] = useState({ colors: '', sizes: '', options: '' });
   const [picking, setPicking] = useState<string | null>(null);
   // New products get their id now, so photos can be uploaded before the first save.
@@ -77,6 +80,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
       option3: r.option3,
       imagePath: r.imagePath ?? '',
       price: r.price === '' ? null : r.price,
+      cost: r.cost === '' ? null : r.cost,
       isActive: r.isActive,
       openingStock: r.id ? 0 : Number(r.openingStock) || 0,
     })),
@@ -226,7 +230,7 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
               <thead>
                 <tr>
                   <th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
-                  <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th>Stock</th><th>Active</th><th></th>
+                  <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th title="What one piece costs you. Empty: the product's cost price">Cost ৳</th><th>Stock</th><th>Active</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -283,6 +287,10 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
                         <input aria-label="Price" inputMode="decimal" value={r.price} onChange={(e) => update(r.key, { price: e.target.value })} placeholder="—" className="input" />
                         {fe[`variants.${i}.price`] && <p className="error">{fe[`variants.${i}.price`]}</p>}
                       </td>
+                      <td className="min-w-24">
+                        <input aria-label="Cost" inputMode="decimal" value={r.cost} onChange={(e) => update(r.key, { cost: e.target.value })} placeholder="—" className="input" />
+                        {fe[`variants.${i}.cost`] && <p className="error">{fe[`variants.${i}.cost`]}</p>}
+                      </td>
                       <td className="min-w-20">
                         {r.id ? (
                           <Link href={`/admin/inventory?variant=${r.id}`} className="inline-block pt-2.5 font-semibold text-brand hover:underline">{r.stock ?? 0}</Link>
@@ -329,6 +337,12 @@ export function ProductForm({ product, variants, categories, images = [] }: { pr
             style={product?.discount_style === 'amount' ? 'amount' : 'percent'}
             errors={{ basePrice: <FieldError state={state} name="basePrice" />, compareAtPrice: <FieldError state={state} name="compareAtPrice" /> }}
           />
+          <div className="field">
+            <label htmlFor="costPrice" className="label">Cost price ৳ <span className="font-normal text-muted">(what one piece costs you)</span></label>
+            <input id="costPrice" name="costPrice" inputMode="decimal" defaultValue={costs?.product ?? ''} placeholder="e.g. 650" className="input" />
+            <p className="hint">Used only for profit in Accounting — never shown in the shop. Variations can have their own cost in the table above.</p>
+            <FieldError state={state} name="costPrice" />
+          </div>
           <StockOutFields mode={product?.stock_out_mode ?? 'sold_out'} days={product?.preorder_days ?? null} error={<FieldError state={state} name="preorderDays" />} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isFeatured" defaultChecked={product?.is_featured ?? false} className="h-4 w-4 accent-[var(--brand)]" />

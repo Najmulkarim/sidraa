@@ -37,7 +37,8 @@ function label(from: string, to: string) {
  * The arrows beside it step to the previous / next period of the same length.
  * `today` is the shop's (Dhaka) date, so "future" days match the server.
  */
-export function DateRangePicker({ basePath, preset, from, to, today }: { basePath: string; preset: string; from: string; to: string; today: string }) {
+/** presets: the quick ranges to offer; keep: other query parameters to carry over (e.g. group=month). */
+export function DateRangePicker({ basePath, preset, from, to, today, presets = RANGE_PRESETS, keep = '' }: { basePath: string; preset: string; from: string; to: string; today: string; presets?: readonly { value: string; label: string }[]; keep?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [start, setStart] = useState<string | null>(from);
@@ -63,7 +64,7 @@ export function DateRangePicker({ basePath, preset, from, to, today }: { basePat
 
   function go(q: string) {
     setOpen(false);
-    router.push(`${basePath}?${q}`);
+    router.push(`${basePath}?${keep ? `${keep}&` : ''}${q}`);
   }
   const goCustom = (a: string, b: string) => go(`range=custom&from=${a}&to=${b}`);
 
@@ -80,7 +81,7 @@ export function DateRangePicker({ basePath, preset, from, to, today }: { basePat
     goCustom(plusDays(b, -(len - 1)), b);
   };
 
-  const name = RANGE_PRESETS.find((p) => p.value === preset)?.label ?? 'Custom range';
+  const name = presets.find((p) => p.value === preset)?.label ?? 'Custom range';
   const lo = start && (end ?? hover) ? (start < (end ?? hover)! ? start : (end ?? hover)!) : start;
   const hi = start && (end ?? hover) ? (start < (end ?? hover)! ? (end ?? hover)! : start) : start;
 
@@ -108,7 +109,7 @@ export function DateRangePicker({ basePath, preset, from, to, today }: { basePat
       {open && (
         <div role="dialog" aria-label="Choose dates" className="absolute right-0 top-11 z-30 flex w-[min(92vw,44rem)] flex-col overflow-hidden rounded-2xl bg-card shadow-[0_24px_60px_-20px_rgba(20,10,30,.45)] ring-1 ring-line md:flex-row">
           <ul className="flex gap-1 overflow-x-auto border-b border-line p-2 md:w-40 md:flex-col md:overflow-visible md:border-b-0 md:border-r">
-            {RANGE_PRESETS.map((p) => (
+            {presets.map((p) => (
               <li key={p.value}>
                 <button
                   type="button"

@@ -59,14 +59,15 @@ export function isYmd(value: unknown): value is string {
   return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
 }
 
-export type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'this-month' | 'last-month' | 'this-year' | 'custom';
+export type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'this-year' | 'last-year' | 'custom';
 
-/** Resolves a preset (or custom from/to) to an inclusive Dhaka date range. */
+/** Resolves a preset (or custom from/to) to an inclusive Dhaka date range. Weeks start on Saturday. maxDays caps a custom range. */
 export function resolveRange(
   preset: string | undefined,
   from: string | undefined,
   to: string | undefined,
   now: Date = new Date(),
+  maxDays = 366,
 ): { preset: RangePreset; from: string; to: string } {
   const today = dhakaToday(now);
   const [y, m] = today.split('-').map(Number) as [number, number];
@@ -84,6 +85,15 @@ export function resolveRange(
       return { preset: '90d', from: addDays(today, -89), to: today };
     case 'this-year':
       return { preset: 'this-year', from: `${y}-01-01`, to: today };
+    case 'last-year':
+      return { preset: 'last-year', from: `${y - 1}-01-01`, to: `${y - 1}-12-31` };
+    case 'this-week':
+    case 'last-week': {
+      // Days since Saturday: getUTCDay() is 6 on a Saturday.
+      const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+      const sat = addDays(today, -((dow + 1) % 7));
+      return preset === 'this-week' ? { preset, from: sat, to: today } : { preset, from: addDays(sat, -7), to: addDays(sat, -1) };
+    }
     case 'this-month':
       return { preset: 'this-month', from: monthStart, to: today };
     case 'last-month': {
@@ -93,8 +103,8 @@ export function resolveRange(
     case 'custom':
       if (isYmd(from) && isYmd(to)) {
         const [a, b] = from <= to ? [from, to] : [to, from];
-        // Cap at 366 days, matching report_summary().
-        const capped = addDays(b, -366) > a ? addDays(b, -366) : a;
+        // Cap at maxDays (366 by default, matching report_summary()).
+        const capped = addDays(b, -maxDays) > a ? addDays(b, -maxDays) : a;
         return { preset: 'custom', from: capped, to: b };
       }
       return { preset: '7d', from: addDays(today, -6), to: today };

@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: '/admin/customers', label: 'Customers', icon: 'users', need: ['customers'] },
       { href: '/admin/coupons', label: 'Coupons', icon: 'ticket', need: ['catalog'] },
       { href: '/admin/reports', label: 'Reports', icon: 'chart', need: ['revenue'] },
+      { href: '/admin/accounting', label: 'Accounting', icon: 'cash', need: ['revenue'] },
     ],
   },
   {

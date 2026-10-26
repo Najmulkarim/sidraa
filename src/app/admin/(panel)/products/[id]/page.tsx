@@ -21,16 +21,22 @@ export default async function EditProductPage({
   const [{ supabase }, { id }, sp] = await Promise.all([requirePermission('catalog'), params, searchParams]);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
-  const [{ data: product }, { data: categories }, { count: orderCount }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { count: orderCount }, { data: pCost }, { data: vCosts }] = await Promise.all([
     supabase.from('products').select('*, images:product_images(*), variants:product_variants(*)').eq('id', id).maybeSingle(),
     supabase.from('categories').select('*').order('sort_order').order('name'),
     supabase.from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', id),
+    supabase.from('product_costs').select('cost').eq('product_id', id).maybeSingle<{ cost: number | string }>(),
+    supabase.from('variant_costs').select('variant_id, cost, variant:product_variants!inner(product_id)').eq('variant.product_id', id),
   ]);
   if (!product) notFound();
   const p = product as Product & { images: ProductImage[]; variants: Variant[] };
   const images = [...p.images].sort((a, b) => a.sort_order - b.sort_order);
   const variants = [...p.variants].sort((a, b) => a.color.localeCompare(b.color) || sizeRank(a.size) - sizeRank(b.size) || (a.option3 ?? '').localeCompare(b.option3 ?? '') || a.sku.localeCompare(b.sku));
   const canDelete = (orderCount ?? 0) === 0;
+  const costs = {
+    product: pCost ? Number(pCost.cost) : null,
+    variants: Object.fromEntries(((vCosts ?? []) as { variant_id: string; cost: number | string }[]).map((c) => [c.variant_id, Number(c.cost)])),
+  };
 
   return (
     <div className="space-y-6">
@@ -50,7 +56,7 @@ export default async function EditProductPage({
       {sp.error === 'delete' && <p className="rounded-xl bg-bad/10 px-4 py-3 text-sm text-bad">This product could not be deleted. Archive it instead.</p>}
 
       <ImageManager productId={p.id} images={images} productName={p.name} />
-      <ProductForm key={p.updated_at} product={p} variants={variants} images={images} categories={(categories ?? []) as Category[]} />
+      <ProductForm key={p.updated_at} product={p} variants={variants} images={images} categories={(categories ?? []) as Category[]} costs={costs} />
 
       <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
