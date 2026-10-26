@@ -98,8 +98,8 @@ export function DateRangePicker({ basePath, preset, from, to, today, presets = R
         className="flex h-9 items-center gap-2 rounded-lg bg-card px-3 text-[13px] ring-1 ring-line transition hover:ring-brand"
       >
         <Icon name="calendar" size={16} className="text-brand" />
-        <span className="font-semibold">{name}</span>
-        <span className="hidden text-muted sm:inline">· {label(from, to)}</span>
+        <span className={`font-semibold ${preset === 'custom' ? 'hidden sm:inline' : ''}`}>{name}</span>
+        {preset !== 'all' && <span className={preset === 'custom' ? 'text-ink sm:text-muted' : 'hidden text-muted sm:inline'}><span className="hidden sm:inline">· </span>{label(from, to)}</span>}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className={`transition ${open ? 'rotate-180' : ''}`} aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       <button type="button" onClick={next} disabled={to >= today} aria-label="Next period" className="grid h-9 w-9 place-items-center rounded-lg bg-card ring-1 ring-line transition hover:ring-brand disabled:opacity-40 disabled:hover:ring-line">
@@ -107,14 +107,21 @@ export function DateRangePicker({ basePath, preset, from, to, today, presets = R
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Choose dates" className="absolute right-0 top-11 z-30 flex w-[min(92vw,44rem)] flex-col overflow-hidden rounded-2xl bg-card shadow-[0_24px_60px_-20px_rgba(20,10,30,.45)] ring-1 ring-line md:flex-row">
-          <ul className="flex gap-1 overflow-x-auto border-b border-line p-2 md:w-40 md:flex-col md:overflow-visible md:border-b-0 md:border-r">
+        <>
+        {/* Phones: a sheet from the bottom over a dimmed page; wider screens: a panel under the button. */}
+        <div className="fixed inset-0 z-40 bg-night/50 backdrop-blur-[1px] md:hidden" onClick={() => setOpen(false)} aria-hidden="true" />
+        <div role="dialog" aria-label="Choose dates" className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col overflow-y-auto rounded-t-2xl bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-20px_50px_-20px_rgba(20,10,30,.45)] md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:z-30 md:max-h-none md:w-[44rem] md:flex-row md:overflow-hidden md:rounded-2xl md:pb-0 md:shadow-[0_24px_60px_-20px_rgba(20,10,30,.45)] md:ring-1 md:ring-line">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
+            <p className="font-semibold">Choose dates</p>
+            <button type="button" onClick={() => setOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-soft" aria-label="Close"><Icon name="x" size={18} /></button>
+          </div>
+          <ul className="grid grid-cols-2 gap-1.5 border-b border-line p-3 md:flex md:w-40 md:flex-col md:gap-1 md:border-b-0 md:border-r md:p-2">
             {presets.map((p) => (
               <li key={p.value}>
                 <button
                   type="button"
                   onClick={() => go(`range=${p.value}`)}
-                  className={`w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium transition ${preset === p.value ? 'bg-tint text-brand-ink' : 'hover:bg-soft'}`}
+                  className={`w-full whitespace-nowrap rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium ring-1 transition md:py-2 md:text-[13px] md:ring-0 ${preset === p.value ? 'bg-tint text-brand-ink ring-brand/30' : 'ring-line hover:bg-soft'}`}
                 >
                   {p.label}
                 </button>
@@ -141,7 +148,7 @@ export function DateRangePicker({ basePath, preset, from, to, today, presets = R
                 />
               ))}
             </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+            <div className="sticky bottom-0 -mx-3 -mb-3 mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line bg-card px-3 py-3 md:static md:mx-0 md:mb-0 md:px-0 md:pb-0">
               <p className="text-[12.5px] text-muted">
                 {start && end ? <><b className="text-ink">{label(start, end)}</b> · {spanDays(start, end)} day{spanDays(start, end) === 1 ? '' : 's'}</> : start ? 'Now pick the last day' : 'Pick the first day'}
               </p>
@@ -152,6 +159,7 @@ export function DateRangePicker({ basePath, preset, from, to, today, presets = R
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );
@@ -178,7 +186,7 @@ function Month({ first, today, lo, hi, onPick, onHover, onPrev, onNext, nextDisa
       <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted">
         {WEEK.map((w) => <span key={w} className="py-1">{w}</span>)}
       </div>
-      <div className="grid grid-cols-7 gap-y-0.5 text-center text-[12.5px]">
+      <div className="grid grid-cols-7 gap-y-0.5 text-center text-[14px] md:text-[12.5px]">
         {cells.map((day, i) => {
           if (!day) return <span key={`e${i}`} />;
           const future = day > today;
@@ -192,7 +200,7 @@ function Month({ first, today, lo, hi, onPick, onHover, onPrev, onNext, nextDisa
               onClick={() => onPick(day)}
               onMouseEnter={() => onHover(day)}
               aria-pressed={edge || !!inside}
-              className={`h-8 rounded-lg transition disabled:cursor-not-allowed disabled:opacity-30 ${
+              className={`h-10 rounded-lg transition md:h-8 disabled:cursor-not-allowed disabled:opacity-30 ${
                 edge ? 'bg-brand font-bold text-white' : inside ? 'rounded-none bg-tint text-brand-ink' : 'hover:bg-soft'
               } ${day === today && !edge ? 'font-bold text-brand' : ''}`}
             >

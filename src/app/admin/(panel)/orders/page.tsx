@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { Icon } from '@/components/icons';
 import { OneClickSend } from '@/components/admin/OneClickSend';
 import { OrdersTable, type CourierOptions, type OrderRow, type Stat } from '@/components/admin/OrdersTable';
+import { DateRangePicker, RANGE_PRESETS } from '@/components/admin/DateRangePicker';
 import { RefreshButton } from '@/components/admin/RefreshButton';
 import { requirePermission } from '@/lib/auth';
 import { escapeLike } from '@/lib/catalog';
-import { addDays, dhakaDayStartUtc, formatTaka, isYmd, resolveRange } from '@/lib/format';
+import { addDays, dhakaDayStartUtc, dhakaToday, formatTaka, isYmd, resolveRange } from '@/lib/format';
 import { isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 import type { CourierName } from '@/lib/courier/types';
 import type { Staff } from '@/lib/types';
@@ -154,18 +155,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                 {staff.map((s) => <option key={s.user_id} value={s.user_id}>{s.full_name}</option>)}
               </select>
             </label>
-            <div className="flex items-center gap-1 rounded-[0.6rem] border-[1.5px] border-line bg-[#eef2ff] px-2">
-              <Icon name="calendar" size={15} className="text-[#4338ca]" />
-              <label className="sr-only" htmlFor="from">From</label>
-              <input id="from" name="from" type="date" defaultValue={allTime ? '' : range.from} className="min-h-9 bg-transparent px-1 font-mono text-[12px] outline-none" />
-              <span className="text-muted">–</span>
-              <label className="sr-only" htmlFor="to">To</label>
-              <input id="to" name="to" type="date" defaultValue={allTime ? '' : range.to} className="min-h-9 bg-transparent px-1 font-mono text-[12px] outline-none" />
-            </div>
+            {!allTime && <input type="hidden" name="range" value={range.preset} />}
+            {!allTime && range.preset === 'custom' && <><input type="hidden" name="from" value={range.from} /><input type="hidden" name="to" value={range.to} /></>}
             <button className="btn btn-primary btn-sm min-h-10">Filter</button>
           </form>
+          <DateRangePicker
+            basePath="/admin/orders"
+            preset={allTime ? 'all' : range.preset}
+            from={range.from}
+            to={range.to}
+            today={dhakaToday()}
+            presets={[{ value: 'all', label: 'All time' }, ...RANGE_PRESETS]}
+            keep={new URLSearchParams(Object.entries({ tab: tab === 'all' ? '' : tab, q, emp, rows: rows === 25 ? '' : String(rows) }).filter(([, v]) => v)).toString()}
+          />
           <div className="ml-auto flex items-center gap-1.5">
-            <Link href={href({ range: 'all', from: undefined, to: undefined, page: 1 })} className={`btn btn-sm ${allTime ? 'btn-outline' : 'btn-ghost'}`}>All time</Link>
             <RefreshButton />
             {can.has('orders_edit') && <Link href="/admin/orders/new" className="btn btn-primary btn-sm min-h-10"><Icon name="plus" size={16} /> New order</Link>}
             {can.has('orders_export') && <a href={exportHref} className="grid h-10 w-10 place-items-center rounded-lg border border-line text-ink hover:border-brand hover:text-brand" title="Download CSV" aria-label="Download CSV"><Icon name="download" size={18} /></a>}

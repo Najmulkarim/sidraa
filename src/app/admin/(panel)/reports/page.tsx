@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { DailyBars } from '@/components/admin/DailyBars';
-import { RangeFields } from '@/components/admin/RangeFields';
+import { DateRangePicker } from '@/components/admin/DateRangePicker';
 import { requirePermission } from '@/lib/auth';
-import { formatDate, formatTaka, resolveRange } from '@/lib/format';
+import { dhakaToday, formatDate, formatTaka, resolveRange } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Reports' };
 
@@ -57,10 +57,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </div>
       </header>
 
-      <form key={`${range.preset}|${range.from}|${range.to}`} className="card grid gap-3 p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-        <RangeFields preset={range.preset} from={range.from} to={range.to} />
-        <button className="btn btn-primary">Show</button>
-      </form>
+      <DateRangePicker basePath="/admin/reports" preset={range.preset} from={range.from} to={range.to} today={dhakaToday()} />
 
       {!s ? (
         <p className="rounded-xl bg-bad/10 px-4 py-3 text-sm text-bad">The report could not be loaded.</p>
