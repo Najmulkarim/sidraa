@@ -11,7 +11,9 @@ import type { ProductWithRelations } from '@/lib/types';
  * Only published products — the same data anyone can see in the shop.
  * The id is the product id, matching the Pixel's content_ids.
  */
-export const revalidate = 3600;
+// Built fresh on request and cached at the edge for five minutes, so Facebook always
+// gets current prices and stock (a long-lived cached copy once went two days stale).
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const [settings, { data, error }] = await Promise.all([
@@ -51,5 +53,5 @@ export async function GET() {
     ['id', 'title', 'description', 'availability', 'condition', 'price', 'sale_price', 'link', 'image_link', 'additional_image_link', 'brand', 'product_type'],
     rows,
   ).replace(/^﻿/, '');
-  return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=300' } });
 }
