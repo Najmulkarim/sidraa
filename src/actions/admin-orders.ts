@@ -68,7 +68,11 @@ export async function duplicateOrder(orderId: string): Promise<ActionState> {
       },
     })
     .single<{ order_id: string; public_ref: string; total: number | string }>();
-  if (saveError || !made) return fail(saveError, 'duplicate order');
+  if (saveError || !made) {
+    const failed = fail(saveError, 'duplicate order');
+    // Staff-only screen: an unexpected database error is shown so it can be reported.
+    return mapDbError(saveError).code === 'UNKNOWN' && saveError ? { ok: false, message: `${failed.message} (${saveError.code ?? ''} ${saveError.message})`.slice(0, 300) } : failed;
+  }
 
   await supabase.from('order_notes').insert({ order_id: made.order_id, body: `Duplicate of ${o.public_ref}`, created_by: user.id });
   refresh(made.order_id, true);
