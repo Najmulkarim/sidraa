@@ -89,14 +89,15 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
   if (template === 'thermal') {
     return (
       // Printed sizes are in vw/em: vw follows the page, so the receipt looks the same at any print scale.
-      <article className="mx-auto w-[76mm] break-after-page bg-white p-3 font-sans text-[11.5px] leading-snug text-black last:break-after-auto print:w-full print:px-[4vw] print:py-[2vw] print:text-[3.9vw]">
+      // The side space (7vw of 80 mm) stays inside what POS printers can reach, about 72 mm.
+      <article className="mx-auto w-[76mm] break-after-page bg-white p-3 font-sans text-[11.5px] leading-snug text-black last:break-after-auto print:w-full print:px-[7vw] print:py-[2vw] print:text-[3.3vw]">
         <div className="text-center">
           {f.logo ? <img src={f.logo} alt={s.store_name} className="mx-auto mb-[0.4em] max-h-[3.2em] grayscale" /> : <p className="text-[1.4em] font-bold">{s.store_name}</p>}
           {f.contact && <p className="text-[0.85em]">{f.contact}</p>}
         </div>
         <div className="mt-[0.5em] flex items-baseline justify-between border-y border-black py-[0.35em]">
-          <b className="font-mono">{o.public_ref}</b>
-          <span className="text-[0.85em]">{formatDateTime(o.created_at)}</span>
+          <b className="whitespace-nowrap font-mono">{o.public_ref}</b>
+          <span className="whitespace-nowrap text-[0.9em]">{formatDateTime(o.created_at)}</span>
         </div>
         <div className="mt-[0.6em]">
           <p className="font-bold">{o.customer_name}</p>
@@ -107,7 +108,7 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
         {o.items.map((i) => (
           <div key={i.id} className="mb-[0.4em]">
             <p className="font-medium">{i.product_name}{i.variant_label ? ` (${i.variant_label})` : ''}</p>
-            <p className="flex justify-between"><span>{i.quantity} × {formatTaka(i.unit_price)}</span><span>{formatTaka(i.line_total)}</span></p>
+            <p className="flex justify-between whitespace-nowrap"><span>{i.quantity} × {formatTaka(i.unit_price)}</span><span>{formatTaka(i.line_total)}</span></p>
           </div>
         ))}
         <div className="my-[0.6em] border-t border-dashed border-black" />
@@ -116,7 +117,7 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
         <p className="flex justify-between"><span>Delivery</span><span>{formatTaka(o.delivery_charge)}</span></p>
         <p className="flex justify-between font-bold"><span>Total</span><span>{formatTaka(o.total)}</span></p>
         {f.paidBy && <p className="flex justify-between"><span>{f.paidBy}</span><span>−{formatTaka(o.paid_amount)}</span></p>}
-        <p className="mt-[0.5em] flex items-baseline justify-between border-y-2 border-black py-[0.35em] font-bold"><span>COLLECT</span><span className="text-[1.3em]">{formatTaka(f.due)}</span></p>
+        <p className="mt-[0.5em] flex items-baseline justify-between border-y-2 border-black py-[0.35em] font-bold whitespace-nowrap"><span>COLLECT</span><span className="text-[1.3em]">{formatTaka(f.due)}</span></p>
       </article>
     );
   }
