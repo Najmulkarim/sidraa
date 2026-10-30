@@ -141,7 +141,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
 
           <section className="card p-5">
             <h2 className="mb-3 font-semibold">Status</h2>
-            <StatusForm orderId={order.id} status={order.status} />
+            <StatusForm orderId={order.id} status={order.status} courierStatus={order.courier_status} />
           </section>
         </div>
       </div>

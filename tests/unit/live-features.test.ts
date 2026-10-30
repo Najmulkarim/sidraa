@@ -1,4 +1,4 @@
-import { isPickupCancelled } from '@/lib/order-status';
+import { isPickupCancelled, nextStatusesFor } from '@/lib/order-status';
 import { describe, expect, it } from 'vitest';
 import { courierStatusLabel, courierStatusToOrder } from '@/lib/courier/types';
 import { errorMessage } from '@/lib/courier/http-errors';
@@ -108,6 +108,10 @@ describe('courier', () => {
     expect(isPickupCancelled('pickup cancel')).toBe(true);
     expect(isPickupCancelled('cancelled')).toBe(false);
     expect(isPickupCancelled(null)).toBe(false);
+    expect(nextStatusesFor('cancelled', 'Pickup_Cancelled')).toContain('processing');
+    expect(nextStatusesFor('cancelled', 'Pickup_Cancelled')).not.toContain('delivered');
+    expect(nextStatusesFor('cancelled', null)).toEqual([]);
+    expect(nextStatusesFor('cancelled', 'cancelled')).toEqual([]);
     expect(courierStatusToOrder('cancelled')).toBe('returned');
     expect(courierStatusToOrder('In_Transit')).toBeNull();
     expect(courierStatusToOrder('hold')).toBeNull();

@@ -7,7 +7,7 @@ import { bulkSendToCourier, refreshCourierStatus } from '@/actions/admin-courier
 import { addNote, assignOrder, bulkStatus, deleteOrder, getOrderLogs, quickStatus, restoreOrder, type OrderLog } from '@/actions/admin-orders';
 import { COURIER_LABEL, courierStatusLabel, type CourierName } from '@/lib/courier/types';
 import { formatDateTime, formatTaka, toNumber } from '@/lib/format';
-import { isPickupCancelled, nextStatuses, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
+import { isPickupCancelled, nextStatusesFor, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 import type { ActionState, Staff } from '@/lib/types';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
@@ -203,7 +203,7 @@ export function OrdersTable({
               const total = toNumber(o.total);
               const paid = toNumber(o.paid_amount);
               const due = Math.max(0, total - paid);
-              const next = nextStatuses(o.status);
+              const next = nextStatusesFor(o.status, o.courier_status);
               const can = (s: OrderStatus) => !o.deleted_at && next.includes(s);
               return (
                 <tr key={o.id} className={`border-b border-line align-top last:border-0 hover:bg-soft/60 ${selected.has(o.id) ? 'bg-tint/60' : ''}`}>
@@ -270,7 +270,7 @@ export function OrdersTable({
                         onChange={(e) => run(() => quickStatus(o.id, e.target.value))}
                         className={`cursor-pointer rounded-full border-0 py-1 pl-2.5 pr-6 text-[11px] font-semibold outline-none focus:ring-2 focus:ring-brand/40 ${STATUS_STYLE[o.status]}`}
                       >
-                        <option value={o.status}>● {STATUS_LABEL[o.status]}</option>
+                        <option value={o.status}>● {o.status === 'cancelled' && isPickupCancelled(o.courier_status) ? 'Pickup cancelled' : STATUS_LABEL[o.status]}</option>
                         {next.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                       </select>
                     )}

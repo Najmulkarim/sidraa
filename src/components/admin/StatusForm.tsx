@@ -2,15 +2,15 @@
 
 import { useActionState } from 'react';
 import { changeOrderStatus } from '@/actions/admin-orders';
-import { nextStatuses, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
+import { nextStatusesFor, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 import type { ActionState } from '@/lib/types';
 import { FormMessage, SubmitButton } from './ui';
 
 const initial: ActionState = { ok: false };
 
-export function StatusForm({ orderId, status }: { orderId: string; status: OrderStatus }) {
+export function StatusForm({ orderId, status, courierStatus }: { orderId: string; status: OrderStatus; courierStatus?: string | null }) {
   const [state, action] = useActionState(changeOrderStatus, initial);
-  const options = nextStatuses(status);
+  const options = nextStatusesFor(status, courierStatus);
 
   if (options.length === 0) {
     return <p className="text-sm text-muted">This order is {STATUS_LABEL[status].toLowerCase()} — its status is final.</p>;

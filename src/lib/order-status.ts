@@ -85,6 +85,12 @@ export function nextStatuses(from: OrderStatus): OrderStatus[] {
   return NEXT[from];
 }
 
+/** Where an order can move next. A cancelled pickup can be reopened (0038); it never left, so it starts again before the courier. */
+export function nextStatusesFor(from: OrderStatus, courierStatus: string | null | undefined): OrderStatus[] {
+  if (from === 'cancelled' && isPickupCancelled(courierStatus)) return ['pending', 'confirmed', 'processing', 'hold', 'ship_later'];
+  return nextStatuses(from);
+}
+
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return NEXT[from].includes(to);
 }
