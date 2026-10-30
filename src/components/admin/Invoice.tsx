@@ -112,8 +112,6 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
         <p className="flex justify-between font-bold"><span>TOTAL</span><span>{formatTaka(o.total)}</span></p>
         {f.paidBy && <p className="flex justify-between"><span>{f.paidBy}</span><span>−{formatTaka(o.paid_amount)}</span></p>}
         <p className="mt-1 flex justify-between border-y border-black py-1 text-[16px] font-bold"><span>COLLECT</span><span>{formatTaka(f.due)}</span></p>
-        <p className="mt-2 text-center text-[12px]">{f.footer}</p>
-        <p className="text-center text-[12px]">Thank you!</p>
       </article>
     );
   }
