@@ -88,7 +88,8 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
 
   if (template === 'thermal') {
     return (
-      <article className="mx-auto w-[76mm] break-after-page bg-white p-2 font-mono text-[11.5px] leading-snug text-black">
+      // On paper it fills the page width, so nothing is cut off whatever the print scale.
+      <article className="mx-auto w-[76mm] break-after-page bg-white p-2 font-mono text-[13px] leading-snug text-black last:break-after-auto print:w-full print:px-[3mm] print:py-0">
         <div className="text-center">
           {f.logo ? <img src={f.logo} alt={s.store_name} className="mx-auto mb-1 max-h-10 grayscale" /> : <p className="text-[15px] font-bold">{s.store_name}</p>}
           {f.contact && <p>{f.contact}</p>}
@@ -110,9 +111,9 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
         <p className="flex justify-between"><span>Delivery</span><span>{formatTaka(o.delivery_charge)}</span></p>
         <p className="flex justify-between font-bold"><span>TOTAL</span><span>{formatTaka(o.total)}</span></p>
         {f.paidBy && <p className="flex justify-between"><span>{f.paidBy}</span><span>−{formatTaka(o.paid_amount)}</span></p>}
-        <p className="mt-1 flex justify-between border-y border-black py-1 text-[14px] font-bold"><span>COLLECT</span><span>{formatTaka(f.due)}</span></p>
-        <p className="mt-2 text-center text-[10.5px]">{f.footer}</p>
-        <p className="text-center text-[10.5px]">Thank you!</p>
+        <p className="mt-1 flex justify-between border-y border-black py-1 text-[16px] font-bold"><span>COLLECT</span><span>{formatTaka(f.due)}</span></p>
+        <p className="mt-2 text-center text-[12px]">{f.footer}</p>
+        <p className="text-center text-[12px]">Thank you!</p>
       </article>
     );
   }

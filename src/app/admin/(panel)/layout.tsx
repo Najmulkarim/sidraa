@@ -54,7 +54,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </form>
           </div>
         </header>
-        <main className="px-4 py-6 lg:px-8">{children}</main>
+        <main className="px-4 py-6 lg:px-8 print:p-0">{children}</main>
         <Toaster />
       </div>
     </div>

@@ -17,8 +17,8 @@ export function InvoiceToolbar({ current, hrefFor, count, back }: { current: Inv
         {count !== undefined && <span className="text-sm text-muted">{count} invoice{count === 1 ? '' : 's'}</span>}
         <PrintButton />
       </span>
-      {/* A POS printer needs the paper size set to its roll width. */}
-      {current === 'thermal' && <style>{'@media print { @page { size: 80mm auto; margin: 2mm; } }'}</style>}
+      {/* A POS printer needs the paper size set to its roll width. Both sizes are required: "80mm auto" is invalid and browsers ignore it. */}
+      {current === 'thermal' && <style>{'@media print { @page { size: 80mm 210mm; margin: 0; } }'}</style>}
       {current === 'compact' && <style>{'@media print { @page { size: A4; margin: 8mm; } }'}</style>}
     </div>
   );
