@@ -1,3 +1,4 @@
+import { parseLiveChat } from '@/lib/storefront';
 import { describe, expect, it } from 'vitest';
 import { cartReducer, parseCart, toOrderItems, MAX_LINES, type CartLine } from '@/lib/cart';
 import { csvCell, toCsv } from '@/lib/csv';
@@ -210,5 +211,17 @@ describe('checkout payment fields', () => {
   it('merchant bKash needs nothing extra', async () => {
     const { checkoutSchema } = await import('@/lib/validation');
     expect(checkoutSchema.safeParse({ ...base, paymentMethod: 'bkash', paymentMode: 'merchant' }).success).toBe(true);
+  });
+});
+
+describe('live chat link', () => {
+  const id = '0123456789abcdef01234567/1abcd2efg';
+  it('finds the IDs in a chat link or the widget code', () => {
+    expect(parseLiveChat(`https://tawk.to/chat/${id}`)).toBe(id);
+    expect(parseLiveChat(`s1.src='https://embed.tawk.to/${id}';`)).toBe(id);
+  });
+  it('refuses anything else', () => {
+    expect(parseLiveChat('https://example.com/chat/abc')).toBeNull();
+    expect(parseLiveChat("https://tawk.to/chat/short/x';alert(1)")).toBeNull();
   });
 });

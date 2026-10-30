@@ -9,16 +9,17 @@ const isDev = process.env.NODE_ENV !== 'production';
 // frame-ancestors: no site may frame the shop, except the admin showing its own theme previews.
 const csp = (frameAncestors: string) => [
   "default-src 'self'",
-  // connect.facebook.net: Meta Pixel (only loaded when a Pixel ID is set).
-  `script-src 'self' 'unsafe-inline' https://connect.facebook.net${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabase.origin} https://www.facebook.com`,
-  "font-src 'self'",
-  `connect-src 'self' ${supabase.origin} ${supabase.origin.replace(/^http/, 'ws')} https://www.facebook.com https://connect.facebook.net`,
+  // connect.facebook.net: Meta Pixel (only loaded when a Pixel ID is set). tawk.to: live chat, likewise.
+  `script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.tawk.to https://cdn.jsdelivr.net${isDev ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline' https://*.tawk.to https://cdn.jsdelivr.net https://fonts.googleapis.com",
+  `img-src 'self' data: blob: ${supabase.origin} https://www.facebook.com https://*.tawk.to https://tawk.link`,
+  "font-src 'self' https://*.tawk.to https://fonts.gstatic.com",
+  "media-src 'self' https://*.tawk.to",
+  `connect-src 'self' ${supabase.origin} ${supabase.origin.replace(/^http/, 'ws')} https://www.facebook.com https://connect.facebook.net https://*.tawk.to wss://*.tawk.to`,
   `frame-ancestors ${frameAncestors}`,
   "form-action 'self'",
   // 'self': the Homepage editor shows /preview in a frame.
-  "frame-src 'self' https://www.facebook.com",
+  "frame-src 'self' https://www.facebook.com https://*.tawk.to",
   "base-uri 'self'",
   "object-src 'none'",
 ].join('; ');

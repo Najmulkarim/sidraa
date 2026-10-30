@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from 'next/cache';
 import { requirePermission } from '@/lib/auth';
 import { CATALOG_TAG } from '@/lib/catalog';
 import { IMAGE_BUCKET } from '@/lib/env';
-import { parseStorefront, storefrontSchema } from '@/lib/storefront';
+import { parseStorefront, storefrontSchema, parseLiveChat } from '@/lib/storefront';
 import type { ActionState } from '@/lib/types';
 
 const flag = (fd: FormData, name: string) => fd.get(name) === 'on';
@@ -28,6 +28,10 @@ export async function saveStorefront(_prev: ActionState, fd: FormData): Promise<
     return { ok: false, message: 'Order prefix: 2 to 10 letters (A–Z), e.g. SDR — or Order.', fieldErrors: { orderPrefix: '2–10 letters' } };
   }
 
+  const chatRaw = text(fd, 'liveChat');
+  const liveChat = chatRaw ? parseLiveChat(chatRaw) : null;
+  if (chatRaw && !liveChat) return { ok: false, message: 'Live chat: paste the tawk.to chat link or widget code.', fieldErrors: { liveChat: 'Paste the tawk.to chat link or widget code.' } };
+
   const next = storefrontSchema.safeParse({
     header: { announcement: flag(fd, 'hAnnouncement'), search: flag(fd, 'hSearch'), track: flag(fd, 'hTrack'), call: flag(fd, 'hCall'), menu: flag(fd, 'hMenu'), sticky: flag(fd, 'hSticky') },
     footer: { newsletter: flag(fd, 'fNewsletter'), social: flag(fd, 'fSocial'), contact: flag(fd, 'fContact') },
@@ -38,6 +42,7 @@ export async function saveStorefront(_prev: ActionState, fd: FormData): Promise<
     og_image: old.og_image,
     site_title: text(fd, 'siteTitle').slice(0, 70),
     country: text(fd, 'country').slice(0, 60) || 'Bangladesh',
+    live_chat: liveChat,
     invoice: {
       template: text(fd, 'invoiceTemplate'),
       show_logo: flag(fd, 'invShowLogo'),

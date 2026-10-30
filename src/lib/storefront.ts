@@ -33,6 +33,12 @@ const on = z.boolean().catch(true);
 const off = z.boolean().catch(false);
 const path = z.string().max(300).regex(/^brand\/[\w-]+\.(png|jpg|webp|avif|ico)$/).nullable().catch(null);
 
+/** "property/widget" from a tawk.to chat link or its whole widget code; null when there is none. */
+export function parseLiveChat(input: string): string | null {
+  const m = /tawk\.to\/(?:chat\/)?([a-f0-9]{24})\/([a-z0-9]{1,40})/i.exec(input);
+  return m ? `${m[1]}/${m[2]}` : null;
+}
+
 export const storefrontSchema = z.object({
   header: z.object({ announcement: on, search: on, track: on, call: on, menu: on, sticky: on }).catch({ announcement: true, search: true, track: true, call: true, menu: true, sticky: true }),
   footer: z.object({ newsletter: on, social: on, contact: on }).catch({ newsletter: true, social: true, contact: true }),
@@ -43,6 +49,7 @@ export const storefrontSchema = z.object({
   og_image: path,
   site_title: z.string().trim().max(70).catch(''),
   country: z.string().trim().max(60).catch('Bangladesh'),
+  live_chat: z.string().regex(/^[a-f0-9]{24}\/[a-z0-9]{1,40}$/i).nullable().catch(null),
   invoice: z
     .object({
       template: z.enum(Object.keys(INVOICE_TEMPLATES) as [InvoiceTemplate, ...InvoiceTemplate[]]).catch('classic'),

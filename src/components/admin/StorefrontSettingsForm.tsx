@@ -109,6 +109,15 @@ export function StorefrontSettingsForm({ sf, prefix, previewOrderId }: { sf: Sto
         </div>
       </Card>
 
+      <Card title="Live chat" hint="A chat box on every shop page, from tawk.to. Leave empty to turn it off.">
+        <div className="field">
+          <label htmlFor="liveChat" className="label">tawk.to chat link or widget code</label>
+          <input id="liveChat" name="liveChat" defaultValue={sf.live_chat ? `https://tawk.to/chat/${sf.live_chat}` : ''} placeholder="https://tawk.to/chat/…" className="input font-mono text-[13px]" />
+          <span className="hint">In tawk.to: Administration → Channels → Chat Widget. Copy the Direct Chat Link.</span>
+          <FieldError state={state} name="liveChat" />
+        </div>
+      </Card>
+
       <Card title="Region & orders">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="field">
