@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MAX_QTY } from '@/lib/cart';
 import { trackPixel } from '@/lib/facebook/pixel';
 import { formatTaka } from '@/lib/format';
-import { whatsappOrderLink } from '@/lib/product-content';
 import { canPick, exists, findVariant, initialSelection, optionGroups, type OptionKey, type OptionLabels, type PickVariant, type Selection } from '@/lib/variations';
 import { Icon } from '../icons';
 import { useCart } from './CartProvider';
@@ -18,7 +17,7 @@ export type PickerVariant = PickVariant;
 /**
  * The product page's right-hand side, Amazon style: title and price, the
  * colour / size / third-option pickers and the details on the left, a buy
- * box (stock, quantity, Add to cart, Buy now, WhatsApp, share) on the
+ * box (stock, quantity, Add to cart, Buy now, share) on the
  * right. On phones it stacks: pickers, buy box, then details. Each option
  * type is its own row; a colour with a photo shows as a photo swatch and
  * switches the gallery. Stock labels are a convenience; place_order()
@@ -175,10 +174,6 @@ export function AddToCart({
   const chosen = selected ? [selected.color, selected.size, selected.option3].filter(Boolean).join(' / ') : 'Choose your options';
   const onSale = compareAt !== null && compareAt > shownPrice;
   const percentOff = onSale ? Math.round((1 - shownPrice / compareAt!) * 100) : 0;
-  const whatsapp = whatsappOrderLink(
-    shopPhone,
-    [`Hi! I want to order:`, `${productName}${selected && chosen ? ` (${chosen})` : ''} × ${qty}`, selected?.sku ? `SKU: ${selected.sku}` : null, `Price: ${formatTaka(shownPrice)}`, shareUrl].filter(Boolean).join('\n'),
-  );
   const [shared, setShared] = useState(false);
 
   async function share() {
@@ -285,11 +280,6 @@ export function AddToCart({
           <button type="button" className="btn btn-primary w-full" onClick={() => add(true)} disabled={allSoldOut}>
             {preorderNow ? 'Pre-order & checkout' : 'Buy now'}
           </button>
-          {whatsapp && !allSoldOut && (
-            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn w-full bg-[#1fa855] text-white hover:bg-[#178c46]">
-              <Icon name="whatsapp" size={18} /> Order on WhatsApp
-            </a>
-          )}
         </div>
 
         {added && (
