@@ -64,6 +64,9 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   fake: 'bg-[#1f1d2b] text-white',
 };
 
+// Off until a courier API is connected; turn on to show the % beside the phone again.
+const SHOW_DELIVERY_RECORD = false;
+
 function successRate(s: Stat | undefined): { text: string; tone: string; title: string } {
   const finished = (s?.delivered ?? 0) + (s?.failed ?? 0);
   if (!s || finished === 0) return { text: 'New', tone: 'text-muted', title: 'No finished orders from this number yet' };
@@ -222,7 +225,7 @@ export function OrdersTable({
                     <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
                       <Icon name="phone" size={13} className="text-muted" />
                       <a href={`tel:${o.customer_phone}`} className="font-mono hover:text-brand">{o.customer_phone}</a>
-                      <CustomerRateButton phone={o.customer_phone} name={o.customer_name} text={rate.text} tone={rate.tone} title={`${rate.title}. Click for the record by courier.`} />
+                      {SHOW_DELIVERY_RECORD && <CustomerRateButton phone={o.customer_phone} name={o.customer_name} text={rate.text} tone={rate.tone} title={`${rate.title}. Click for the record by courier.`} />}
                       {blockedSet.has(o.customer_phone) && <span className="rounded bg-bad px-1 text-[10px] font-bold text-white" title="This number is on the block list">Blocked</span>}
                       <a href={waLink(o.customer_phone)} target="_blank" rel="noopener noreferrer" className="grid h-5 w-5 place-items-center rounded-full bg-[#25d366] text-white" aria-label={`WhatsApp ${o.customer_name}`}>
                         <Icon name="whatsapp" size={12} strokeWidth={2} />
