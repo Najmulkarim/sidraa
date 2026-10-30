@@ -93,16 +93,16 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
       // The screen uses the same proportions, so what you see is what prints.
       <article className="mx-auto w-[80mm] break-after-page bg-white px-[11.2mm] py-[1.6mm] font-sans text-[9.07px] leading-snug text-black last:break-after-auto print:w-full print:px-[14vw] print:py-[2vw] print:text-[3vw]">
         <div className="text-center">
-          {f.logo ? <img src={f.logo} alt={s.store_name} className="mx-auto mb-[0.4em] max-h-[3.2em] grayscale" /> : <p className="text-[1.4em] font-bold">{s.store_name}</p>}
+          {f.logo ? <img src={f.logo} alt={s.store_name} className="mx-auto mb-[0.4em] max-h-[4.8em] grayscale" /> : <p className="text-[1.4em] font-bold">{s.store_name}</p>}
           {f.contact && <p className="text-[0.85em]">{f.contact}</p>}
         </div>
         <div className="mt-[0.5em] flex items-baseline justify-between border-y border-black py-[0.35em]">
-          <b className="whitespace-nowrap font-mono">{o.public_ref}</b>
+          <b className="whitespace-nowrap font-mono text-[1.35em] font-extrabold">{o.public_ref}</b>
           <span className="whitespace-nowrap text-[0.9em]">{formatDateTime(o.created_at)}</span>
         </div>
         <div className="mt-[0.6em]">
-          <p className="font-bold">{o.customer_name}</p>
-          <p className="font-mono font-bold">{formatBdPhone(o.customer_phone)}</p>
+          <p className="text-[1.35em] font-extrabold">{o.customer_name}</p>
+          <p className="font-mono text-[1.35em] font-extrabold">{formatBdPhone(o.customer_phone)}</p>
           <p className="whitespace-pre-line">{o.address}{f.place ? `, ${f.place}` : ''}</p>
         </div>
         <div className="my-[0.6em] border-t border-dashed border-black" />
