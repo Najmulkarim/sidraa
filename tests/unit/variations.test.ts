@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { variantLabel } from '@/lib/catalog-labels';
 import { canPick, combinations, exists, findVariant, initialSelection, optionGroups, splitValues, suggestSku, type PickVariant } from '@/lib/variations';
@@ -78,5 +80,18 @@ describe('variations dragged into order', () => {
   });
   it('stays automatic otherwise', () => {
     expect(optionGroups(rows, {})[1]?.values.map((o) => o.value)).toEqual(['S', 'XL']);
+  });
+});
+
+describe('saving variations', () => {
+  it('every column the admin form updates may be updated by staff', () => {
+    const dir = join(process.cwd(), 'supabase', 'migrations');
+    const sql = readdirSync(dir).map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
+    const granted = [...sql.matchAll(/grant update \(([^)]*)\) on public\.product_variants/g)].flatMap((m) => (m[1] ?? '').split(',').map((c) => c.trim()));
+    const action = readFileSync(join(process.cwd(), 'src', 'actions', 'admin-catalog.ts'), 'utf8');
+    const fields = /const fields = \{([^\n]*)\};/.exec(action)?.[1] ?? '';
+    const columns = [...fields.matchAll(/([a-z_0-9]+):/g)].map((m) => m[1] ?? '').filter((c) => c !== 'v');
+    expect(columns.length).toBeGreaterThan(5);
+    expect(columns.filter((c) => !granted.includes(c))).toEqual([]);
   });
 });
