@@ -2,17 +2,19 @@ import type { ReactNode } from 'react';
 import { CartProvider } from '@/components/shop/CartProvider';
 import { FacebookPixel } from '@/components/shop/FacebookPixel';
 import { LiveChat } from '@/components/shop/LiveChat';
+import { SitePopups } from '@/components/shop/SitePopups';
 import { Footer } from '@/components/shop/Footer';
 import { Header } from '@/components/shop/Header';
 import { MobileTabBar } from '@/components/shop/MobileTabBar';
 import { BackToTop } from '@/components/shop/BackToTop';
 import { WhatsAppButton } from '@/components/shop/WhatsAppButton';
-import { getSettings, getShopCategories, getZones } from '@/lib/catalog';
+import { getLiveCouponCode, getSettings, getShopCategories, getZones } from '@/lib/catalog';
 import { parseStorefront } from '@/lib/storefront';
 
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   const [settings, categories, zones] = await Promise.all([getSettings(), getShopCategories(), getZones()]);
-  const { layout, live_chat: liveChat } = parseStorefront(settings.storefront);
+  const { layout, live_chat: liveChat, popups } = parseStorefront(settings.storefront);
+  const exitCode = popups.exit.enabled && popups.exit.code ? await getLiveCouponCode(popups.exit.code, settings.coupons_enabled) : null;
   // Floating buttons stack on the right, bottom to top: live chat, WhatsApp, back to top (rem).
   const showWhatsApp = layout.whatsapp && !!settings.phone;
   const aboveChat = liveChat ? 4.5 : 0;
@@ -24,6 +26,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       </a>
       {settings.fb_pixel_id && <FacebookPixel pixelId={settings.fb_pixel_id} />}
       {liveChat && <LiveChat id={liveChat} />}
+      <SitePopups popups={popups} exitCode={exitCode} />
       <Header settings={settings} categories={categories} zones={zones} theme={settings.home_theme} />
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' || settings.home_theme === 'nova' ? 'dark' : 'light'} />

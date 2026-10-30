@@ -1,5 +1,6 @@
 'use client';
 
+import { SAVED_COUPON } from './SitePopups';
 import Link from 'next/link';
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { placeOrder, type CheckoutState } from '@/actions/shop';
@@ -36,6 +37,13 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
   // returns the same order instead of creating a second one.
   const [idempotencyKey, setKey] = useState('');
   useEffect(() => setKey(crypto.randomUUID()), []);
+  // A code taken from the popup waits in the box; the customer still presses Apply.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SAVED_COUPON);
+      if (saved) setCouponInput((v) => v || saved);
+    } catch { /* storage blocked */ }
+  }, []);
   const [couponInput, setCouponInput] = useState(state.values?.couponCode ?? '');
   const [coupon, setCoupon] = useState<string | null>(state.values?.couponCode || null);
   const { quote, error: quoteError, pending: quoting } = useQuote(zoneId || null, state.stock ? JSON.stringify(state.stock) : '', coupon);

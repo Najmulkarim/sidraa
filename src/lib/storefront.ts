@@ -39,6 +39,13 @@ export function parseLiveChat(input: string): string | null {
   return m ? `${m[1]}/${m[2]}` : null;
 }
 
+const popupLink = z.string().trim().max(200).regex(/^(\/|https?:\/\/)/).catch('/products');
+const popupText = (max: number) => z.string().trim().max(max).catch('');
+const DEFAULT_POPUPS = {
+  welcome: { enabled: true, title: 'Free delivery over ৳2,999', text: 'Order above ৳2,999 and delivery is free, all over Bangladesh.', button: 'Shop now', link: '/products' },
+  exit: { enabled: true, title: 'Wait! 10% off your first order', text: 'New customers get 10% off. Use this code at checkout.', code: 'WELCOME10', button: 'Shop now', link: '/products' },
+};
+
 export const storefrontSchema = z.object({
   header: z.object({ announcement: on, search: on, track: on, call: on, menu: on, sticky: on }).catch({ announcement: true, search: true, track: true, call: true, menu: true, sticky: true }),
   footer: z.object({ newsletter: on, social: on, contact: on }).catch({ newsletter: true, social: true, contact: true }),
@@ -49,6 +56,10 @@ export const storefrontSchema = z.object({
   og_image: path,
   site_title: z.string().trim().max(70).catch(''),
   country: z.string().trim().max(60).catch('Bangladesh'),
+  popups: z.object({
+    welcome: z.object({ enabled: on, title: popupText(80), text: popupText(200), button: popupText(30), link: popupLink }),
+    exit: z.object({ enabled: on, title: popupText(80), text: popupText(200), code: z.string().trim().toUpperCase().regex(/^([A-Z0-9_-]{3,24})?$/).catch(''), button: popupText(30), link: popupLink }),
+  }).catch(DEFAULT_POPUPS),
   live_chat: z.string().regex(/^[a-f0-9]{24}\/[a-z0-9]{1,40}$/i).nullable().catch(null),
   invoice: z
     .object({

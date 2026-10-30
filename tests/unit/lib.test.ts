@@ -1,5 +1,5 @@
 import { availability } from '@/lib/catalog-labels';
-import { parseLiveChat } from '@/lib/storefront';
+import { parseLiveChat, parseStorefront } from '@/lib/storefront';
 import { describe, expect, it } from 'vitest';
 import { cartReducer, parseCart, toOrderItems, MAX_LINES, type CartLine } from '@/lib/cart';
 import { csvCell, toCsv } from '@/lib/csv';
@@ -240,5 +240,21 @@ describe('availability shown to shoppers', () => {
   });
   it('is out of stock only when nothing can be ordered', () => {
     expect(availability('sold_out', 0, null)).toEqual({ state: 'out', text: 'Out of stock' });
+  });
+});
+
+describe('site popups settings', () => {
+  it('starts with both popups on when nothing has been saved', () => {
+    const p = parseStorefront({}).popups;
+    expect(p.welcome.enabled).toBe(true);
+    expect(p.exit.code).toBe('WELCOME10');
+  });
+  it('keeps what was saved, and refuses a bad link or code', () => {
+    const p = parseStorefront({ popups: {
+      welcome: { enabled: false, title: 'T', text: '', button: 'Go', link: 'javascript:alert(1)' },
+      exit: { enabled: true, title: 'E', text: '', code: 'bad code!', button: 'Go', link: '/sale' },
+    } }).popups;
+    expect(p.welcome).toMatchObject({ enabled: false, title: 'T', link: '/products' });
+    expect(p.exit).toMatchObject({ code: '', link: '/sale' });
   });
 });

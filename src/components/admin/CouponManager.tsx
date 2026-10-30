@@ -10,7 +10,7 @@ import { notify } from './Toaster';
 
 export type Coupon = {
   code: string; kind: 'percent' | 'fixed'; value: number | string; min_subtotal: number | string; max_discount: number | string | null;
-  starts_at: string | null; ends_at: string | null; usage_limit: number | null; used_count: number; is_active: boolean;
+  starts_at: string | null; ends_at: string | null; usage_limit: number | null; used_count: number; is_active: boolean; first_order_only: boolean;
 };
 
 /** ISO → yyyy-mm-dd in Dhaka time (end dates are stored as the next midnight). */
@@ -72,6 +72,9 @@ function CouponForm({ coupon }: { coupon?: Coupon }) {
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input type="checkbox" name="isActive" defaultChecked={coupon?.is_active ?? true} className="h-4 w-4 accent-[var(--brand)]" /> On
       </label>
+      <label className="flex min-h-11 items-center gap-2 text-sm md:col-span-3" title="Refused if this phone number already has an order that was not cancelled or fake">
+        <input type="checkbox" name="firstOrderOnly" defaultChecked={coupon?.first_order_only ?? false} className="h-4 w-4 accent-[var(--brand)]" /> First order only
+      </label>
       <PendingButton pending={pending} className="btn btn-primary btn-sm">{coupon ? 'Save' : 'Create'}</PendingButton>
       <div className="md:col-span-10"><FormMessage state={state} /></div>
     </form>
@@ -100,6 +103,7 @@ export function CouponManager({ coupons }: { coupons: Coupon[] }) {
               <span className="font-mono text-base font-bold">{c.code}</span>
               <span className="badge badge-brand">{c.kind === 'percent' ? `${Number(c.value)}% off` : `${formatTaka(c.value)} off`}</span>
               <span className="text-muted">Used {c.used_count}{c.usage_limit ? ` of ${c.usage_limit}` : ''} times</span>
+              {c.first_order_only && <span className="badge">First order only</span>}
               {!c.is_active && <span className="badge">Off</span>}
               <button
                 type="button"

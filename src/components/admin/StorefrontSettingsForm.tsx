@@ -22,6 +22,16 @@ function Toggle({ name, label, hint, on }: { name: string; label: string; hint?:
   );
 }
 
+function PopupField({ name, label, value, max, mono, hint }: { name: string; label: string; value: string; max: number; mono?: boolean; hint?: React.ReactNode }) {
+  return (
+    <div className="field">
+      <label htmlFor={name} className="label">{label}</label>
+      <input id={name} name={name} defaultValue={value} maxLength={max} className={`input ${mono ? 'font-mono uppercase' : ''}`} />
+      {hint && <span className="hint">{hint}</span>}
+    </div>
+  );
+}
+
 function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="card space-y-4 p-5">
@@ -105,6 +115,30 @@ export function StorefrontSettingsForm({ sf, prefix, previewOrderId }: { sf: Sto
           <div className="field sm:col-span-2">
             <label htmlFor="siteTitle" className="label">Name in the browser tab (optional)</label>
             <input id="siteTitle" name="siteTitle" defaultValue={sf.site_title} maxLength={70} placeholder="Store name is used when empty" className="input" />
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Popups" hint="Turn each one on or off and change its words here. The discount itself is set in Coupons.">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="space-y-3 rounded-xl border border-line p-4">
+            <h3 className="font-semibold">When someone arrives</h3>
+            <p className="text-[12.5px] text-muted">Shows once per visit.</p>
+            <Toggle name="pwOn" label="Show this popup" on={sf.popups.welcome.enabled} />
+            <PopupField name="pwTitle" label="Heading" value={sf.popups.welcome.title} max={80} />
+            <PopupField name="pwText" label="Text" value={sf.popups.welcome.text} max={200} />
+            <PopupField name="pwButton" label="Button" value={sf.popups.welcome.button} max={30} />
+            <PopupField name="pwLink" label="Button goes to" value={sf.popups.welcome.link} max={200} />
+          </div>
+          <div className="space-y-3 rounded-xl border border-line p-4">
+            <h3 className="font-semibold">When someone is leaving without buying</h3>
+            <p className="text-[12.5px] text-muted">At most once a week, never during checkout or after an order. Hidden if the code below is off, expired or used up.</p>
+            <Toggle name="peOn" label="Show this popup" on={sf.popups.exit.enabled} />
+            <PopupField name="peTitle" label="Heading" value={sf.popups.exit.title} max={80} />
+            <PopupField name="peText" label="Text" value={sf.popups.exit.text} max={200} />
+            <PopupField name="peCode" label="Discount code" value={sf.popups.exit.code} max={24} mono hint={<>Must match a code in <a href="/admin/coupons" className="underline">Coupons</a>. Empty: no code shown.</>} />
+            <PopupField name="peButton" label="Button" value={sf.popups.exit.button} max={30} />
+            <PopupField name="peLink" label="Button goes to" value={sf.popups.exit.link} max={200} />
           </div>
         </div>
       </Card>

@@ -17,7 +17,8 @@ const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', preload
 const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-inter' });
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-jakarta' });
 // Handwritten accent lines (Nova).
-const script = Dancing_Script({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600'], variable: '--f-script' });
+// No weight list: Google now gives fixed weights of this font in a form next/font cannot read, and a fresh build fails.
+const script = Dancing_Script({ subsets: ['latin'], display: 'swap', preload: false, variable: '--f-script' });
 const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta, script].map((f) => f.variable).join(' ');
 
 export async function generateMetadata(): Promise<Metadata> {

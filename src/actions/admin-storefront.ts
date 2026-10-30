@@ -43,6 +43,10 @@ export async function saveStorefront(_prev: ActionState, fd: FormData): Promise<
     site_title: text(fd, 'siteTitle').slice(0, 70),
     country: text(fd, 'country').slice(0, 60) || 'Bangladesh',
     live_chat: liveChat,
+    popups: {
+      welcome: { enabled: flag(fd, 'pwOn'), title: text(fd, 'pwTitle'), text: text(fd, 'pwText'), button: text(fd, 'pwButton'), link: text(fd, 'pwLink') },
+      exit: { enabled: flag(fd, 'peOn'), title: text(fd, 'peTitle'), text: text(fd, 'peText'), code: text(fd, 'peCode'), button: text(fd, 'peButton'), link: text(fd, 'peLink') },
+    },
     invoice: {
       template: text(fd, 'invoiceTemplate'),
       show_logo: flag(fd, 'invShowLogo'),

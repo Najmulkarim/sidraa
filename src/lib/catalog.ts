@@ -7,6 +7,7 @@
  * but change rarely, so they also sit in the Next.js data cache under the
  * CATALOG_TAG tag. Admin actions that change them call updateTag(CATALOG_TAG).
  */
+import { createAdminClient } from './supabase/admin';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
@@ -79,6 +80,23 @@ export const getSettings = cachedRead('settings', async (): Promise<StoreSetting
   if (error || !data) throw new CatalogReadError(error?.message ?? 'store_settings row missing');
   return data as StoreSettings;
 }, FALLBACK_SETTINGS);
+
+/** The code if customers can use it right now, so a popup never offers a dead code. Coupons are not public, so this reads with the server key. */
+export async function getLiveCouponCode(code: string, couponsOn: boolean): Promise<string | null> {
+  if (!couponsOn) return null;
+  return cachedRead(`coupon:${code}`, async (): Promise<string | null> => {
+    const { data, error } = await createAdminClient()
+      .from('coupons')
+      .select('code, is_active, starts_at, ends_at, usage_limit, used_count')
+      .eq('code', code)
+      .maybeSingle<{ code: string; is_active: boolean; starts_at: string | null; ends_at: string | null; usage_limit: number | null; used_count: number }>();
+    if (error) throw new CatalogReadError(error.message);
+    if (!data?.is_active) return null;
+    const now = new Date().toISOString();
+    if ((data.starts_at && now < data.starts_at) || (data.ends_at && now >= data.ends_at)) return null;
+    return data.usage_limit !== null && data.used_count >= data.usage_limit ? null : data.code;
+  }, null)();
+}
 
 export const getCategories = cachedRead('categories', async (): Promise<Category[]> => {
   const { data, error } = await createPublicClient()

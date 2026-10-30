@@ -1,8 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
+import { CATALOG_TAG } from '@/lib/catalog';
 import { mapDbError } from '@/lib/db-errors';
 import type { ActionState } from '@/lib/types';
 import { blockSchema, couponSchema, fieldErrors, formToObject } from '@/lib/validation';
@@ -53,6 +54,7 @@ export async function saveCoupon(_prev: ActionState, formData: FormData): Promis
     ends_at: c.endsAt ? new Date(new Date(dhakaStart(c.endsAt)).getTime() + 86_400_000).toISOString() : null,
     usage_limit: c.usageLimit ?? null,
     is_active: c.isActive,
+    first_order_only: c.firstOrderOnly,
   };
   const { error } = c.existing
     ? await supabase.from('coupons').update(row).eq('code', c.code)
@@ -62,6 +64,7 @@ export async function saveCoupon(_prev: ActionState, formData: FormData): Promis
     return { ok: false, message: m.code === 'DUPLICATE' ? 'That code already exists.' : m.message, fieldErrors: m.code === 'DUPLICATE' ? { code: 'Already exists' } : undefined };
   }
   revalidatePath('/admin/coupons');
+  updateTag(CATALOG_TAG); // the leaving-the-site popup follows its code
   return { ok: true, message: c.existing ? `${c.code} saved.` : `${c.code} created.` };
 }
 
@@ -71,6 +74,7 @@ export async function deleteCoupon(code: string): Promise<ActionState> {
   const { error } = await supabase.from('coupons').delete().eq('code', code);
   if (error) return { ok: false, message: mapDbError(error).message };
   revalidatePath('/admin/coupons');
+  updateTag(CATALOG_TAG);
   return { ok: true, message: `${code} deleted. Past orders keep their discount.` };
 }
 

@@ -343,6 +343,7 @@ export const couponSchema = z.object({
   endsAt: z.preprocess(blankToUndefined, z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date').optional()),
   usageLimit: z.preprocess(blankToUndefined, z.coerce.number().int().min(1, 'At least 1').max(1_000_000).optional()),
   isActive: checkbox,
+  firstOrderOnly: checkbox,
   existing: checkbox,
 }).superRefine((c, ctx) => {
   if (c.kind === 'percent' && c.value > 90) ctx.addIssue({ code: 'custom', path: ['value'], message: 'At most 90%' });
