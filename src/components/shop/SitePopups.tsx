@@ -117,23 +117,23 @@ export function SitePopups({ popups, exitCode, storeName }: { popups: Storefront
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-5" role="dialog" aria-modal="true" aria-labelledby="site-popup-title" onClick={close}>
-      {/* Classic card: cream paper, a thin gold frame inside, serif heading. */}
-      <div ref={cardRef} tabIndex={-1} className="relative w-full max-w-[26rem] bg-[#fbf7f0] p-2.5 text-center text-[#1f1a17] shadow-2xl !outline-none [font-variant-numeric:lining-nums]" onClick={(e) => e.stopPropagation()}>
-        <div className="border border-[#b08d57] px-7 pb-8 pt-9">
-          <button type="button" onClick={close} aria-label="Close" className="absolute right-4 top-4 grid h-9 w-9 place-items-center text-[#7a6a58] hover:text-[#1f1a17]"><Icon name="x" size={17} /></button>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#b08d57]">{storeName}</p>
-          <div className="mx-auto mt-4 flex items-center justify-center gap-2.5 text-[#b08d57]" aria-hidden="true">
+      {/* Classic card in the logo colours: a thin frame inside, serif heading. */}
+      <div ref={cardRef} tabIndex={-1} className="relative w-full max-w-[26rem] bg-white p-2.5 text-center text-night shadow-2xl !outline-none [font-variant-numeric:lining-nums]" onClick={(e) => e.stopPropagation()}>
+        <div className="border border-brand px-7 pb-8 pt-9">
+          <button type="button" onClick={close} aria-label="Close" className="absolute right-4 top-4 grid h-9 w-9 place-items-center text-muted hover:text-brand"><Icon name="x" size={17} /></button>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-brand">{storeName}</p>
+          <div className="mx-auto mt-4 flex items-center justify-center gap-2.5 text-brand" aria-hidden="true">
             <span className="h-px w-10 bg-current" /><span className="h-1.5 w-1.5 rotate-45 bg-current" /><span className="h-px w-10 bg-current" />
           </div>
           <h2 id="site-popup-title" className="mt-5 font-[family-name:var(--f-playfair)] text-[1.7rem] font-medium leading-tight">{p.title}</h2>
-          {p.text && <p className="mx-auto mt-3 max-w-[20rem] text-[14px] leading-relaxed text-[#5f5348]">{p.text}</p>}
+          {p.text && <p className="mx-auto mt-3 max-w-[20rem] text-[14px] leading-relaxed text-muted">{p.text}</p>}
           {code && (
-            <button type="button" onClick={copy} className="mt-6 block w-full border border-dashed border-[#b08d57] bg-white/60 px-4 py-3 hover:bg-white">
+            <button type="button" onClick={copy} className="mt-6 block w-full border border-dashed border-brand bg-tint/40 px-4 py-3 hover:bg-tint">
               <span className="block font-[family-name:var(--f-playfair)] text-xl font-semibold tracking-[0.18em]">{code}</span>
-              <span className="mt-0.5 block text-[11px] uppercase tracking-[0.14em] text-[#7a6a58]">{copied ? 'Copied ✓' : 'Tap to copy'}</span>
+              <span className="mt-0.5 block text-[11px] uppercase tracking-[0.14em] text-muted">{copied ? 'Copied ✓' : 'Tap to copy'}</span>
             </button>
           )}
-          <Link href={p.link} onClick={() => { if (code) write('local', SAVED_COUPON, code); close(); }} className="mt-6 block bg-[#1f1a17] px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.24em] text-[#fbf7f0] transition hover:bg-[#b08d57]">{p.button}</Link>
+          <Link href={p.link} onClick={() => { if (code) write('local', SAVED_COUPON, code); close(); }} className="mt-6 block bg-night px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-brand">{p.button}</Link>
         </div>
       </div>
     </div>
