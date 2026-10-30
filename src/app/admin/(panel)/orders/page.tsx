@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Icon } from '@/components/icons';
-import { OneClickSend } from '@/components/admin/OneClickSend';
 import { OrdersTable, type CourierOptions, type OrderRow, type Stat } from '@/components/admin/OrdersTable';
 import { DateRangePicker } from '@/components/admin/DateRangePicker';
 import { RANGE_PRESETS } from '@/lib/date-ranges';
@@ -10,7 +9,6 @@ import { requirePermission } from '@/lib/auth';
 import { escapeLike } from '@/lib/catalog';
 import { addDays, dhakaDayStartUtc, dhakaToday, formatTaka, isYmd, resolveRange } from '@/lib/format';
 import { isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
-import type { CourierName } from '@/lib/courier/types';
 import type { Staff } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Orders' };
@@ -175,13 +173,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             {can.has('orders_export') && <a href={exportHref} className="grid h-10 w-10 place-items-center rounded-lg border border-line text-ink hover:border-brand hover:text-brand" title="Download CSV" aria-label="Download CSV"><Icon name="download" size={18} /></a>}
           </div>
         </div>
-
-        {can.has('courier') && tab !== 'deleted' && (() => {
-          const c = (courierData ?? null) as CourierOptions | null;
-          const ready = (['steadfast', 'pathao'] as CourierName[]).filter((k) => c?.[k]);
-          const toSend = counts.by_status.processing ?? 0;
-          return ready.length > 0 && toSend > 0 ? <OneClickSend couriers={ready} defaultCourier={c?.default_courier ?? null} ready={toSend} /> : null;
-        })()}
 
         {/* Status tabs */}
         <nav aria-label="Order status" className="mt-3 flex gap-1 overflow-x-auto border-t border-line pt-3 [scrollbar-width:thin]">
