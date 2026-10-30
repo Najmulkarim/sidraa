@@ -27,12 +27,16 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
   const social = Object.entries(settings.social ?? {}).filter(([k, v]) => SOCIAL[k] && typeof v === 'string' && v.startsWith('https://'));
   const year = new Date().getFullYear();
   const hasContact = show.contact && Boolean(settings.phone || settings.email || settings.address);
+  // As many columns as there are blocks: a switched-off newsletter or contact leaves no gap.
+  const columns = hasContact
+    ? show.newsletter ? 'lg:grid-cols-[1.5fr_1fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.6fr_1fr_1fr_1.3fr]'
+    : show.newsletter ? 'lg:grid-cols-[1.5fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.6fr_1fr_1fr]';
   const link = light ? 'text-ink/70 transition hover:text-brand' : 'text-white/65 transition hover:text-white';
 
   return (
     <footer className={`mt-20 ${light ? 'border-t border-line bg-soft text-ink/75 [&_.ft-title]:text-night' : 'bg-night text-white/75 [&_.ft-title]:text-white'}`}>
       {/* Phones: brand and newsletter span the width, link lists two by two. */}
-      <div className={`container-page grid grid-cols-2 gap-x-6 gap-y-10 py-14 ${hasContact ? 'lg:grid-cols-[1.5fr_1fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.5fr_1fr_1fr_1.6fr]'}`}>
+      <div className={`container-page grid grid-cols-2 gap-x-6 gap-y-10 py-14 ${columns}`}>
         <div className="col-span-2 space-y-4 lg:col-span-1">
           <Logo settings={settings} variant={light ? 'light' : 'dark'} className="h-12" />
           <p className={`max-w-xs text-[14px] leading-relaxed ${light ? 'text-ink/65' : 'text-white/60'}`}>{settings.tagline ? `${settings.tagline}. ` : ''}Order in a minute and pay in cash when it reaches your door.</p>
