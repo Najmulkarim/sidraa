@@ -89,8 +89,8 @@ export function Invoice({ order: o, settings: s, sf, template }: Props) {
   if (template === 'thermal') {
     return (
       // Printed sizes are in vw/em: vw follows the page, so the receipt looks the same at any print scale.
-      // The side space (7vw of 80 mm) stays inside what POS printers can reach, about 72 mm.
-      <article className="mx-auto w-[76mm] break-after-page bg-white p-3 font-sans text-[11.5px] leading-snug text-black last:break-after-auto print:w-full print:px-[7vw] print:py-[2vw] print:text-[3.3vw]">
+      // The side space (12vw of 80 mm, about 10 mm) keeps prices inside what the POS printer can reach.
+      <article className="mx-auto w-[76mm] break-after-page bg-white p-3 font-sans text-[11.5px] leading-snug text-black last:break-after-auto print:w-full print:px-[12vw] print:py-[2vw] print:text-[3vw]">
         <div className="text-center">
           {f.logo ? <img src={f.logo} alt={s.store_name} className="mx-auto mb-[0.4em] max-h-[3.2em] grayscale" /> : <p className="text-[1.4em] font-bold">{s.store_name}</p>}
           {f.contact && <p className="text-[0.85em]">{f.contact}</p>}
