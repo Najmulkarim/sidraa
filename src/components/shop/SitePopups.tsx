@@ -38,6 +38,7 @@ export function SitePopups({ popups, exitCode, storeName }: { popups: Storefront
   const path = usePathname();
   const [open, setOpen] = useState<'welcome' | 'exit' | null>(null);
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   openRef.current = open;
   const buying = path.startsWith('/checkout') || path.startsWith('/order');
@@ -95,6 +96,8 @@ export function SitePopups({ popups, exitCode, storeName }: { popups: Storefront
   const close = useCallback(() => setOpen(null), []);
   useEffect(() => {
     if (!open) return;
+    // Keyboard users start inside the popup; the card itself shows no focus ring.
+    cardRef.current?.focus();
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -115,7 +118,7 @@ export function SitePopups({ popups, exitCode, storeName }: { popups: Storefront
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-5" role="dialog" aria-modal="true" aria-labelledby="site-popup-title" onClick={close}>
       {/* Classic card: cream paper, a thin gold frame inside, serif heading. */}
-      <div ref={(el) => el?.focus()} tabIndex={-1} className="relative w-full max-w-[26rem] bg-[#fbf7f0] p-2.5 text-center text-[#1f1a17] shadow-2xl outline-none [font-variant-numeric:lining-nums]" onClick={(e) => e.stopPropagation()}>
+      <div ref={cardRef} tabIndex={-1} className="relative w-full max-w-[26rem] bg-[#fbf7f0] p-2.5 text-center text-[#1f1a17] shadow-2xl !outline-none [font-variant-numeric:lining-nums]" onClick={(e) => e.stopPropagation()}>
         <div className="border border-[#b08d57] px-7 pb-8 pt-9">
           <button type="button" onClick={close} aria-label="Close" className="absolute right-4 top-4 grid h-9 w-9 place-items-center text-[#7a6a58] hover:text-[#1f1a17]"><Icon name="x" size={17} /></button>
           <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#b08d57]">{storeName}</p>
