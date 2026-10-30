@@ -216,7 +216,8 @@ export function OrdersTable({
                     {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]">{SOURCE_SHORT[o.source] ?? o.source}</span>}
                   </td>
                   <td className="max-w-[270px] px-3 py-4">
-                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><Link href={`/admin/customers/${o.customer_phone}`} className="hover:text-brand hover:underline" title="See this customer and all their orders">{o.customer_name}</Link></p>
+                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><span>{o.customer_name}</span>
+                      <Link href={`/admin/customers/${o.customer_phone}`} className="shrink-0 whitespace-nowrap rounded-full bg-tint px-2 py-0.5 text-[11px] font-bold text-brand hover:bg-brand hover:text-white" title="See all orders from this customer">{stats[o.customer_phone]?.orders ?? 1} order{(stats[o.customer_phone]?.orders ?? 1) === 1 ? '' : 's'}</Link></p>
                     <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
                       <Icon name="phone" size={13} className="text-muted" />
                       <a href={`tel:${o.customer_phone}`} className="font-mono hover:text-brand">{o.customer_phone}</a>
