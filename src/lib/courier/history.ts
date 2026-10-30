@@ -24,6 +24,40 @@ export function parseCourierHistory(body: unknown): { couriers: CourierRow[]; su
   return { couriers: couriers.filter((c) => c.total > 0), summary: { name: 'All couriers', total: add('total'), delivered: add('delivered'), failed: add('failed') } };
 }
 
+export type DirectResult = { name: string; state: 'ok' | 'off' | 'denied' | 'unreadable' | 'failed'; row?: CourierRow };
+
+const DELIVERED = ['successful_delivery', 'success_parcel', 'total_delivered', 'delivered', 'successful', 'success'];
+const FAILED = ['total_cancelled', 'cancelled_parcel', 'cancelled', 'total_cancel', 'cancel', 'returned', 'failed'];
+const TOTAL = ['total_delivery', 'total_parcel', 'total_parcels', 'total_order', 'total_orders', 'total'];
+
+/** The first of these number fields, anywhere in the answer. */
+function findNumber(body: unknown, keys: string[]): number | null {
+  if (!body || typeof body !== 'object') return null;
+  const o = body as Record<string, unknown>;
+  for (const k of keys) {
+    const v = o[k];
+    if ((typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) && Number.isFinite(Number(v))) return num(v);
+  }
+  for (const v of Object.values(o)) {
+    const n = findNumber(v, keys);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
+/**
+ * Reads a courier's own answer. Neither courier publishes its format, so this only
+ * accepts known field names: null (shown as unreadable) rather than a guessed number.
+ */
+export function parseDirectHistory(name: string, body: unknown): CourierRow | null {
+  const delivered = findNumber(body, DELIVERED);
+  const total = findNumber(body, TOTAL);
+  const failed = findNumber(body, FAILED);
+  if (delivered === null || (total === null && failed === null)) return null;
+  const f = failed ?? Math.max(0, (total ?? 0) - delivered);
+  return { name, total: total ?? delivered + f, delivered, failed: f };
+}
+
 export type OwnOrder = { courier: string | null; status: OrderStatus; courier_status: string | null };
 
 /** This shop's own orders for a customer, by courier. Cancelled pickups are counted apart: they say nothing about the customer. */

@@ -2,17 +2,18 @@
 
 import { unstable_cache } from 'next/cache';
 import { requirePermission } from '@/lib/auth';
-import { ownHistory, parseCourierHistory, type CourierRow, type OwnOrder } from '@/lib/courier/history';
+import { directHistory } from '@/lib/courier/direct-history';
+import { ownHistory, parseCourierHistory, type CourierRow, type DirectResult, type OwnOrder } from '@/lib/courier/history';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 
 const API = 'https://api.bdcourier.com/courier-check';
 
 /** Thrown, not returned, so a failed lookup is never cached. */
 const lookup = unstable_cache(
-  async (phone: string, key: string) => {
+  async (phone: string) => {
     const res = await fetch(API, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${process.env.BD_COURIER_API_KEY}`, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ phone }),
       signal: AbortSignal.timeout(12_000),
       cache: 'no-store',
@@ -33,6 +34,8 @@ export type CustomerHistory = {
   /** Across all shops. null: not connected yet, or the lookup failed (see external). */
   all?: { couriers: CourierRow[]; summary: CourierRow } | null;
   external?: 'on' | 'off' | 'failed';
+  /** Pathao and Steadfast asked directly, used while BD Courier is not connected. */
+  direct?: DirectResult[];
 };
 
 /** The record behind the % in the orders list. The phone number leaves this site only when the key is set. */
@@ -47,12 +50,11 @@ export async function getCustomerHistory(phone: string): Promise<CustomerHistory
   }
   const own = ownHistory((data ?? []) as OwnOrder[], (c) => COURIER_LABEL[c as CourierName] ?? c);
 
-  const key = process.env.BD_COURIER_API_KEY;
-  if (!key) return { ok: true, own, all: null, external: 'off' };
+  if (!process.env.BD_COURIER_API_KEY) return { ok: true, own, all: null, external: 'off', direct: await directHistory(phone) };
   try {
-    return { ok: true, own, all: await lookup(phone, key), external: 'on' };
+    return { ok: true, own, all: await lookup(phone), external: 'on' };
   } catch (e) {
     console.error('[admin] BD Courier', e);
-    return { ok: true, own, all: null, external: 'failed' };
+    return { ok: true, own, all: null, external: 'failed', direct: await directHistory(phone) };
   }
 }

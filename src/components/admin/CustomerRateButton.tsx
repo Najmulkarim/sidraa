@@ -6,6 +6,13 @@ import { getCustomerHistory, type CustomerHistory } from '@/actions/admin-custom
 import { successPercent, type CourierRow } from '@/lib/courier/history';
 import { Icon } from '../icons';
 
+const STATE: Record<string, string> = {
+  off: 'not connected: add the API details in Settings → Courier',
+  denied: 'no access yet: the courier has to turn this on for your account',
+  unreadable: 'answered in a format this site cannot read yet',
+  failed: 'could not be reached just now',
+};
+
 const tone = (pct: number | null) => (pct === null ? 'text-muted' : pct >= 80 ? 'text-ok' : pct >= 50 ? 'text-warn' : 'text-bad');
 
 function Rows({ rows, summary }: { rows: CourierRow[]; summary?: CourierRow }) {
@@ -84,9 +91,14 @@ export function CustomerRateButton({ phone, name, text, tone: textTone, title }:
                   {data.all ? (
                     data.all.couriers.length ? <Rows rows={data.all.couriers} summary={data.all.summary} /> : <p className="text-sm text-muted">No parcels found for this number with any courier.</p>
                   ) : (
-                    <p className="rounded-lg bg-soft px-3 py-2 text-[12.5px] text-muted">
-                      {data.external === 'failed' ? 'Could not reach BD Courier just now. Try again in a little while.' : 'Not connected yet. Add the BD Courier API key to show this.'}
-                    </p>
+                    <>
+                      {!!data.direct?.some((d) => d.row) && <Rows rows={data.direct.flatMap((d) => (d.row ? [d.row] : []))} />}
+                      <ul className="space-y-0.5 rounded-lg bg-soft px-3 py-2 text-[12.5px] text-muted">
+                        {data.direct?.filter((d) => !d.row).map((d) => <li key={d.name}>{d.name}: {STATE[d.state]}</li>)}
+                        <li>RedX: not available yet</li>
+                        {data.external === 'failed' && <li>BD Courier could not be reached just now</li>}
+                      </ul>
+                    </>
                   )}
                 </section>
                 <section className="space-y-1.5">

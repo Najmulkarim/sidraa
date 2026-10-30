@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ownHistory, parseCourierHistory, successPercent, type OwnOrder } from '@/lib/courier/history';
+import { ownHistory, parseCourierHistory, parseDirectHistory, successPercent, type OwnOrder } from '@/lib/courier/history';
 
 describe('customer delivery record', () => {
   it('reads the courier answer and adds up the summary itself', () => {
@@ -29,6 +29,13 @@ describe('customer delivery record', () => {
       { courier: null, status: 'pending', courier_status: null },
     ];
     expect(ownHistory(orders, (c) => c)).toEqual({ couriers: [{ name: 'pathao', total: 2, delivered: 1, failed: 1 }], pickupCancelled: 1, total: 4 });
+  });
+
+  it('reads a courier answer only from known fields', () => {
+    expect(parseDirectHistory('Pathao', { data: { customer: { total_delivery: 10, successful_delivery: 8 } } })).toEqual({ name: 'Pathao', total: 10, delivered: 8, failed: 2 });
+    expect(parseDirectHistory('Steadfast', { total_delivered: '3', total_cancelled: '1' })).toEqual({ name: 'Steadfast', total: 4, delivered: 3, failed: 1 });
+    expect(parseDirectHistory('Pathao', { score: 90, rating: 'good' })).toBeNull();
+    expect(parseDirectHistory('Pathao', { delivered: 5 })).toBeNull();
   });
 
   it('has no rate until a parcel has finished', () => {
