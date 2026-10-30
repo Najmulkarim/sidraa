@@ -33,6 +33,7 @@ export function AddToCart({
   variants,
   labels,
   imageOrder = [],
+  keepOrder = false,
   header,
   details,
   delivery,
@@ -49,6 +50,8 @@ export function AddToCart({
   variants: PickerVariant[];
   labels: OptionLabels;
   imageOrder?: string[];
+  /** The admin arranged the variations by hand: options stay in that order. */
+  keepOrder?: boolean;
   /** Category, title and the like, shown above the price. */
   header?: ReactNode;
   /** "About this item", product details table, description. */
@@ -64,7 +67,7 @@ export function AddToCart({
   const { dispatch } = useCart();
   const router = useRouter();
   const { setImage } = useVariantImage();
-  const groups = useMemo(() => optionGroups(variants, labels, imageOrder), [variants, labels, imageOrder]);
+  const groups = useMemo(() => optionGroups(variants, labels, imageOrder, keepOrder), [variants, labels, imageOrder, keepOrder]);
   const [sel, setSel] = useState<Selection>(() => initialSelection(variants, groups));
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);

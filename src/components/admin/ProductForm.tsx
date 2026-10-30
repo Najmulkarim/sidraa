@@ -9,6 +9,7 @@ import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
 import { DiscountFields } from './DiscountFields';
 import { StockOutFields } from './StockOutFields';
+import { useDragSort } from './useDragSort';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
@@ -69,10 +70,14 @@ export function ProductForm({ product, variants, categories, images = [], costs 
   const fe = state.fieldErrors ?? {};
   const showOption3 = !!labels.option3 || rows.some((r) => r.option3);
 
+  // Rows stay in the automatic order until someone drags one; from then on the dragged order is saved.
+  const [arranged, setArranged] = useState(() => !!variants?.some((v) => v.sort_order > 0));
+  const rowDrag = useDragSort(rows, (next) => { setRows(next); setArranged(true); }, { handleOnlyTouch: true });
+
   const update = (key: string, patch: Partial<VariantRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
   const variantsJson = JSON.stringify(
-    rows.map((r) => ({
+    rows.map((r, i) => ({
       id: r.id ?? '',
       sku: r.sku,
       size: r.size,
@@ -82,6 +87,7 @@ export function ProductForm({ product, variants, categories, images = [], costs 
       price: r.price === '' ? null : r.price,
       cost: r.cost === '' ? null : r.cost,
       isActive: r.isActive,
+      sortOrder: arranged ? i + 1 : 0,
       openingStock: r.id ? 0 : Number(r.openingStock) || 0,
     })),
   );
@@ -229,15 +235,18 @@ export function ProductForm({ product, variants, categories, images = [], costs 
             <table className="table">
               <thead>
                 <tr>
-                  <th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
+                  <th aria-label="Drag to change the order"></th><th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
                   <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th title="What one piece costs you. Empty: the product's cost price">Cost ৳</th><th>Stock</th><th>Active</th><th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => {
+                {rowDrag.list.map((r, i) => {
                   const t = thumb(r.imagePath);
                   return (
-                    <tr key={r.key}>
+                    <tr key={r.key} {...rowDrag.handlers(i)} className={rowDrag.dragging === i ? 'bg-tint' : ''}>
+                      <td className="w-8 px-1">
+                        <span {...rowDrag.handleProps} className="grid h-12 w-7 select-none place-items-center rounded-md text-lg text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
+                      </td>
                       <td className="relative">
                         <button
                           type="button"

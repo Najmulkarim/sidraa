@@ -37,7 +37,7 @@ export function labelsOf(p: OptionLabels): Record<OptionKey, string> {
  * Colours follow the photo order (reorder photos to reorder colours),
  * sizes follow S < M < L < XL, the third option keeps its first-seen order.
  */
-export function optionGroups(variants: PickVariant[], labels: OptionLabels, imageOrder: string[] = []): OptionGroup[] {
+export function optionGroups(variants: PickVariant[], labels: OptionLabels, imageOrder: string[] = [], keepOrder = false): OptionGroup[] {
   const names = labelsOf(labels);
   return OPTION_KEYS.flatMap((key) => {
     const seen = new Map<string, OptionValue>();
@@ -50,6 +50,7 @@ export function optionGroups(variants: PickVariant[], labels: OptionLabels, imag
     }
     if (seen.size === 0) return [];
     let values = [...seen.values()];
+    if (keepOrder) return [{ key, label: names[key], values }];
     if (key === 'size') values = values.sort((a, b) => sizeRank(a.value) - sizeRank(b.value));
     if (key === 'color') {
       const rank = (o: OptionValue) => (o.image && imageOrder.includes(o.image) ? imageOrder.indexOf(o.image) : 1000);

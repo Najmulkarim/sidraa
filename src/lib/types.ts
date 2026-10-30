@@ -58,6 +58,8 @@ export type Variant = {
   price: Numeric | null;
   stock: number;
   is_active: boolean;
+  /** Position in the admin's order; 0 = never arranged (automatic order). */
+  sort_order: number;
 };
 
 export type Product = {

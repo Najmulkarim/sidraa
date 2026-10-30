@@ -68,3 +68,15 @@ describe('variations', () => {
     expect(r.success && r.data.photos).toEqual([]);
   });
 });
+
+describe('variations dragged into order', () => {
+  const rows = [v('Red', 'XL'), v('Blue', 'S')];
+  it('keeps row order when the admin arranged the rows', () => {
+    const g = optionGroups(rows, {}, [], true);
+    expect(g[0]?.values.map((o) => o.value)).toEqual(['Red', 'Blue']);
+    expect(g[1]?.values.map((o) => o.value)).toEqual(['XL', 'S']);
+  });
+  it('stays automatic otherwise', () => {
+    expect(optionGroups(rows, {})[1]?.values.map((o) => o.value)).toEqual(['S', 'XL']);
+  });
+});

@@ -17,7 +17,7 @@ import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Varia
 export const PRODUCT_SELECT =
   'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at, rating_avg, rating_count,' +
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
-  ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active)';
+  ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active, sort_order)';
 
 export const PAGE_SIZE = 24;
 
@@ -46,7 +46,7 @@ function sortRelations(p: ProductWithRelations): ProductWithRelations {
   return {
     ...p,
     images: [...(p.images ?? [])].sort((a, b) => a.sort_order - b.sort_order),
-    variants: [...(p.variants ?? [])].sort((a, b) => sizeRank(a.size) - sizeRank(b.size) || a.sku.localeCompare(b.sku)),
+    variants: [...(p.variants ?? [])].sort((a, b) => a.sort_order - b.sort_order || sizeRank(a.size) - sizeRank(b.size) || a.sku.localeCompare(b.sku)),
   };
 }
 

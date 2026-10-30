@@ -114,7 +114,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     // Variation photos must be this product's own photos (the database checks too).
     const imagePath = v.imagePath && photos.has(v.imagePath) ? v.imagePath : null;
     // An empty SKU on a new variation is left out, so the database assigns <product SKU>-01, -02, …
-    const fields = { ...(v.sku ? { sku: v.sku } : {}), size: v.size, color: v.color, option3: v.option3, image_path: imagePath, price: v.price, is_active: v.isActive };
+    const fields = { ...(v.sku ? { sku: v.sku } : {}), size: v.size, color: v.color, option3: v.option3, image_path: imagePath, price: v.price, is_active: v.isActive, sort_order: v.sortOrder };
     const label = v.sku || [v.color, v.size, v.option3].filter(Boolean).join(' / ') || 'New variation';
     if (v.id) {
       const { error } = await supabase.from('product_variants').update(fields).eq('id', v.id);
@@ -223,7 +223,7 @@ type CopySource = {
   size_label: string;
   option3_label: string | null;
   images: { storage_path: string; alt: string | null; sort_order: number }[];
-  variants: { sku: string; size: string; color: string; option3: string; image_path: string | null; price: number | string | null; is_active: boolean }[];
+  variants: { sku: string; size: string; color: string; option3: string; image_path: string | null; price: number | string | null; is_active: boolean; sort_order: number }[];
 };
 
 /**
@@ -239,7 +239,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
   if (!id.success) return { ok: false, message: 'Invalid product.' };
   const { data, error: readError } = await supabase
     .from('products')
-    .select('name, slug, category_id, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active)')
+    .select('name, slug, category_id, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active, sort_order)')
     .eq('id', id.data)
     .single();
   if (readError || !data) return { ok: false, message: 'Product not found.' };
@@ -314,6 +314,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
         image_path: v.image_path ? (pathMap.get(v.image_path) ?? null) : null,
         price: v.price,
         is_active: v.is_active,
+        sort_order: v.sort_order,
         stock: 0,
       })),
     );

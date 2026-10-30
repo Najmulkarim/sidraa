@@ -31,7 +31,7 @@ export default async function EditProductPage({
   if (!product) notFound();
   const p = product as Product & { images: ProductImage[]; variants: Variant[] };
   const images = [...p.images].sort((a, b) => a.sort_order - b.sort_order);
-  const variants = [...p.variants].sort((a, b) => a.color.localeCompare(b.color) || sizeRank(a.size) - sizeRank(b.size) || (a.option3 ?? '').localeCompare(b.option3 ?? '') || a.sku.localeCompare(b.sku));
+  const variants = [...p.variants].sort((a, b) => a.sort_order - b.sort_order || a.color.localeCompare(b.color) || sizeRank(a.size) - sizeRank(b.size) || (a.option3 ?? '').localeCompare(b.option3 ?? '') || a.sku.localeCompare(b.sku));
   const canDelete = (orderCount ?? 0) === 0;
   const costs = {
     product: pCost ? Number(pCost.cost) : null,

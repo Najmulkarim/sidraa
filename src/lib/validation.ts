@@ -135,6 +135,8 @@ export const variantInputSchema = z.object({
   /** What one piece of this variation costs the shop; empty = the product's cost price. */
   cost: z.preprocess((v) => (v === '' || v === null || v === undefined ? null : v), money('Cost').nullable()).default(null),
   isActive: z.boolean().default(true),
+  /** 1, 2, 3… once the rows have been dragged; 0 keeps the automatic order. */
+  sortOrder: z.coerce.number().int().min(0).max(1000).default(0),
   openingStock: z.coerce.number().int().min(0).max(100_000).default(0),
 });
 export type VariantInput = z.infer<typeof variantInputSchema>;
