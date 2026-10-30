@@ -14,6 +14,8 @@ export const metadata: Metadata = { title: 'Products' };
 
 const PER_PAGE_OPTIONS = [12, 24, 48, 96];
 const DEFAULT_PER_PAGE = 24;
+// Off for now; turn on to bring back the Import button (the code is kept).
+const SHOW_IMPORT = false;
 const STATUS_DOT: Record<ProductStatus, string> = { published: 'bg-ok', draft: 'bg-warn', archived: 'bg-muted' };
 const STATUS_FILTERS: { value: ProductStatus | ''; label: string }[] = [
   { value: '', label: 'All' },
@@ -114,7 +116,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
           </form>
           <div className="flex gap-2">
             <a href="/admin/export/products" className="btn btn-outline btn-sm h-11">CSV</a>
-            <ImportProductButton />
+            {SHOW_IMPORT && <ImportProductButton />}
             {can.has('marketing') && <RefreshCatalogButton />}
             <Link href="/admin/products/new" className="btn btn-primary btn-sm h-11 flex-1 sm:flex-none"><Icon name="plus" size={16} /> Add Product</Link>
           </div>
