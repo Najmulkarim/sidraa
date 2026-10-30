@@ -179,7 +179,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {can.has('courier') && tab !== 'deleted' && (() => {
           const c = (courierData ?? null) as CourierOptions | null;
           const ready = (['steadfast', 'pathao'] as CourierName[]).filter((k) => c?.[k]);
-          return ready.length > 0 ? <OneClickSend couriers={ready} defaultCourier={c?.default_courier ?? null} ready={(counts.by_status.confirmed ?? 0) + (counts.by_status.processing ?? 0)} /> : null;
+          const toSend = counts.by_status.processing ?? 0;
+          return ready.length > 0 && toSend > 0 ? <OneClickSend couriers={ready} defaultCourier={c?.default_courier ?? null} ready={toSend} /> : null;
         })()}
 
         {/* Status tabs */}

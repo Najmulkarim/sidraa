@@ -50,6 +50,8 @@ export function CourierPanel({ order, couriers, canSend, open }: { order: OrderR
       {order.courier_error && <p className="rounded-lg bg-bad/10 px-3 py-2 text-[12.5px] text-bad">Last attempt failed: {order.courier_error}</p>}
       {!open ? (
         <p className="text-muted">Not sent to a courier.</p>
+      ) : order.status !== 'processing' ? (
+        <p className="text-muted">Move this order to Ready to deliver to send it to a courier.</p>
       ) : canSend ? (
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setSending(true)}><Icon name="send" size={15} /> Send to courier</button>
       ) : (

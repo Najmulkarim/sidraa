@@ -46,7 +46,6 @@ export type Stat = { delivered: number; failed: number; orders: number };
 export type CourierOptions = { default_courier: CourierName | null; steadfast: boolean; pathao: boolean };
 export type TablePerms = { courier: boolean; del: boolean };
 
-const OPEN: OrderStatus[] = ['pending', 'confirmed', 'processing', 'hold', 'ship_later'];
 const SOURCE_SHORT: Record<string, string> = { phone: 'Phone', facebook: 'Facebook', whatsapp: 'WhatsApp', instagram: 'Instagram', other: 'Manual' };
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
@@ -96,6 +95,8 @@ export function OrdersTable({
   const blockedSet = new Set(blocked);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Only Ready to deliver orders can go to a courier.
+  const sendable = orders.filter((o) => selected.has(o.id) && o.status === 'processing' && !o.courier_consignment_id).map((o) => o.id);
   const [busy, startTransition] = useTransition();
   const [editing, setEditing] = useState<OrderRow | null>(null);
   const [sending, setSending] = useState<OrderRow | null>(null);
@@ -158,14 +159,14 @@ export function OrdersTable({
               <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => run(() => bulkStatus([...selected], bulkTo))}>Apply</button>
             </>
           )}
-          {!deletedTab && perms.courier && readyCouriers.length > 0 && (
+          {!deletedTab && perms.courier && readyCouriers.length > 0 && sendable.length > 0 && (
             <span className="flex items-center gap-1.5 border-l border-brand/20 pl-3">
               <label htmlFor="bulk-courier" className="text-muted">Send to</label>
               <select id="bulk-courier" className="input min-h-9 w-auto py-1" value={bulkCourier} onChange={(e) => setBulkCourier(e.target.value as CourierName)}>
                 {readyCouriers.map((c) => <option key={c} value={c}>{COURIER_LABEL[c]}</option>)}
               </select>
-              <button type="button" className="btn btn-outline btn-sm" disabled={busy || selected.size > 50} title={selected.size > 50 ? 'At most 50 at a time' : undefined} onClick={() => run(() => bulkSendToCourier([...selected], bulkCourier))}>
-                <Icon name="send" size={14} /> Send
+              <button type="button" className="btn btn-outline btn-sm" disabled={busy || sendable.length > 50} title={sendable.length > 50 ? 'At most 50 at a time' : undefined} onClick={() => run(() => bulkSendToCourier(sendable, bulkCourier))}>
+                <Icon name="send" size={14} /> Send {sendable.length}
               </button>
             </span>
           )}
@@ -286,7 +287,7 @@ export function OrdersTable({
                           </button>
                         )}
                       </div>
-                    ) : perms.courier && !o.deleted_at && OPEN.includes(o.status) ? (
+                    ) : perms.courier && !o.deleted_at && o.status === 'processing' ? (
                       <div className="space-y-1">
                         <button type="button" className="btn btn-outline btn-sm min-h-8 whitespace-nowrap px-2.5 text-[11.5px]" onClick={() => setSending(o)}>
                           <Icon name="send" size={13} /> Send

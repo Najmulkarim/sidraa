@@ -10,7 +10,7 @@ import { notify } from './Toaster';
 const KEY = 'sidraa:courier-capacity';
 
 /**
- * Orders toolbar: send the oldest confirmed orders to the courier in one
+ * Orders toolbar: send the oldest Ready to deliver orders to the courier in one
  * click, as many as today's capacity (remembered on this computer).
  */
 export function OneClickSend({ couriers, defaultCourier, ready }: { couriers: CourierName[]; defaultCourier: CourierName | null; ready: number }) {
@@ -42,7 +42,7 @@ export function OneClickSend({ couriers, defaultCourier, ready }: { couriers: Co
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-[13px]">
       <span className="flex items-center gap-1.5 font-semibold"><Icon name="truck" size={16} className="text-brand" /> 1-click courier</span>
-      <span className="text-muted">{ready} confirmed order{ready === 1 ? '' : 's'} ready ·</span>
+      <span className="text-muted">{ready} order{ready === 1 ? '' : 's'} ready to deliver ·</span>
       <label className="flex items-center gap-1.5">
         <span className="text-muted">Capacity today</span>
         <input type="number" min={1} max={50} value={cap} onChange={(e) => setCap(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className="input min-h-9 w-20 py-1" />
