@@ -12,8 +12,10 @@ import type { ProductStatus } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Products' };
 
-const PER_PAGE_OPTIONS = [12, 24, 48, 96];
-const DEFAULT_PER_PAGE = 24;
+const PER_PAGE_OPTIONS = [50, 100, 500, 1000, 5000];
+const DEFAULT_PER_PAGE = 50;
+// The database returns at most 1000 rows per request, so bigger pages are read in steps.
+const READ_STEP = 1000;
 // Off for now; turn on to bring back the Import button (the code is kept).
 const SHOW_IMPORT = false;
 const STATUS_DOT: Record<ProductStatus, string> = { published: 'bg-ok', draft: 'bg-warn', archived: 'bg-muted' };
@@ -65,6 +67,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
     skuProductIds = [...new Set(((bySku ?? []) as { product_id: string }[]).map((r) => r.product_id))];
   }
 
+  const buildQuery = () => {
   let query = supabase
     .from('products')
     .select('id, sku, name, slug, status, stock_out_mode, preorder_days, base_price, compare_at_price, is_featured, category:categories(name), images:product_images(storage_path, sort_order), variants:product_variants(sku, stock, is_active, price)', { count: 'exact' });
@@ -74,13 +77,19 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
     query = query.or(`name.ilike.${quoted},sku.ilike.${quoted}${skuProductIds.length ? `,id.in.(${skuProductIds.join(',')})` : ''}`);
   }
   if (status) query = query.eq('status', status);
+  return query;
+  };
   const from = (page - 1) * per;
-  const [{ data, count }, { count: total }] = await Promise.all([
-    query.order('updated_at', { ascending: false }).range(from, from + per - 1),
-    supabase.from('products').select('id', { count: 'exact', head: true }),
-  ]);
-  const rows = (data ?? []) as unknown as Row[];
-  const found = count ?? 0;
+  const { count: total } = await supabase.from('products').select('id', { count: 'exact', head: true });
+  const rows: Row[] = [];
+  let found = 0;
+  for (let at = from; at < from + per; at += READ_STEP) {
+    const want = Math.min(READ_STEP, from + per - at);
+    const { data, count } = await buildQuery().order('updated_at', { ascending: false }).order('id').range(at, at + want - 1);
+    found = count ?? found;
+    rows.push(...((data ?? []) as unknown as Row[]));
+    if ((data ?? []).length < want) break;
+  }
   const pages = Math.max(1, Math.ceil(found / per));
 
   const href = (patch: Record<string, string | number | null>) => {
