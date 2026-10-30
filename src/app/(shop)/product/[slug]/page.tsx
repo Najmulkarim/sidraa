@@ -1,3 +1,4 @@
+import { availability } from '@/lib/catalog-labels';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -52,7 +53,7 @@ export default async function ProductPage({ params }: Props) {
     .filter((v) => v.is_active)
     .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock, sku: v.sku }));
   const { min, max } = priceRange(product);
-  const inStock = totalStock(product) > 0;
+  const avail = availability(product.stock_out_mode, totalStock(product), product.preorder_days);
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
   const percentOff = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
   const content = parseDescription(product.description);
@@ -74,7 +75,7 @@ export default async function ProductPage({ params }: Props) {
       lowPrice: min,
       highPrice: max,
       offerCount: variants.length,
-      availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      availability: avail.state === 'in_stock' ? 'https://schema.org/InStock' : avail.state === 'preorder' ? 'https://schema.org/PreOrder' : 'https://schema.org/OutOfStock',
       url: productUrl,
     },
     // Only real, approved reviews.
@@ -97,7 +98,7 @@ export default async function ProductPage({ params }: Props) {
             SKU: <span className="font-mono font-semibold text-ink">{product.sku}</span>
           </span>
         )}
-        <span className={inStock ? 'text-ok' : 'text-bad'}>{inStock ? 'In stock' : 'Out of stock'}</span>
+        <span className={avail.state === 'in_stock' ? 'text-ok' : avail.state === 'preorder' ? 'font-semibold text-plum' : 'text-bad'}>{avail.text}</span>
         {product.rating_count > 0 && <a href="#reviews" className="hover:underline"><Stars avg={product.rating_avg} count={product.rating_count} size={14} /></a>}
       </p>
     </header>

@@ -207,6 +207,18 @@ export async function setProductFlags(productId: string, flags: { published?: bo
   return { ok: true };
 }
 
+/** Pre-order switch on the product list. Off means orders stay open and the product simply shows as in stock. */
+export async function setProductPreorder(productId: string, on: boolean, days: number): Promise<ActionState> {
+  const { supabase } = await requirePermission('catalog');
+  const parsed = z.object({ id: z.uuid(), days: z.number().int().min(1).max(180) }).safeParse({ id: productId, days });
+  if (!parsed.success) return { ok: false, message: 'Delivery days must be from 1 to 180.' };
+  const { error } = await supabase.from('products').update({ stock_out_mode: on ? 'preorder' : 'continue', preorder_days: on ? parsed.data.days : null }).eq('id', parsed.data.id);
+  if (error) return fail(error, 'product pre-order');
+  refreshStore();
+  revalidatePath('/admin/products');
+  return { ok: true };
+}
+
 type CopySource = {
   name: string;
   slug: string;

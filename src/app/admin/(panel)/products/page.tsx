@@ -30,6 +30,8 @@ type Row = {
   name: string;
   slug: string;
   status: ProductStatus;
+  stock_out_mode: 'sold_out' | 'preorder' | 'continue';
+  preorder_days: number | null;
   base_price: number | string;
   compare_at_price: number | string | null;
   is_featured: boolean;
@@ -65,7 +67,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
 
   let query = supabase
     .from('products')
-    .select('id, sku, name, slug, status, base_price, compare_at_price, is_featured, category:categories(name), images:product_images(storage_path, sort_order), variants:product_variants(sku, stock, is_active, price)', { count: 'exact' });
+    .select('id, sku, name, slug, status, stock_out_mode, preorder_days, base_price, compare_at_price, is_featured, category:categories(name), images:product_images(storage_path, sort_order), variants:product_variants(sku, stock, is_active, price)', { count: 'exact' });
   if (q) {
     // Inside or() the value is double-quoted so commas and brackets in the search stay literal.
     const quoted = `"${like.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -191,7 +193,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
                     {p.category && <span className="truncate text-[10.5px] text-muted">{p.category.name}</span>}
                   </p>
                 </div>
-                <ProductCardControls id={p.id} name={p.name} published={p.status === 'published'} featured={p.is_featured} archived={p.status === 'archived'} />
+                <ProductCardControls id={p.id} name={p.name} published={p.status === 'published'} featured={p.is_featured} archived={p.status === 'archived'} preorder={p.stock_out_mode === 'preorder'} preorderDays={p.preorder_days} />
               </li>
             );
           })}

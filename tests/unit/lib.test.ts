@@ -1,3 +1,4 @@
+import { availability } from '@/lib/catalog-labels';
 import { parseLiveChat } from '@/lib/storefront';
 import { describe, expect, it } from 'vitest';
 import { cartReducer, parseCart, toOrderItems, MAX_LINES, type CartLine } from '@/lib/cart';
@@ -223,5 +224,21 @@ describe('live chat link', () => {
   it('refuses anything else', () => {
     expect(parseLiveChat('https://example.com/chat/abc')).toBeNull();
     expect(parseLiveChat("https://tawk.to/chat/short/x';alert(1)")).toBeNull();
+  });
+});
+
+describe('availability shown to shoppers', () => {
+  it('is in stock whenever orders are open normally', () => {
+    expect(availability('continue', 0, null)).toEqual({ state: 'in_stock', text: 'In stock' });
+    expect(availability('sold_out', 3, null).state).toBe('in_stock');
+    expect(availability('preorder', 3, 10).state).toBe('in_stock');
+  });
+  it('shows the delivery time on a pre-order', () => {
+    expect(availability('preorder', 0, 10).text).toBe('Pre-order · delivery in 10 days');
+    expect(availability('preorder', 0, 1).text).toBe('Pre-order · delivery in 1 day');
+    expect(availability('preorder', 0, null).text).toBe('Pre-order · delivery in 7 days');
+  });
+  it('is out of stock only when nothing can be ordered', () => {
+    expect(availability('sold_out', 0, null)).toEqual({ state: 'out', text: 'Out of stock' });
   });
 });

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { deleteProductFromList, duplicateProduct, setProductFlags } from '@/actions/admin-catalog';
+import { deleteProductFromList, duplicateProduct, setProductFlags, setProductPreorder } from '@/actions/admin-catalog';
 import { Icon } from '../icons';
 import { notify } from './Toaster';
 
@@ -50,7 +50,10 @@ export function CopySku({ sku }: { sku: string }) {
 }
 
 /** Published / Featured switches and the edit, duplicate and delete buttons under each product card. */
-export function ProductCardControls({ id, name, published, featured, archived }: { id: string; name: string; published: boolean; featured: boolean; archived: boolean }) {
+export function ProductCardControls({ id, name, published, featured, archived, preorder, preorderDays }: { id: string; name: string; published: boolean; featured: boolean; archived: boolean; preorder: boolean; preorderDays: number | null }) {
+  const [isPreorder, setPreorder] = useState(preorder);
+  const [days, setDays] = useState(String(preorderDays ?? 7));
+  const daysNumber = Number(days);
   const [isPublished, setPublished] = useState(published);
   const [isFeatured, setFeatured] = useState(featured);
   const [pending, startTransition] = useTransition();
@@ -86,6 +89,36 @@ export function ProductCardControls({ id, name, published, featured, archived }:
             run(() => setProductFlags(id, { featured: next }), () => setFeatured(!next));
           }}
         />
+        <Switch
+          checked={isPreorder}
+          disabled={pending}
+          label="Pre-order"
+          onChange={(next) => {
+            setPreorder(next);
+            run(() => setProductPreorder(id, next, daysNumber >= 1 && daysNumber <= 180 ? Math.floor(daysNumber) : 7), () => setPreorder(!next));
+          }}
+        />
+        {isPreorder && (
+          <label className="flex items-center gap-1.5 text-[11.5px] text-muted">
+            Delivery in
+            <input
+              type="number"
+              min={1}
+              max={180}
+              value={days}
+              disabled={pending}
+              onChange={(e) => setDays(e.target.value)}
+              onBlur={() => {
+                if (Number(days) === (preorderDays ?? 7)) return;
+                if (!(daysNumber >= 1 && daysNumber <= 180)) { setDays(String(preorderDays ?? 7)); return; }
+                run(() => setProductPreorder(id, true, Math.floor(daysNumber)));
+              }}
+              aria-label={`Pre-order delivery days for ${name}`}
+              className="input min-h-7 w-16 px-1.5 py-0.5 text-[12px]"
+            />
+            days
+          </label>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-1.5">
           <Link href={`/admin/products/${id}`} title="Edit" aria-label={`Edit ${name}`} className="grid h-8 place-items-center rounded-lg border border-line hover:border-brand hover:text-brand">
