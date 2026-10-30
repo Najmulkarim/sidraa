@@ -13,6 +13,10 @@ import { parseStorefront } from '@/lib/storefront';
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   const [settings, categories, zones] = await Promise.all([getSettings(), getShopCategories(), getZones()]);
   const { layout, live_chat: liveChat } = parseStorefront(settings.storefront);
+  // Floating buttons stack on the right, bottom to top: live chat, WhatsApp, back to top (rem).
+  const showWhatsApp = layout.whatsapp && !!settings.phone;
+  const aboveChat = liveChat ? 4.5 : 0;
+  const aboveWhatsApp = aboveChat + (showWhatsApp ? 3.75 : 0);
   return (
     <CartProvider>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-full focus:bg-card focus:px-4 focus:text-brand focus:py-2">
@@ -24,8 +28,8 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' || settings.home_theme === 'nova' ? 'dark' : 'light'} />
       {layout.bottom_nav && <MobileTabBar phone={settings.phone} />}
-      {layout.back_to_top && <BackToTop raised={layout.bottom_nav} aboveChat={!!liveChat} />}
-      {layout.whatsapp && settings.phone && <WhatsAppButton phone={settings.phone} raised={layout.bottom_nav} />}
+      {layout.back_to_top && <BackToTop raised={layout.bottom_nav} lift={aboveWhatsApp} />}
+      {showWhatsApp && settings.phone && <WhatsAppButton phone={settings.phone} raised={layout.bottom_nav} lift={aboveChat} />}
     </CartProvider>
   );
 }
