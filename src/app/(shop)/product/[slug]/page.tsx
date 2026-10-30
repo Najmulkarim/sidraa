@@ -98,7 +98,11 @@ export default async function ProductPage({ params }: Props) {
             SKU: <span className="font-mono font-semibold text-ink">{product.sku}</span>
           </span>
         )}
-        <span className={avail.state === 'in_stock' ? 'text-ok' : avail.state === 'preorder' ? 'font-semibold text-plum' : 'text-bad'}>{avail.text}</span>
+        {avail.state === 'preorder' ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-[13px] font-bold text-white shadow-sm"><Icon name="clock" size={14} /> {avail.text}</span>
+        ) : (
+          <span className={avail.state === 'in_stock' ? 'text-ok' : 'text-bad'}>{avail.text}</span>
+        )}
         {product.rating_count > 0 && <a href="#reviews" className="hover:underline"><Stars avg={product.rating_avg} count={product.rating_count} size={14} /></a>}
       </p>
     </header>

@@ -219,7 +219,8 @@ export function AddToCart({
             {g.values.map((o) => {
               const active = sel[g.key] === o.value;
               const anyStock = variants.some((v) => v[g.key] === o.value && buyable(v));
-              const available = canPick(variants, sel, g.key, o.value);
+              // A pre-order takes every option, stock or not.
+              const available = preorder || canPick(variants, sel, g.key, o.value);
               const struck = !anyStock || (exists(variants, sel, g.key, o.value) && !available);
               const base = `rounded-xl border-[1.5px] text-sm font-semibold transition ${active ? 'border-brand ring-2 ring-brand/25' : 'border-line hover:border-ink'} ${!anyStock ? 'cursor-not-allowed opacity-50' : ''}`;
               return o.image ? (
@@ -246,7 +247,7 @@ export function AddToCart({
         <div className="space-y-1">
           {selected ? (
             preorderNow ? (
-              <p className="text-[15px] font-semibold text-plum">Pre-order · delivery in {preorderDays} day{preorderDays === 1 ? '' : 's'}</p>
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-[13px] font-bold text-white shadow-sm"><Icon name="clock" size={15} /> Pre-order · delivery in {preorderDays} day{preorderDays === 1 ? '' : 's'}</p>
             ) : (
             <p className={`text-[15px] font-semibold ${selected.stock <= 0 ? 'text-bad' : selected.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
               {selected.stock <= 0 ? 'Sold out' : selected.stock <= 3 ? `Only ${selected.stock} left — order soon` : 'In stock'}
