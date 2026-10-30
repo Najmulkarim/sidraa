@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type DragEvent } from 'react';
 import { PHOTO_ACCEPT, removeUploadedPhoto, uploadProductPhoto } from '@/lib/upload-photo';
+import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { useDragSort } from './useDragSort';
 
@@ -75,25 +76,25 @@ export function NewProductPhotos({ productId, photos, onChange, productName }: {
       </label>
       {message && <p className="text-sm text-bad" role="alert">{message}</p>}
       {photos.length > 0 && (
-        <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
           {list.map((ph, i) => (
-            <li key={ph.path} className={`space-y-1.5 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
+            <li key={ph.path} className={`min-w-0 space-y-1 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
               <div className="pointer-events-none relative aspect-[3/4] overflow-hidden rounded-xl border border-line bg-tint">
                 <ProductImage path={ph.path} alt={ph.alt || productName} sizes="160px" />
-                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white">Cover</span>}
+                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white text-[10px]">Cover</span>}
               </div>
               <input
                 aria-label={`Describe photo ${i + 1}`}
                 value={ph.alt}
                 maxLength={200}
                 placeholder="Describe the photo"
-                className="input min-h-8 py-1 text-xs"
+                className="input min-h-8 px-2 py-1 text-xs"
                 onChange={(e) => onChange(photos.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)))}
               />
               <div className="flex justify-between">
-                <button type="button" className="btn btn-ghost btn-sm px-2" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
-                <button type="button" className="btn btn-ghost btn-sm px-2" disabled={i === list.length - 1} onClick={() => move(i, 1)} aria-label="Move later">→</button>
-                <button type="button" className="btn btn-ghost btn-sm px-2 text-bad" onClick={() => remove(i)} aria-label={`Remove photo ${i + 1}`}>Remove</button>
+                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
+                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === list.length - 1} onClick={() => move(i, 1)} aria-label="Move later">→</button>
+                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5 text-bad" onClick={() => remove(i)} aria-label={`Remove photo ${i + 1}`} title="Remove"><Icon name="trash" size={15} /></button>
               </div>
             </li>
           ))}

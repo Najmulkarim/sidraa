@@ -5,6 +5,7 @@ import { useState, useTransition, type ChangeEvent } from 'react';
 import { addProductImage, deleteImage, moveImage, reorderImages, updateImageAlt } from '@/actions/admin-catalog';
 import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import type { ProductImage as Img } from '@/lib/types';
+import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { useDragSort } from './useDragSort';
 import { notify } from './Toaster';
@@ -77,34 +78,36 @@ export function ImageManager({ productId, images, productName }: { productId: st
       {images.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">No photos yet. The shop shows a neutral placeholder until you add one.</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
           {list.map((img, i) => (
-            <li key={img.id} className={`space-y-2 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
+            <li key={img.id} className={`min-w-0 space-y-1 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
               <div className="pointer-events-none relative aspect-[3/4] overflow-hidden rounded-xl border border-line">
-                <ProductImage path={img.storage_path} alt={img.alt ?? productName} sizes="200px" />
-                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white">Cover</span>}
+                <ProductImage path={img.storage_path} alt={img.alt ?? productName} sizes="160px" />
+                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white text-[10px]">Cover</span>}
               </div>
               <input
                 aria-label="Alt text"
                 defaultValue={img.alt ?? ''}
                 maxLength={200}
                 placeholder="Describe the photo"
-                className="input min-h-9 py-1 text-xs"
+                className="input min-h-8 px-2 py-1 text-xs"
                 onBlur={(e) => {
                   if (e.target.value !== (img.alt ?? '')) run(() => updateImageAlt(img.id, e.target.value));
                 }}
               />
-              <div className="flex justify-between gap-1">
-                <button type="button" className="btn btn-ghost btn-sm" disabled={i === 0} onClick={() => run(() => moveImage(img.id, 'up'))} aria-label="Move earlier">←</button>
-                <button type="button" className="btn btn-ghost btn-sm" disabled={i === list.length - 1} onClick={() => run(() => moveImage(img.id, 'down'))} aria-label="Move later">→</button>
+              <div className="flex justify-between">
+                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === 0} onClick={() => run(() => moveImage(img.id, 'up'))} aria-label="Move earlier">←</button>
+                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === list.length - 1} onClick={() => run(() => moveImage(img.id, 'down'))} aria-label="Move later">→</button>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm text-bad"
+                  className="btn btn-ghost btn-sm min-h-8 px-1.5 text-bad"
+                  aria-label={`Remove photo ${i + 1}`}
+                  title="Remove"
                   onClick={() => {
                     if (window.confirm('Remove this photo?')) run(() => deleteImage(img.id));
                   }}
                 >
-                  Remove
+                  <Icon name="trash" size={15} />
                 </button>
               </div>
             </li>
