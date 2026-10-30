@@ -101,7 +101,8 @@ describe('courier', () => {
     expect(courierStatusToOrder('delivered_approval_pending')).toBe('delivered');
     expect(courierStatusToOrder('Partial_Delivery')).toBe('delivered');
     expect(courierStatusToOrder('order.delivered')).toBe('delivered');
-    expect(courierStatusToOrder('Pickup_Cancelled')).toBe('returned');
+    expect(courierStatusToOrder('Pickup_Cancelled')).toBe('cancelled');
+    expect(courierStatusToOrder('Return')).toBe('returned');
     expect(courierStatusToOrder('cancelled')).toBe('returned');
     expect(courierStatusToOrder('In_Transit')).toBeNull();
     expect(courierStatusToOrder('hold')).toBeNull();

@@ -29,12 +29,14 @@ export function courierStatusLabel(raw: string | null): string {
 
 /**
  * Courier status → order status. Mirrors public.courier_status_to_order()
- * in 0011; the database applies it, this copy is for display and tests.
+ * in 0036; the database applies it, this copy is for display and tests.
  */
-export function courierStatusToOrder(raw: string | null): 'delivered' | 'returned' | null {
+export function courierStatusToOrder(raw: string | null): 'delivered' | 'returned' | 'cancelled' | null {
   const s = (raw ?? '').trim().toLowerCase().replace(/[^a-z]+/g, '_').replace(/^order_|_$/g, '');
   if (['delivered', 'partial_delivered', 'partial_delivery', 'delivered_approval_pending', 'partial_delivered_approval_pending'].includes(s)) return 'delivered';
-  if (['cancelled', 'cancelled_approval_pending', 'return', 'returned', 'paid_return', 'return_to_merchant', 'returned_to_merchant', 'pickup_cancel', 'pickup_cancelled'].includes(s)) return 'returned';
+  // The courier never collected the parcel: nothing came back, and no delivery was charged.
+  if (['pickup_cancel', 'pickup_cancelled'].includes(s)) return 'cancelled';
+  if (['cancelled', 'cancelled_approval_pending', 'return', 'returned', 'paid_return', 'return_to_merchant', 'returned_to_merchant'].includes(s)) return 'returned';
   return null;
 }
 

@@ -131,6 +131,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
 
               <Head>Operating expenses</Head>
               {CATEGORY_KEYS.filter((k) => n(p.expenses?.[k]) > 0).map((k) => <Line key={k} label={EXPENSE_CATEGORIES[k].label}>{money(-n(p.expenses[k]))}</Line>)}
+              {n(p.return_delivery) > 0 && <Line label={`Delivery cost on returned orders (${n(p.returned_orders)})`}>{money(-n(p.return_delivery))}</Line>}
               {expensesTotal === 0 && <Line label="No expenses entered">{money(0)}</Line>}
               <Total label="Total expenses">{money(-expensesTotal)}</Total>
 
@@ -142,7 +143,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
           </table>
           {n(p.returned_orders) > 0 && (
             <p className="border-t border-line px-5 py-3 text-[12.5px] text-muted">
-              {n(p.returned_orders)} order{n(p.returned_orders) === 1 ? ' was' : 's were'} returned in this period ({money(n(p.returned_value))}) — not counted as income. Enter the courier’s return charge as a Courier expense.
+              {n(p.returned_orders)} order{n(p.returned_orders) === 1 ? ' was' : 's were'} returned in this period ({money(n(p.returned_value))}) — not counted as income. Their delivery cost is already in the expenses above, so do not enter it again.
             </p>
           )}
         </section>
