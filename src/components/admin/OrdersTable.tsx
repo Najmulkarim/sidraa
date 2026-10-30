@@ -7,11 +7,12 @@ import { bulkSendToCourier, refreshCourierStatus } from '@/actions/admin-courier
 import { addNote, assignOrder, bulkStatus, deleteOrder, getOrderLogs, quickStatus, restoreOrder, type OrderLog } from '@/actions/admin-orders';
 import { COURIER_LABEL, courierStatusLabel, type CourierName } from '@/lib/courier/types';
 import { formatDateTime, formatTaka, toNumber } from '@/lib/format';
-import { nextStatuses, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
+import { isPickupCancelled, nextStatuses, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 import type { ActionState, Staff } from '@/lib/types';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { OrderEditDialog } from './OrderEditDialog';
+import { DuplicateOrderButton } from './DuplicateOrderButton';
 import { SendCourierDialog } from './SendCourierDialog';
 import { notify } from './Toaster';
 
@@ -44,7 +45,7 @@ export type OrderRow = {
 
 export type Stat = { delivered: number; failed: number; orders: number };
 export type CourierOptions = { default_courier: CourierName | null; steadfast: boolean; pathao: boolean };
-export type TablePerms = { courier: boolean; del: boolean };
+export type TablePerms = { courier: boolean; del: boolean; edit: boolean };
 
 const SOURCE_SHORT: Record<string, string> = { phone: 'Phone', facebook: 'Facebook', whatsapp: 'WhatsApp', instagram: 'Instagram', other: 'Manual' };
 
@@ -215,7 +216,7 @@ export function OrdersTable({
                     {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]">{SOURCE_SHORT[o.source] ?? o.source}</span>}
                   </td>
                   <td className="max-w-[270px] px-3 py-4">
-                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" />{o.customer_name}</p>
+                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><Link href={`/admin/customers/${o.customer_phone}`} className="hover:text-brand hover:underline" title="See this customer and all their orders">{o.customer_name}</Link></p>
                     <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
                       <Icon name="phone" size={13} className="text-muted" />
                       <a href={`tel:${o.customer_phone}`} className="font-mono hover:text-brand">{o.customer_phone}</a>
@@ -260,7 +261,7 @@ export function OrdersTable({
                     {o.deleted_at ? (
                       <span className="inline-flex rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-semibold text-muted">Deleted · {STATUS_LABEL[o.status]}</span>
                     ) : next.length === 0 ? (
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLE[o.status]}`}>● {STATUS_LABEL[o.status]}</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLE[o.status]}`}>● {o.status === 'cancelled' && isPickupCancelled(o.courier_status) ? 'Pickup cancelled' : STATUS_LABEL[o.status]}</span>
                     ) : (
                       <select
                         aria-label={`Status of ${o.public_ref}`}
@@ -337,6 +338,7 @@ export function OrdersTable({
                           >
                             <Icon name="ban" size={16} />
                           </button>
+                          {perms.edit && <DuplicateOrderButton id={o.id} publicRef={o.public_ref} icon />}
                           <button type="button" title="Edit" aria-label={`Edit ${o.public_ref}`} disabled={busy} onClick={() => setEditing(o)} className="grid h-8 w-8 place-items-center rounded-lg border border-line text-[#4338ca] hover:bg-[#eef2ff]">
                             <Icon name="pencil" size={16} />
                           </button>

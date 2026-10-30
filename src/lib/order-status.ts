@@ -71,6 +71,11 @@ const NEXT: Record<OrderStatus, OrderStatus[]> = {
 export const RESTOCKING: OrderStatus[] = ['cancelled', 'returned', 'fake'];
 export const FINAL: OrderStatus[] = ['cancelled', 'returned', 'lost', 'fake'];
 
+/** The courier cancelled the pickup: a cancelled order whose parcel never left. */
+export function isPickupCancelled(courierStatus: string | null | undefined): boolean {
+  return /pickup[^a-z]*cancel/i.test(courierStatus ?? '');
+}
+
 export function isOrderStatus(value: unknown): value is OrderStatus {
   return typeof value === 'string' && (ORDER_STATUSES as readonly string[]).includes(value);
 }

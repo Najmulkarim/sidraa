@@ -48,7 +48,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
                     <p className="font-mono text-[12px]"><a href={`tel:${r.phone}`} className="hover:text-brand">{r.phone}</a> <span className="text-muted">· {r.district}</span></p>
                     {r.blocked && r.block_reason && <p className="text-[11.5px] text-bad">{r.block_reason}</p>}
                   </td>
-                  <td className="px-3 py-3 text-right"><Link href={`/admin/orders?q=${r.phone}&range=all`} className="font-semibold text-brand hover:underline">{r.orders}</Link></td>
+                  <td className="px-3 py-3 text-right"><Link href={`/admin/customers/${r.phone}`} className="font-semibold text-brand hover:underline">{r.orders}</Link></td>
                   <td className="px-3 py-3 text-right">{r.delivered}{pct !== null && <span className={`ml-1 text-[11px] font-semibold ${pct >= 80 ? 'text-ok' : pct >= 50 ? 'text-warn' : 'text-bad'}`}>{pct}%</span>}</td>
                   <td className="px-3 py-3 text-right">{r.returned}</td>
                   <td className="px-3 py-3 text-right">{r.cancelled}</td>

@@ -1,4 +1,4 @@
-import { STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
+import { isPickupCancelled, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
 
 const TONE: Record<OrderStatus, string> = {
   pending: 'bg-[#eef2ff] text-[#4338ca]',
@@ -14,6 +14,6 @@ const TONE: Record<OrderStatus, string> = {
   fake: 'bg-[#1f1d2b] text-white',
 };
 
-export function StatusBadge({ status }: { status: OrderStatus }) {
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${TONE[status]}`}>{STATUS_LABEL[status]}</span>;
+export function StatusBadge({ status, courierStatus }: { status: OrderStatus; courierStatus?: string | null }) {
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${TONE[status]}`}>{status === 'cancelled' && isPickupCancelled(courierStatus) ? 'Pickup cancelled' : STATUS_LABEL[status]}</span>;
 }

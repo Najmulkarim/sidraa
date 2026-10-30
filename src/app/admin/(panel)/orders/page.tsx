@@ -28,12 +28,15 @@ const TABS: Tab[] = [
   { key: 'delivered', label: STATUS_LABEL.delivered },
   { key: 'paid', label: 'Paid' },
   { key: 'cancelled', label: STATUS_LABEL.cancelled },
+  { key: 'pickup_cancel', label: 'Pickup cancel' },
   { key: 'returned', label: 'Return' },
   { key: 'lost', label: STATUS_LABEL.lost },
   { key: 'fake', label: STATUS_LABEL.fake },
   { key: 'deleted', label: 'Deleted' },
 ];
 const ROW_OPTIONS = [25, 50, 100];
+// Mirrors isPickupCancelled(): Pathao sends "Pickup_Cancelled".
+const PICKUP_CANCEL = 'pickup%cancel%';
 
 type Counts = { all: number; deleted: number; paid: number; pending_total: number; by_status: Partial<Record<OrderStatus, number>> };
 
@@ -60,6 +63,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (tab === 'deleted') query = query.not('deleted_at', 'is', null);
   else query = query.is('deleted_at', null);
   if (tab === 'paid') query = query.gt('paid_amount', 0);
+  else if (tab === 'pickup_cancel') query = query.eq('status', 'cancelled').ilike('courier_status', PICKUP_CANCEL);
+  else if (tab === 'cancelled') query = query.eq('status', 'cancelled').or(`courier_status.is.null,courier_status.not.ilike.${PICKUP_CANCEL.replaceAll('%', '*')}`);
   else if (isOrderStatus(tab)) query = query.eq('status', tab);
   if (emp) query = query.eq('assigned_to', emp);
   if (!allTime) query = query.gte('created_at', dhakaDayStartUtc(range.from)).lt('created_at', dhakaDayStartUtc(addDays(range.to, 1)));
@@ -74,11 +79,17 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   }
 
   const from = (page - 1) * rows;
-  const [{ data, count, error }, { data: staffData }, { data: countData }, { data: courierData }] = await Promise.all([
+  // Tab count for Pickup cancel, with the same period and employee as the other tabs.
+  let pickupQuery = supabase.from('orders').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'cancelled').ilike('courier_status', PICKUP_CANCEL);
+  if (emp) pickupQuery = pickupQuery.eq('assigned_to', emp);
+  if (!allTime) pickupQuery = pickupQuery.gte('created_at', dhakaDayStartUtc(range.from)).lt('created_at', dhakaDayStartUtc(addDays(range.to, 1)));
+
+  const [{ data, count, error }, { data: staffData }, { data: countData }, { data: courierData }, { count: pickupCount }] = await Promise.all([
     query.order('created_at', { ascending: false }).range(from, from + rows - 1),
     supabase.rpc('list_staff'),
     supabase.rpc('order_tab_counts', { p_from: allTime ? null : range.from, p_to: allTime ? null : range.to, p_assigned: emp || null }),
     can.has('courier') ? supabase.rpc('courier_options') : Promise.resolve({ data: null }),
+    pickupQuery,
   ]);
   if (error) console.error('[admin] orders', error);
 
@@ -117,7 +128,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const staff = (staffData ?? []) as Staff[];
   const counts = (countData ?? { all: 0, deleted: 0, paid: 0, pending_total: 0, by_status: {} }) as Counts;
   const countOf = (key: string) =>
-    key === 'all' ? counts.all : key === 'deleted' ? counts.deleted : key === 'paid' ? counts.paid : (counts.by_status[key as OrderStatus] ?? 0);
+    key === 'all' ? counts.all : key === 'deleted' ? counts.deleted : key === 'paid' ? counts.paid : key === 'pickup_cancel' ? (pickupCount ?? 0) : key === 'cancelled' ? Math.max(0, (counts.by_status.cancelled ?? 0) - (pickupCount ?? 0)) : (counts.by_status[key as OrderStatus] ?? 0);
 
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / rows));
@@ -189,7 +200,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                 }`}
               >
                 {t.label}
-                <span className={`rounded-md px-1.5 font-mono text-[11px] font-semibold ${active ? 'bg-brand text-white' : n > 0 && (t.key === 'pending' || t.key === 'returned' || t.key === 'cancelled') ? 'bg-[#fee2e2] text-[#b91c1c]' : 'bg-[#eef2ff] text-[#4338ca]'}`}>{n}</span>
+                <span className={`rounded-md px-1.5 font-mono text-[11px] font-semibold ${active ? 'bg-brand text-white' : n > 0 && (t.key === 'pending' || t.key === 'returned' || t.key === 'cancelled' || t.key === 'pickup_cancel') ? 'bg-[#fee2e2] text-[#b91c1c]' : 'bg-[#eef2ff] text-[#4338ca]'}`}>{n}</span>
                 {t.key === 'pending' && counts.pending_total > 0 && <span className="font-mono text-[11px] text-muted">{formatTaka(counts.pending_total)}</span>}
               </Link>
             );
@@ -202,7 +213,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         stats={stats}
         staff={staff}
         deletedTab={tab === 'deleted'}
-        perms={{ courier: can.has('courier'), del: can.has('orders_delete') }}
+        perms={{ courier: can.has('courier'), del: can.has('orders_delete'), edit: can.has('orders_edit') }}
         couriers={(courierData ?? null) as CourierOptions | null}
         blocked={((blockedData ?? []) as { phone: string }[]).map((b) => b.phone)}
       />

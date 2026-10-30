@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
@@ -25,6 +26,54 @@ function fail(error: Parameters<typeof mapDbError>[0], context: string): ActionS
 }
 
 const uuid = z.uuid();
+
+/** A new order with the same customer, items, prices and delivery; it starts as New with its own number. */
+export async function duplicateOrder(orderId: string): Promise<ActionState> {
+  const { supabase, user } = await requirePermission('orders_edit');
+  const id = uuid.safeParse(orderId);
+  if (!id.success) return { ok: false, message: 'Invalid order.' };
+  const { data, error } = await supabase
+    .from('orders')
+    .select('public_ref, customer_name, customer_phone, address, district, area, note, zone_id, delivery_charge, discount, source, items:order_items(variant_id, product_name, quantity, unit_price)')
+    .eq('id', id.data)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) return fail(error, 'read order to duplicate');
+  if (!data) return { ok: false, message: 'Order not found.' };
+  const o = data as unknown as {
+    public_ref: string; customer_name: string; customer_phone: string; address: string; district: string; area: string | null; note: string | null;
+    zone_id: string | null; delivery_charge: number | string; discount: number | string; source: string;
+    items: { variant_id: string | null; product_name: string; quantity: number; unit_price: number | string }[];
+  };
+  const gone = o.items.filter((i) => !i.variant_id).map((i) => i.product_name);
+  if (gone.length) return { ok: false, message: `Cannot duplicate: no longer in the shop: ${gone.join(', ')}.` };
+
+  const { data: made, error: saveError } = await supabase
+    .rpc('admin_save_order', {
+      p_order_id: null,
+      p_payload: {
+        idempotency_key: randomUUID(),
+        customer_name: o.customer_name,
+        customer_phone: o.customer_phone,
+        address: o.address,
+        district: o.district,
+        area: o.area,
+        note: o.note,
+        zone_id: o.zone_id,
+        delivery_charge: toNumber(o.delivery_charge),
+        discount: toNumber(o.discount),
+        source: o.source,
+        status: 'pending',
+        items: o.items.map((i) => ({ variant_id: i.variant_id, quantity: i.quantity, unit_price: toNumber(i.unit_price) })),
+      },
+    })
+    .single<{ order_id: string; public_ref: string; total: number | string }>();
+  if (saveError || !made) return fail(saveError, 'duplicate order');
+
+  await supabase.from('order_notes').insert({ order_id: made.order_id, body: `Duplicate of ${o.public_ref}`, created_by: user.id });
+  refresh(made.order_id, true);
+  return { ok: true, message: `${made.public_ref} created from ${o.public_ref}.`, values: { orderId: made.order_id, publicRef: made.public_ref } };
+}
 
 /** Status form on the order detail page. Goes through set_order_status(),
  *  which enforces the workflow and returns stock exactly once. */

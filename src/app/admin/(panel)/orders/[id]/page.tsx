@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CourierPanel } from '@/components/admin/CourierPanel';
+import { DuplicateOrderButton } from '@/components/admin/DuplicateOrderButton';
 import { PaymentPanel } from '@/components/admin/PaymentPanel';
 import { NotifyOnLoad } from '@/components/admin/Toaster';
 import type { CourierOptions, OrderRow } from '@/components/admin/OrdersTable';
@@ -42,7 +43,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
       <header className="flex flex-wrap items-center gap-3">
         <Link href="/admin/orders" className="text-sm text-muted hover:text-ink">← Orders</Link>
         <h1 className="font-mono text-2xl font-bold text-brand">{order.public_ref}</h1>
-        <StatusBadge status={order.status} />
+        <StatusBadge status={order.status} courierStatus={order.courier_status} />
         {order.deleted_at && <span className="badge">Deleted</span>}
         {order.source !== 'website' && <span className="badge">Source: {order.source}</span>}
         {order.coupon_code && <span className="badge badge-brand">Coupon {order.coupon_code}</span>}
@@ -50,6 +51,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           {can.has('orders_edit') && open && !order.courier_consignment_id && (
             <Link href={`/admin/orders/${order.id}/edit`} className="btn btn-primary btn-sm">Edit order</Link>
           )}
+          {can.has('orders_edit') && !order.deleted_at && <DuplicateOrderButton id={order.id} publicRef={order.public_ref} />}
           <Link href={`/admin/orders/${order.id}/slip`} target="_blank" className="btn btn-outline btn-sm">Print packing slip</Link>
         </span>
       </header>
@@ -112,7 +114,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <section className="card space-y-3 p-5">
             <h2 className="font-semibold">Customer</h2>
             {order.redacted_at && <p className="badge">Personal details removed {formatDateTime(order.redacted_at)}</p>}
-            <p className="text-lg font-medium">{order.customer_name}</p>
+            <p className="text-lg font-medium"><Link href={`/admin/customers/${order.customer_phone}`} className="hover:text-brand hover:underline">{order.customer_name}</Link></p>
             <p>
               <a href={`tel:${order.customer_phone}`} className="font-semibold text-brand">{formatBdPhone(order.customer_phone)}</a>
             </p>
