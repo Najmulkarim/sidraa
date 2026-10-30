@@ -155,7 +155,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
           {q || status ? <>No products match. <Link href="/admin/products" className="text-brand underline">Show all</Link></> : <>No products yet. <Link href="/admin/products/new" className="text-brand underline">Add one</Link>.</>}
         </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 min-[112.5rem]:grid-cols-10">
           {rows.map((p) => {
             const active = p.variants.filter((v) => v.is_active);
             const stock = active.reduce((n, v) => n + v.stock, 0);
