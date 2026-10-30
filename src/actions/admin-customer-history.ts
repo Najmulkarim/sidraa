@@ -38,7 +38,7 @@ export type CustomerHistory = {
   direct?: DirectResult[];
 };
 
-/** The record behind the % in the orders list. The phone number leaves this site only when the key is set. */
+/** The record behind the % in the orders list. The phone number goes to BD Courier, or to Pathao and Steadfast, only when this is opened. */
 export async function getCustomerHistory(phone: string): Promise<CustomerHistory> {
   const { supabase } = await requirePermission('orders');
   if (!/^01[0-9]{9}$/.test(phone)) return { ok: false, message: 'Invalid phone number.' };
