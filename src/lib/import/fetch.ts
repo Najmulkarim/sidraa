@@ -5,6 +5,8 @@ import { isBlockedAddress } from './address';
 const UA = 'Mozilla/5.0 (compatible; SidraaProductImport/1.0)';
 
 export class ImportError extends Error {}
+/** The site refuses this server; the same page can still be pasted from the person's own browser. */
+export class BlockedError extends ImportError {}
 
 /** A public http(s) address only: staff must not be able to reach the server's own network through this. */
 async function assertPublic(url: URL) {
@@ -39,7 +41,7 @@ export async function safeFetch(start: string, { accept, maxBytes, timeoutMs = 1
       url = new URL(res.headers.get('location')!, url);
       continue;
     }
-    if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503) throw new ImportError('That website blocks automatic reading. Add this product by hand.');
+    if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 503) throw new BlockedError('That website does not let our server read it.');
     if (!res.ok || !res.body) throw new ImportError(`That page could not be opened (error ${res.status}).`);
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];

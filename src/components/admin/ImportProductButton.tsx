@@ -13,6 +13,9 @@ export function ImportProductButton() {
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The site refused our server: ask for the page source from the browser instead.
+  const [blocked, setBlocked] = useState(false);
+  const [source, setSource] = useState('');
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -27,12 +30,13 @@ export function ImportProductButton() {
     setError(null);
     start(async () => {
       try {
-        const r = await importProduct(link);
+        const r = await importProduct(link, blocked && source.trim() ? source : undefined);
         if (r.ok && r.values?.productId) {
           notify(true, r.message);
           router.push(`/admin/products/${r.values.productId}`);
         } else {
           setError(r.message ?? 'Could not import that page.');
+          if (r.values?.blocked) setBlocked(true);
         }
       } catch (err) {
         console.error('[admin] import', err);
@@ -43,7 +47,7 @@ export function ImportProductButton() {
 
   return (
     <>
-      <button type="button" onClick={() => { setOpen(true); setError(null); setLink(''); }} className="btn btn-outline btn-sm h-11">
+      <button type="button" onClick={() => { setOpen(true); setError(null); setLink(''); setBlocked(false); setSource(''); }} className="btn btn-outline btn-sm h-11">
         <Icon name="plus" size={15} /> Import
       </button>
       {open && createPortal(
@@ -55,13 +59,25 @@ export function ImportProductButton() {
             </div>
             <div className="field">
               <label htmlFor="import-link" className="label">Product link</label>
-              <input id="import-link" type="url" required autoFocus value={link} onChange={(e) => setLink(e.target.value)} disabled={pending} placeholder="https://…" className="input" />
+              <input id="import-link" type="url" required autoFocus value={link} onChange={(e) => { setLink(e.target.value); setBlocked(false); setSource(''); }} disabled={pending} placeholder="https://…" className="input" />
             </div>
+            {blocked && (
+              <div className="field">
+                <label htmlFor="import-source" className="label">Page source</label>
+                <ol className="mb-2 list-decimal space-y-0.5 pl-5 text-[12.5px] text-muted">
+                  <li>Open the product link in a new tab.</li>
+                  <li>Press <kbd className="rounded border border-line bg-soft px-1">Ctrl</kbd> + <kbd className="rounded border border-line bg-soft px-1">U</kbd>. A page of code opens.</li>
+                  <li>Press <kbd className="rounded border border-line bg-soft px-1">Ctrl</kbd> + <kbd className="rounded border border-line bg-soft px-1">A</kbd>, then <kbd className="rounded border border-line bg-soft px-1">Ctrl</kbd> + <kbd className="rounded border border-line bg-soft px-1">C</kbd>.</li>
+                  <li>Paste it below and press Import.</li>
+                </ol>
+                <textarea id="import-source" required rows={4} value={source} onChange={(e) => setSource(e.target.value)} disabled={pending} placeholder="Paste here" className="input font-mono text-[12px]" />
+              </div>
+            )}
             {error && <p role="alert" className="rounded-lg bg-bad/10 px-3 py-2 text-[13px] text-bad">{error}</p>}
             <p className="text-[12px] text-muted">Check the photos and text before publishing. Import only what you are allowed to sell, and do not use another shop’s photos without permission.</p>
             <div className="flex gap-2">
               <button type="button" disabled={pending} onClick={() => setOpen(false)} className="btn btn-outline flex-1">Cancel</button>
-              <button type="submit" disabled={pending || !link.trim()} className="btn btn-primary flex-1">{pending ? 'Importing…' : 'Import'}</button>
+              <button type="submit" disabled={pending || !link.trim() || (blocked && !source.trim())} className="btn btn-primary flex-1">{pending ? 'Importing…' : 'Import'}</button>
             </div>
           </form>
         </div>,

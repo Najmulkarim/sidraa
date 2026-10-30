@@ -6,27 +6,31 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
 import { mapDbError } from '@/lib/db-errors';
 import { IMAGE_BUCKET } from '@/lib/env';
-import { ImportError, imageType, safeFetch } from '@/lib/import/fetch';
+import { BlockedError, ImportError, imageType, safeFetch } from '@/lib/import/fetch';
 import { parseProductPage } from '@/lib/import/parse';
 import { slugify } from '@/lib/slug';
 import type { ActionState } from '@/lib/types';
 
 const MAX_PAGE = 8 * 1024 * 1024;
 const MAX_PHOTO = 5 * 1024 * 1024;
+// Under the 1 MB limit on what a server action accepts.
+const MAX_PASTE = 900_000;
 
 /**
  * Creates a Draft product from a link: name, description, photos, variations and
  * (in Taka) price, whatever the page offers. It stays hidden until staff check it,
  * so a supplier's price or text can never reach customers by accident.
  */
-export async function importProduct(link: string): Promise<ActionState> {
+export async function importProduct(link: string, pastedSource?: string): Promise<ActionState> {
   const { supabase } = await requirePermission('catalog');
   const parsedLink = z.url().max(2000).safeParse(link.trim());
   if (!parsedLink.success) return { ok: false, message: 'Paste the full link of a product page.' };
 
   try {
-    const page = await safeFetch(parsedLink.data, { accept: 'text/html,application/xhtml+xml', maxBytes: MAX_PAGE });
-    const html = page.bytes.toString('utf8');
+    if (pastedSource && pastedSource.length > MAX_PASTE) return { ok: false, message: 'That page source is too long to paste here. Add this product by hand.', values: { blocked: '1' } };
+    // Pasted source: the page as staff see it in their own browser.
+    const page = pastedSource ? { url: parsedLink.data } : await safeFetch(parsedLink.data, { accept: 'text/html,application/xhtml+xml', maxBytes: MAX_PAGE });
+    const html = pastedSource ?? (page as { bytes: Buffer }).bytes.toString('utf8');
 
     let shopify: unknown;
     const handle = /^(.*\/products\/[^/?#.]+)/.exec(page.url)?.[1];
@@ -40,7 +44,7 @@ export async function importProduct(link: string): Promise<ActionState> {
     }
 
     const p = parseProductPage(html, page.url, shopify);
-    if (!p) return { ok: false, message: 'No product was found on that page. Add it by hand.' };
+    if (!p) return { ok: false, message: pastedSource ? 'No product was found in what you pasted. Copy the whole page source, or add it by hand.' : 'No product was found on that page. Add it by hand.', values: pastedSource ? { blocked: '1' } : undefined };
 
     const id = randomUUID();
     const slug = `${slugify(p.name).slice(0, 70) || 'product'}-${id.slice(0, 6)}`;
@@ -85,6 +89,7 @@ export async function importProduct(link: string): Promise<ActionState> {
     ].filter(Boolean).join(' · ');
     return { ok: true, message: `Imported as Draft. ${notes}.`, values: { productId: id } };
   } catch (e) {
+    if (e instanceof BlockedError) return { ok: false, message: e.message, values: { blocked: '1' } };
     if (e instanceof ImportError) return { ok: false, message: e.message };
     console.error('[admin] import', e);
     return { ok: false, message: 'Could not read that page. Add this product by hand.' };
