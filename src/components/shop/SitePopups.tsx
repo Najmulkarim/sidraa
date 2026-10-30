@@ -34,7 +34,7 @@ function write(store: 'local' | 'session', key: string, value: string) {
  * window, or on phones a quick scroll back up (a phone gives no earlier sign), at most
  * once a week, never during checkout and never after this browser has placed an order.
  */
-export function SitePopups({ popups, exitCode }: { popups: Storefront['popups']; exitCode: string | null }) {
+export function SitePopups({ popups, exitCode, storeName }: { popups: Storefront['popups']; exitCode: string | null; storeName: string }) {
   const path = usePathname();
   const [open, setOpen] = useState<'welcome' | 'exit' | null>(null);
   const [copied, setCopied] = useState(false);
@@ -113,20 +113,25 @@ export function SitePopups({ popups, exitCode }: { popups: Storefront['popups'];
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-night/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="site-popup-title" onClick={close}>
-      <div className="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 text-center text-ink shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <button type="button" autoFocus onClick={close} aria-label="Close" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-soft hover:text-ink"><Icon name="x" size={18} /></button>
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-tint text-brand"><Icon name={open === 'welcome' ? 'truck' : 'tag'} size={26} /></span>
-        <div>
-          <h2 id="site-popup-title" className="font-display text-xl font-bold leading-snug">{p.title}</h2>
-          {p.text && <p className="mt-1.5 text-sm text-muted">{p.text}</p>}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-5" role="dialog" aria-modal="true" aria-labelledby="site-popup-title" onClick={close}>
+      {/* Classic card: cream paper, a thin gold frame inside, serif heading. */}
+      <div ref={(el) => el?.focus()} tabIndex={-1} className="relative w-full max-w-[26rem] bg-[#fbf7f0] p-2.5 text-center text-[#1f1a17] shadow-2xl outline-none [font-variant-numeric:lining-nums]" onClick={(e) => e.stopPropagation()}>
+        <div className="border border-[#b08d57] px-7 pb-8 pt-9">
+          <button type="button" onClick={close} aria-label="Close" className="absolute right-4 top-4 grid h-9 w-9 place-items-center text-[#7a6a58] hover:text-[#1f1a17]"><Icon name="x" size={17} /></button>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#b08d57]">{storeName}</p>
+          <div className="mx-auto mt-4 flex items-center justify-center gap-2.5 text-[#b08d57]" aria-hidden="true">
+            <span className="h-px w-10 bg-current" /><span className="h-1.5 w-1.5 rotate-45 bg-current" /><span className="h-px w-10 bg-current" />
+          </div>
+          <h2 id="site-popup-title" className="mt-5 font-[family-name:var(--f-playfair)] text-[1.7rem] font-medium leading-tight">{p.title}</h2>
+          {p.text && <p className="mx-auto mt-3 max-w-[20rem] text-[14px] leading-relaxed text-[#5f5348]">{p.text}</p>}
+          {code && (
+            <button type="button" onClick={copy} className="mt-6 block w-full border border-dashed border-[#b08d57] bg-white/60 px-4 py-3 hover:bg-white">
+              <span className="block font-[family-name:var(--f-playfair)] text-xl font-semibold tracking-[0.18em]">{code}</span>
+              <span className="mt-0.5 block text-[11px] uppercase tracking-[0.14em] text-[#7a6a58]">{copied ? 'Copied ✓' : 'Tap to copy'}</span>
+            </button>
+          )}
+          <Link href={p.link} onClick={() => { if (code) write('local', SAVED_COUPON, code); close(); }} className="mt-6 block bg-[#1f1a17] px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.24em] text-[#fbf7f0] transition hover:bg-[#b08d57]">{p.button}</Link>
         </div>
-        {code && (
-          <button type="button" onClick={copy} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand bg-tint/50 px-4 py-3 font-mono text-lg font-bold tracking-wider text-brand">
-            {code} <span className="font-sans text-[12px] font-semibold tracking-normal text-muted">{copied ? 'Copied ✓' : 'Tap to copy'}</span>
-          </button>
-        )}
-        <Link href={p.link} onClick={() => { if (code) write('local', SAVED_COUPON, code); close(); }} className="btn btn-primary w-full">{p.button}</Link>
       </div>
     </div>
   );

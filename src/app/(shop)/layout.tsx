@@ -26,7 +26,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       </a>
       {settings.fb_pixel_id && <FacebookPixel pixelId={settings.fb_pixel_id} />}
       {liveChat && <LiveChat id={liveChat} />}
-      <SitePopups popups={popups} exitCode={exitCode} />
+      <SitePopups popups={popups} exitCode={exitCode} storeName={settings.store_name} />
       <Header settings={settings} categories={categories} zones={zones} theme={settings.home_theme} />
       <main id="main">{children}</main>
       <Footer settings={settings} categories={categories} tone={settings.home_theme === 'luxora' || settings.home_theme === 'nova' ? 'dark' : 'light'} />
