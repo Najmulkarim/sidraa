@@ -1,11 +1,23 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { importProduct } from '@/actions/admin-import';
+import { bookmarkletHref } from '@/lib/import/bookmarklet';
 import { Icon } from '../icons';
 import { notify } from './Toaster';
+
+/** React refuses a javascript: link in JSX, so the bookmark's address is set directly. */
+function SendBookmark() {
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    ref.current?.setAttribute('href', bookmarkletHref(window.location.origin));
+  }, []);
+  return (
+    <a ref={ref} draggable onClick={(e) => e.preventDefault()} className="btn btn-primary btn-sm cursor-grab">Send to Sidraa</a>
+  );
+}
 
 /** Products toolbar: paste a product link; the product opens as a Draft to finish by hand. */
 export function ImportProductButton() {
@@ -62,8 +74,18 @@ export function ImportProductButton() {
               <input id="import-link" type="url" required autoFocus value={link} onChange={(e) => { setLink(e.target.value); setBlocked(false); setSource(''); }} disabled={pending} placeholder="https://…" className="input" />
             </div>
             {blocked && (
+              <div className="space-y-2 rounded-xl border border-line bg-soft p-3">
+                <p className="text-[13px] font-semibold">Easiest: a one-click button</p>
+                <ol className="list-decimal space-y-0.5 pl-5 text-[12.5px] text-muted">
+                  <li>Press <kbd className="rounded border border-line bg-white px-1">Ctrl</kbd> + <kbd className="rounded border border-line bg-white px-1">Shift</kbd> + <kbd className="rounded border border-line bg-white px-1">B</kbd> to show your bookmarks bar.</li>
+                  <li>Drag this button up to the bar (once only): <SendBookmark /></li>
+                  <li>On any product page, click it in the bar, then press Import.</li>
+                </ol>
+              </div>
+            )}
+            {blocked && (
               <div className="field">
-                <label htmlFor="import-source" className="label">Page source</label>
+                <label htmlFor="import-source" className="label">Or paste the page source</label>
                 <ol className="mb-2 list-decimal space-y-0.5 pl-5 text-[12.5px] text-muted">
                   <li>Open the product link in a new tab.</li>
                   <li>Press <kbd className="rounded border border-line bg-soft px-1">Ctrl</kbd> + <kbd className="rounded border border-line bg-soft px-1">U</kbd>. A page of code opens.</li>
