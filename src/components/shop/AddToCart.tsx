@@ -221,16 +221,18 @@ export function AddToCart({
               const anyStock = variants.some((v) => v[g.key] === o.value && buyable(v));
               // A pre-order takes every option, stock or not.
               const available = preorder || canPick(variants, sel, g.key, o.value);
-              const struck = !anyStock || (exists(variants, sel, g.key, o.value) && !available);
+              // Crossed out: sold out, or not made in the other choices picked (this colour has no such size).
+              const struck = !anyStock || !exists(variants, sel, g.key, o.value) || !available;
               const base = `rounded-xl border-[1.5px] text-sm font-semibold transition ${active ? 'border-brand ring-2 ring-brand/25' : 'border-line hover:border-ink'} ${!anyStock ? 'cursor-not-allowed opacity-50' : ''}`;
               return o.image ? (
-                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (sold out)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
+                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
                   <span className="relative block aspect-[4/5] overflow-hidden rounded-lg bg-tint"><ProductImage path={o.image} alt="" sizes="72px" /></span>
                   <span className={`mt-1 block truncate text-[12px] ${struck ? 'text-muted line-through' : ''}`}>{o.value}</span>
                 </button>
               ) : (
-                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (sold out)' : ''}`} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} min-h-11 min-w-14 px-4 ${active ? 'bg-brand text-white' : 'bg-card'} ${struck && !active ? 'text-muted line-through' : ''}`}>
+                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} relative min-h-11 min-w-14 overflow-hidden px-4 ${active ? 'bg-brand text-white' : 'bg-card'} ${struck && !active ? 'text-muted line-through' : ''}`}>
                   {o.value}
+                  {struck && !active && <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-px w-[140%] -translate-x-1/2 -translate-y-1/2 -rotate-[20deg] bg-muted/70" />}
                 </button>
               );
             })}
