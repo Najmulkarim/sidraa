@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { MAX_QTY } from '@/lib/cart';
 import { trackPixel } from '@/lib/facebook/pixel';
 import { formatTaka } from '@/lib/format';
@@ -124,6 +125,24 @@ export function AddToCart({
     setImage(selected?.image_path ?? colorImage);
   }, [selected?.image_path, colorImage, setImage]);
 
+  // Shown when a crossed-out size (or later option) is pressed: the current choice stays as it is.
+  // The first option (usually colour) can always be changed; the clashing size is then cleared.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotice(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [notice]);
+
+  function explain(key: OptionKey, value: string) {
+    const label = groups.find((g) => g.key === key)?.label ?? '';
+    const chosen = groups.filter((g) => g.key !== key && sel[g.key] !== undefined).map((g) => sel[g.key]).join(' / ');
+    if (!chosen) return setNotice(`${label} ${value} is sold out.`);
+    const made = exists(variants, sel, key, value);
+    setNotice(made ? `${chosen} in ${label.toLowerCase()} ${value} is sold out. Please choose another ${label.toLowerCase()}.` : `${chosen} does not come in ${label.toLowerCase()} ${value}. Please choose another ${label.toLowerCase()}.`);
+  }
+
   function pick(key: OptionKey, value: string) {
     setSel((cur) => {
       const next: Selection = { ...cur, [key]: value };
@@ -225,12 +244,12 @@ export function AddToCart({
               const struck = !anyStock || !exists(variants, sel, g.key, o.value) || !available;
               const base = `rounded-xl border-[1.5px] text-sm font-semibold transition ${active ? 'border-brand ring-2 ring-brand/25' : 'border-line hover:border-ink'} ${!anyStock ? 'cursor-not-allowed opacity-50' : ''}`;
               return o.image ? (
-                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
+                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => (struck && !active && g.key !== groups[0]?.key ? explain(g.key, o.value) : pick(g.key, o.value))} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
                   <span className="relative block aspect-[4/5] overflow-hidden rounded-lg bg-tint"><ProductImage path={o.image} alt="" sizes="72px" /></span>
                   <span className={`mt-1 block truncate text-[12px] ${struck ? 'text-muted line-through' : ''}`}>{o.value}</span>
                 </button>
               ) : (
-                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} disabled={!anyStock} onClick={() => pick(g.key, o.value)} className={`${base} relative min-h-11 min-w-14 overflow-hidden px-4 ${active ? 'bg-brand text-white' : 'bg-card'} ${struck && !active ? 'text-muted line-through' : ''}`}>
+                <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} disabled={!anyStock} onClick={() => (struck && !active && g.key !== groups[0]?.key ? explain(g.key, o.value) : pick(g.key, o.value))} className={`${base} relative min-h-11 min-w-14 overflow-hidden px-4 ${active ? 'bg-brand text-white' : 'bg-card'} ${struck && !active ? 'text-muted line-through' : ''}`}>
                   {o.value}
                   {struck && !active && <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-px w-[140%] -translate-x-1/2 -translate-y-1/2 -rotate-[20deg] bg-muted/70" />}
                 </button>
@@ -241,6 +260,17 @@ export function AddToCart({
       ))}
 
       </div>
+
+      {notice && createPortal(
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-5" role="alertdialog" aria-modal="true" aria-labelledby="option-notice" onClick={() => setNotice(null)}>
+          <div className="w-full max-w-xs space-y-4 rounded-2xl bg-white p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-tint text-brand"><Icon name="ban" size={22} /></span>
+            <p id="option-notice" className="text-[15px] font-semibold leading-snug text-ink">{notice}</p>
+            <button type="button" autoFocus onClick={() => setNotice(null)} className="btn btn-primary w-full">OK</button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* Buy box: right column on wide screens, after the pickers on phones. */}
       <aside aria-label="Buy" className="card space-y-4 p-4 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-3 xl:row-start-1">
