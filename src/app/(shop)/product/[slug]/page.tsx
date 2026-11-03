@@ -12,7 +12,7 @@ import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { parseDescription } from '@/lib/product-content';
-import { ListGroups, TextBlocks } from '@/components/shop/DescriptionParts';
+import { DescriptionFlow } from '@/components/shop/DescriptionParts';
 import { SeeMore } from '@/components/shop/SeeMore';
 import { Icon } from '@/components/icons';
 import { ProductReviews } from '@/components/shop/ProductReviews';
@@ -127,11 +127,11 @@ export default async function ProductPage({ params }: Props) {
 
   const details = (
     <>
-      {content.groups.length > 0 && (
+      {content.flow.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">About this item</h2>
           <SeeMore show={6} total={content.bullets.length}>
-            <ListGroups groups={content.groups} />
+            <DescriptionFlow flow={content.flow} />
           </SeeMore>
         </section>
       )}
@@ -160,12 +160,6 @@ export default async function ProductPage({ params }: Props) {
               )}
             </tbody>
           </table>
-        </section>
-      )}
-      {content.blocks.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold">Description</h2>
-          <TextBlocks blocks={content.blocks} />
         </section>
       )}
       <section className="card grid gap-3 p-4 text-[13px] sm:grid-cols-2">

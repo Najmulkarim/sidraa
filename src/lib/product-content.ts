@@ -13,7 +13,9 @@ import { normalizeBdPhone } from './phone';
 export type ListKind = 'check' | 'dot' | 'arrow' | 'number';
 export type ListGroup = { title: string | null; items: { kind: ListKind; text: string }[] };
 export type TextBlock = { type: 'h1' | 'h2' | 'p'; text: string } | { type: 'img'; text: string; src: string };
-export type ProductContent = { bullets: string[]; groups: ListGroup[]; specs: [string, string][]; text: string; blocks: TextBlock[] };
+/** Lists, headings, text and pictures in the order they were typed. */
+export type FlowItem = TextBlock | { type: 'list'; group: ListGroup };
+export type ProductContent = { bullets: string[]; groups: ListGroup[]; specs: [string, string][]; text: string; blocks: TextBlock[]; flow: FlowItem[] };
 
 // -, •, *, ✓, ✔, ✅, ☑, ▪, ●, ◆, ➤, ►, 🔹, 🔸 — with or without the emoji variation selector, or "1." / "1)".
 // A dash, dot, star or number needs a space after it ("-5% off" stays text); symbols and emoji do not.
@@ -36,12 +38,14 @@ export function parseDescription(description: string | null | undefined): Produc
   const groups: ListGroup[] = [];
   const specs: [string, string][] = [];
   const blocks: TextBlock[] = [];
+  const flow: FlowItem[] = [];
+  const add = (b: TextBlock) => { blocks.push(b); flow.push(b); };
   const text: string[] = [];
   let pendingTitle: string | null = null; // a heading that may belong to the list right below it
   let open: ListGroup | null = null;
   const flushTitle = () => {
     if (pendingTitle !== null) {
-      blocks.push({ type: 'h2', text: pendingTitle });
+      add({ type: 'h2', text: pendingTitle });
       text.push(pendingTitle);
       pendingTitle = null;
     }
@@ -49,7 +53,7 @@ export function parseDescription(description: string | null | undefined): Produc
   const paragraph = (line: string) => {
     const last = blocks[blocks.length - 1];
     if (last?.type === 'p' && !last.text.endsWith('\n\n')) last.text += `\n${line}`;
-    else blocks.push({ type: 'p', text: line });
+    else add({ type: 'p', text: line });
   };
   for (const raw of (description ?? '').split(/\r?\n/)) {
     const line = raw.trim();
@@ -66,7 +70,7 @@ export function parseDescription(description: string | null | undefined): Produc
     if (img) {
       flushTitle();
       open = null;
-      blocks.push({ type: 'img', text: img[1]!.trim(), src: img[2]! });
+      add({ type: 'img', text: img[1]!.trim(), src: img[2]! });
       continue;
     }
     const bullet = BULLET.exec(line);
@@ -74,7 +78,7 @@ export function parseDescription(description: string | null | undefined): Produc
       const body = bullet[4]!.trim();
       // "✅ Main Features:" titles the list that follows.
       if (/:\s*$/.test(body)) { flushTitle(); pendingTitle = body.replace(/:\s*$/, ''); open = null; continue; }
-      if (!open) { open = { title: pendingTitle, items: [] }; groups.push(open); pendingTitle = null; }
+      if (!open) { open = { title: pendingTitle, items: [] }; groups.push(open); flow.push({ type: 'list', group: open }); pendingTitle = null; }
       open.items.push({ kind: kindOf(bullet), text: body });
       continue;
     }
@@ -82,7 +86,7 @@ export function parseDescription(description: string | null | undefined): Produc
     const heading = HEADING.exec(line);
     if (heading) {
       flushTitle();
-      if (heading[1] === '#') { blocks.push({ type: 'h1', text: heading[2]!.trim() }); text.push(heading[2]!.trim()); }
+      if (heading[1] === '#') { add({ type: 'h1', text: heading[2]!.trim() }); text.push(heading[2]!.trim()); }
       else pendingTitle = heading[2]!.trim();
       continue;
     }
@@ -99,6 +103,7 @@ export function parseDescription(description: string | null | undefined): Produc
     specs,
     text: text.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
     blocks: blocks.filter((bl) => bl.type === 'img' || bl.text),
+    flow: flow.filter((f) => f.type === 'list' || f.type === 'img' || f.text),
   };
 }
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { boldRuns, splitBullet, type ListGroup, type TextBlock } from '@/lib/product-content';
+import { boldRuns, splitBullet, type FlowItem, type ListGroup, type TextBlock } from '@/lib/product-content';
 import { Icon } from '../icons';
 
 /** Text with **bold** parts. */
@@ -44,15 +44,27 @@ export function ListGroups({ groups }: { groups: ListGroup[] }) {
   );
 }
 
-/** The description text: large and small headings, paragraphs. */
+function Block({ b }: { b: TextBlock }) {
+  if (b.type === 'img') {
+    // eslint-disable-next-line @next/next/no-img-element -- a picture placed in the description, at its own size
+    return <img src={b.src} alt={b.text} loading="lazy" decoding="async" className="h-auto max-w-full rounded-xl" />;
+  }
+  if (b.type === 'h1') return <h3 className="text-xl font-bold text-ink"><Rich text={b.text} /></h3>;
+  if (b.type === 'h2') return <h4 className="text-[16px] font-semibold text-ink"><Rich text={b.text} /></h4>;
+  return <p className="whitespace-pre-line text-ink/85"><Rich text={b.text} /></p>;
+}
+
+/** The description text: large and small headings, paragraphs, pictures. */
 export function TextBlocks({ blocks }: { blocks: TextBlock[] }) {
-  const out: ReactNode[] = blocks.map((b, i) =>
-    b.type === 'img'
-      // eslint-disable-next-line @next/next/no-img-element -- a picture placed in the description, at its own size
-      ? <img key={i} src={b.src} alt={b.text} loading="lazy" decoding="async" className="h-auto max-w-full rounded-xl" />
-    : b.type === 'h1' ? <h3 key={i} className="text-xl font-bold text-ink"><Rich text={b.text} /></h3>
-    : b.type === 'h2' ? <h4 key={i} className="text-[16px] font-semibold text-ink"><Rich text={b.text} /></h4>
-    : <p key={i} className="whitespace-pre-line"><Rich text={b.text} /></p>,
-  );
+  const out: ReactNode[] = blocks.map((b, i) => <Block key={i} b={b} />);
   return <div className="space-y-3 text-[15px] leading-relaxed text-ink/85">{out}</div>;
+}
+
+/** Everything typed in the description (lists, headings, text, pictures) in its own order. */
+export function DescriptionFlow({ flow }: { flow: FlowItem[] }) {
+  return (
+    <div className="space-y-4 text-[15px] leading-relaxed">
+      {flow.map((f, i) => (f.type === 'list' ? <ListGroups key={i} groups={[f.group]} /> : <Block key={i} b={f} />))}
+    </div>
+  );
 }

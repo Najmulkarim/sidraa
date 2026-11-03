@@ -24,11 +24,15 @@ describe('parseDescription', () => {
     expect(splitBullet('Comes with a case')).toEqual([null, 'Comes with a case']);
   });
   it('handles an empty description', () => {
-    expect(parseDescription(null)).toEqual({ bullets: [], groups: [], specs: [], text: '', blocks: [] });
+    expect(parseDescription(null)).toEqual({ bullets: [], groups: [], specs: [], text: '', blocks: [], flow: [] });
   });
 });
 
 describe('formatted descriptions', () => {
+  it('keeps lists, text and pictures in the order typed', () => {
+    const r = parseDescription('## Features\n- Soft\n\n![](https://x.co/a.jpg)\n\nMaterial: PU\n\nWarm.');
+    expect(r.flow.map((f) => f.type)).toEqual(['list', 'img', 'p']);
+  });
   it('reads pictures as their own blocks', () => {
     const r = parseDescription('Look:\n![Pink pair](https://x.supabase.co/a.jpg)\n![](https://x.supabase.co/b.jpg)');
     expect(r.blocks).toEqual([{ type: 'p', text: 'Look:' }, { type: 'img', text: 'Pink pair', src: 'https://x.supabase.co/a.jpg' }, { type: 'img', text: '', src: 'https://x.supabase.co/b.jpg' }]);

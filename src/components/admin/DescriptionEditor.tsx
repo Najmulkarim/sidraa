@@ -6,7 +6,7 @@ import { imageUrl } from '@/lib/env';
 import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import { descriptionToHtml, type ListMark } from '@/lib/description-html';
 import { parseDescription } from '@/lib/product-content';
-import { ListGroups, TextBlocks } from '../shop/DescriptionParts';
+import { DescriptionFlow } from '../shop/DescriptionParts';
 
 const LIST_PREFIX: Record<ListMark, string> = { check: '- ', dot: '• ', arrow: '➤ ' };
 
@@ -318,14 +318,13 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
       <input type="hidden" name="description" value={value} />
       {preview && (
         <div className="space-y-5 rounded-xl border border-dashed border-line bg-soft/60 p-4" aria-label="Preview">
-          {content.groups.length > 0 && <section><p className="mb-2 text-lg font-bold">About this item</p><ListGroups groups={content.groups} /></section>}
+          {content.flow.length > 0 && <section><p className="mb-2 text-lg font-bold">About this item</p><DescriptionFlow flow={content.flow} /></section>}
           {content.specs.length > 0 && (
             <section>
               <p className="mb-2 text-lg font-bold">Product details</p>
               <ul className="space-y-1 text-[14px]">{content.specs.map(([k, v]) => <li key={k}><b>{k}:</b> {v}</li>)}</ul>
             </section>
           )}
-          {content.blocks.length > 0 && <section><p className="mb-2 text-lg font-bold">Description</p><TextBlocks blocks={content.blocks} /></section>}
           {!value.trim() && <p className="text-sm text-muted">Nothing to show yet.</p>}
         </div>
       )}
