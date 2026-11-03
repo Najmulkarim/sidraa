@@ -77,7 +77,8 @@ export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; an
 
   return (
     <>
-      {!sections.some((s) => s.type === 'hero') && <h1 className="sr-only">{settings.store_name}</h1>}
+      {/* One <h1> per page (search engines read it): these themes' heroes have none, so add a hidden one. */}
+      {(!sections.some((s) => s.type === 'hero') || topdeal || urban || market || mega) && <h1 className="sr-only">{settings.store_name}{settings.tagline ? ` — ${settings.tagline}` : ''}</h1>}
       {(() => {
       const raw = sections.map((s, i) => {
         const key = s.id;

@@ -3,6 +3,7 @@ import { toCsv } from '@/lib/csv';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { createPublicClient } from '@/lib/supabase/public';
 import type { ProductWithRelations } from '@/lib/types';
+import { plainDescription } from '@/lib/product-content';
 
 /**
  * Product feed for a Facebook / Instagram catalog (Commerce Manager →
@@ -36,7 +37,7 @@ export async function GET() {
       return [
         p.id,
         p.name.slice(0, 150),
-        (p.description ?? p.name).replace(/\s+/g, ' ').slice(0, 5000),
+        plainDescription(p.description) || p.name,
         totalStock(p) > 0 || p.stock_out_mode === 'continue' ? 'in stock' : p.stock_out_mode === 'preorder' ? 'preorder' : 'out of stock',
         'new',
         `${(onSale ? compare! : min).toFixed(2)} BDT`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boldPerLine, boldRuns, parseDescription, splitBullet, whatsappOrderLink } from '@/lib/product-content';
+import { boldPerLine, boldRuns, plainDescription, parseDescription, splitBullet, whatsappOrderLink } from '@/lib/product-content';
 
 describe('parseDescription', () => {
   it('splits bullets, label: value lines and free text', () => {
@@ -48,6 +48,10 @@ describe('formatted descriptions', () => {
   });
   it('keeps a small heading as text when no list follows it', () => {
     expect(parseDescription('## Care\nWipe clean.').blocks).toEqual([{ type: 'h2', text: 'Care' }, { type: 'p', text: 'Wipe clean.' }]);
+  });
+  it('gives plain sentences for Google and previews', () => {
+    expect(plainDescription('## Key features\n- **Soft** lining\n• Non-slip sole\n![](https://x.co/a.jpg)\nWarm!')).toBe('Key features. Soft lining. Non-slip sole. Warm!');
+    expect(plainDescription('one two three four', 10)).toBe('one two…');
   });
   it('makes bold over several lines bold on each line', () => {
     expect(boldPerLine('**Email: a@b.com\nPhone: 017\nAddress: Dhaka**')).toBe('**Email: a@b.com**\n**Phone: 017**\n**Address: Dhaka**');

@@ -11,6 +11,7 @@ import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { lbl, type SectionSettings, type ThemeKey } from '@/lib/home-sections';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 import { Stars } from '../Stars';
+import { plainDescription } from '@/lib/product-content';
 
 /**
  * Home sections for the ShopEase, Luxe and NovaTrend themes. Each component
@@ -303,7 +304,7 @@ export function BestSellers({ theme, title, settings, products }: { theme: ShopT
                 <span className="w-fit rounded-md bg-[#fde68a] px-2 py-0.5 text-[11px] font-bold text-night">{lbl(settings, 'badge', 'Bestseller')}</span>
                 <Link href={`/product/${p.slug}`} className="line-clamp-2 text-[15px] font-semibold text-night hover:text-brand">{p.name}</Link>
                 <p className="flex items-baseline gap-1.5"><span className="text-[16px] font-bold">{formatTaka(d.min)}</span>{d.off > 0 && <s className="text-[12.5px] text-ink/45">{formatTaka(d.compare)}</s>}</p>
-                {p.description && <p className="line-clamp-2 text-[12.5px] text-ink/60">{p.description.replace(/[-•✓✔✅]/g, ' ').trim()}</p>}
+                {p.description && <p className="line-clamp-2 text-[12.5px] text-ink/60">{plainDescription(p.description, 200)}</p>}
                 <div className="mt-auto"><CartIconButton productId={p.id} productName={p.name} productSlug={p.slug} imagePath={d.image} price={d.min} variantId={d.single} soldOut={d.stock <= 0} look="wide" /></div>
               </div>
             </li>

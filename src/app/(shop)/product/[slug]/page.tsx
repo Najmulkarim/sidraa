@@ -11,7 +11,7 @@ import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
-import { parseDescription } from '@/lib/product-content';
+import { parseDescription, plainDescription } from '@/lib/product-content';
 import { DescriptionFlow } from '@/components/shop/DescriptionParts';
 import { SeeMore } from '@/components/shop/SeeMore';
 import { Icon } from '@/components/icons';
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProductBySlug(slug);
   if (!p) return { title: 'Not found' };
-  const description = p.seo_description ?? p.description?.slice(0, 160) ?? `Buy ${p.name} with cash on delivery.`;
+  const description = p.seo_description || plainDescription(p.description, 160) || `Buy ${p.name} with cash on delivery.`;
   return {
     title: p.seo_title ?? p.name,
     description,
@@ -67,7 +67,7 @@ export default async function ProductPage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    description: product.description ?? undefined,
+    description: plainDescription(product.description) || undefined,
     sku: product.sku,
     image: product.images.map((i) => imageUrl(i.storage_path)).filter(Boolean),
     brand: { '@type': 'Brand', name: settings.store_name },

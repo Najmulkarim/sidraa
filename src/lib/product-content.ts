@@ -34,6 +34,22 @@ function kindOf(m: RegExpExecArray): ListKind {
   return 'check';
 }
 
+/**
+ * The description as plain sentences, for Google, link previews and the
+ * Facebook catalogue: no "## ", "- ", "**" marks or picture links.
+ */
+export function plainDescription(text: string | null | undefined, max = 5000): string {
+  const lines = (text ?? '').replace(/\r\n/g, '\n').split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !IMAGE.test(l))
+    .map((l) => l.replace(/^#{1,2}\s+/, '').replace(BULLET, '$4').replace(/\*\*/g, '').trim())
+    .filter(Boolean)
+    // Each line ends like a sentence, so they read well joined together.
+    .map((l) => (/[.!?:;।]$/.test(l) ? l : `${l}.`));
+  const out = lines.join(' ').replace(/\s+/g, ' ').trim();
+  return out.length > max ? `${out.slice(0, max - 1).replace(/\s+\S*$/, '')}…` : out;
+}
+
 /** "**Email…\nPhone…**" (bold over several lines) → each line bold on its own, so no "**" is left showing. */
 export function boldPerLine(text: string): string {
   return text.replace(/\*\*([^*]+?)\*\*/g, (m, inner: string) => (inner.includes('\n')
