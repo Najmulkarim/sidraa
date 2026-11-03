@@ -15,9 +15,9 @@ const SOCIAL: Record<string, { label: string; bg: string }> = {
 
 /** White network marks, solid, for the coloured circles. */
 function BrandMark({ name }: { name: string }) {
-  const svg = { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true } as const;
-  if (name === 'facebook') return <svg {...svg} fill="currentColor"><path d="M14 8h3V4.5h-3c-2.5 0-4 1.6-4 4V11H7.5v3.5H10V21h3.5v-6.5h3L17 11h-3.5V8.6c0-.4.2-.6.5-.6Z" /></svg>;
-  if (name === 'youtube') return <svg {...svg} fill="currentColor"><path d="M9.5 7.8v8.4l7.2-4.2-7.2-4.2Z" /></svg>;
+  const svg = { width: 17, height: 17, viewBox: '0 0 24 24', 'aria-hidden': true } as const;
+  if (name === 'facebook') return <svg {...svg} width={18} height={18} viewBox="6 4 12 17.5" fill="currentColor"><path d="M14 8h3V4.5h-3c-2.5 0-4 1.6-4 4V11H7.5v3.5H10V21h3.5v-6.5h3L17 11h-3.5V8.6c0-.4.2-.6.5-.6Z" /></svg>;
+  if (name === 'youtube') return <svg {...svg} viewBox="5 5 14 14" fill="currentColor"><path d="M9.5 7.8v8.4l7.2-4.2-7.2-4.2Z" /></svg>;
   if (name === 'tiktok') return <svg {...svg} fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.6 2.2 4.4 5 4.6" /></svg>;
   return <svg {...svg} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none" /></svg>;
 }
@@ -54,7 +54,7 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
             <ul className="flex gap-2">
               {social.map(([k, v]) => (
                 <li key={k}>
-                  <a href={v as string} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL[k]!.label} style={{ background: SOCIAL[k]!.bg }} className="grid h-10 w-10 place-items-center rounded-full text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:brightness-110">
+                  <a href={v as string} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL[k]!.label} style={{ background: SOCIAL[k]!.bg }} className="grid h-8 w-8 place-items-center rounded-full text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:brightness-110">
                     <BrandMark name={k} />
                   </a>
                 </li>
