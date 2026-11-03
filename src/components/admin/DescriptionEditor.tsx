@@ -161,15 +161,31 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
     const root = ref.current;
     if (!root || !urls.length) return;
     root.focus();
-    if (spot.current !== null) putCaret(root, spot.current);
-    else {
-      const r = document.createRange();
-      r.selectNodeContents(root);
-      r.collapse(false);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(r);
+    // Each picture on its own line, below the line, point or list the cursor is in (never beside text).
+    let block: Node | null = null;
+    if (spot.current !== null) {
+      putCaret(root, spot.current);
+      block = window.getSelection()?.anchorNode ?? null;
+      while (block && block.parentNode !== root) block = block.parentNode;
     }
-    run('insertHTML', urls.map((u) => `<img src="${u.replace(/"/g, '&quot;')}" alt="">`).join('') + '<br>');
+    const pictures = urls.map((u) => {
+      const p = document.createElement('p');
+      const img = document.createElement('img');
+      img.src = u;
+      img.alt = '';
+      p.append(img);
+      return p;
+    });
+    const next = document.createElement('p');
+    next.append(document.createElement('br'));
+    if (block) (block as ChildNode).after(...pictures, next);
+    else root.append(...pictures, next);
+    // Carry on typing below the pictures.
+    const r = document.createRange();
+    r.setStart(next, 0);
+    r.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(r);
     spot.current = caretAt(root);
     sync();
   }
