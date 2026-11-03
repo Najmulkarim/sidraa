@@ -7,6 +7,8 @@
  */
 export type ListMark = 'check' | 'dot' | 'arrow';
 
+import { IMAGE } from './product-content';
+
 const HEADING = /^(#{1,2})\s+(.+)$/;
 const BULLET = /^(?:([-•*])\s+|(\d{1,2})[.)]\s+|([✓✔✅☑▪●◆➤►]|🔹|🔸)️?\s*)(.+)$/u;
 
@@ -38,6 +40,8 @@ export function descriptionToHtml(text: string | null | undefined): string {
   for (const raw of (text ?? '').split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) { flush(); continue; }
+    const img = IMAGE.exec(line);
+    if (img) { flush(); out.push(`<p><img src="${escape(img[2]!)}" alt="${escape(img[1]!)}"></p>`); continue; }
     const h = HEADING.exec(line);
     if (h) { flush(); out.push(h[1] === '#' ? `<h1>${inline(h[2]!)}</h1>` : `<h2>${inline(h[2]!)}</h2>`); continue; }
     const b = BULLET.exec(line);

@@ -47,7 +47,10 @@ export function ListGroups({ groups }: { groups: ListGroup[] }) {
 /** The description text: large and small headings, paragraphs. */
 export function TextBlocks({ blocks }: { blocks: TextBlock[] }) {
   const out: ReactNode[] = blocks.map((b, i) =>
-    b.type === 'h1' ? <h3 key={i} className="text-xl font-bold text-ink"><Rich text={b.text} /></h3>
+    b.type === 'img'
+      // eslint-disable-next-line @next/next/no-img-element -- a picture placed in the description, at its own size
+      ? <img key={i} src={b.src} alt={b.text} loading="lazy" decoding="async" className="h-auto max-w-full rounded-xl" />
+    : b.type === 'h1' ? <h3 key={i} className="text-xl font-bold text-ink"><Rich text={b.text} /></h3>
     : b.type === 'h2' ? <h4 key={i} className="text-[16px] font-semibold text-ink"><Rich text={b.text} /></h4>
     : <p key={i} className="whitespace-pre-line"><Rich text={b.text} /></p>,
   );

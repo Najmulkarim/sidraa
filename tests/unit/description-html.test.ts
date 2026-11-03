@@ -11,6 +11,9 @@ describe('descriptionToHtml', () => {
   it('escapes HTML typed as text', () => {
     expect(descriptionToHtml('<script>x</script> & "y"')).toBe('<p>&lt;script&gt;x&lt;/script&gt; &amp; &quot;y&quot;</p>');
   });
+  it('shows pictures', () => {
+    expect(descriptionToHtml('![a "b"](https://x.co/p.jpg)')).toBe('<p><img src="https://x.co/p.jpg" alt="a &quot;b&quot;"></p>');
+  });
   it('is empty for no description', () => {
     expect(descriptionToHtml(null)).toBe('');
   });

@@ -13,6 +13,7 @@ import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { parseDescription } from '@/lib/product-content';
 import { ListGroups, TextBlocks } from '@/components/shop/DescriptionParts';
+import { SeeMore } from '@/components/shop/SeeMore';
 import { Icon } from '@/components/icons';
 import { ProductReviews } from '@/components/shop/ProductReviews';
 import { Stars } from '@/components/shop/Stars';
@@ -129,7 +130,9 @@ export default async function ProductPage({ params }: Props) {
       {content.groups.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">About this item</h2>
-          <ListGroups groups={content.groups} />
+          <SeeMore show={6} total={content.bullets.length}>
+            <ListGroups groups={content.groups} />
+          </SeeMore>
         </section>
       )}
       {(content.specs.length > 0 || product.category || product.sku) && (

@@ -29,6 +29,11 @@ describe('parseDescription', () => {
 });
 
 describe('formatted descriptions', () => {
+  it('reads pictures as their own blocks', () => {
+    const r = parseDescription('Look:\n![Pink pair](https://x.supabase.co/a.jpg)\n![](https://x.supabase.co/b.jpg)');
+    expect(r.blocks).toEqual([{ type: 'p', text: 'Look:' }, { type: 'img', text: 'Pink pair', src: 'https://x.supabase.co/a.jpg' }, { type: 'img', text: '', src: 'https://x.supabase.co/b.jpg' }]);
+    expect(r.specs).toEqual([]);
+  });
   it('reads list styles, list titles and headings', () => {
     const r = parseDescription('# Winter slippers\nWarm and light.\n\n## Key features\n- **Soft** lining\n• Non-slip sole\n➤ Easy slip-on\n1. Wash by hand\n2. Dry flat');
     expect(r.groups).toEqual([{ title: 'Key features', items: [

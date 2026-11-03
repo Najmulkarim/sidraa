@@ -12,7 +12,7 @@ import { normalizeBdPhone } from './phone';
  */
 export type ListKind = 'check' | 'dot' | 'arrow' | 'number';
 export type ListGroup = { title: string | null; items: { kind: ListKind; text: string }[] };
-export type TextBlock = { type: 'h1' | 'h2' | 'p'; text: string };
+export type TextBlock = { type: 'h1' | 'h2' | 'p'; text: string } | { type: 'img'; text: string; src: string };
 export type ProductContent = { bullets: string[]; groups: ListGroup[]; specs: [string, string][]; text: string; blocks: TextBlock[] };
 
 // -, •, *, ✓, ✔, ✅, ☑, ▪, ●, ◆, ➤, ►, 🔹, 🔸 — with or without the emoji variation selector, or "1." / "1)".
@@ -21,6 +21,8 @@ const BULLET = /^(?:([-•*])\s+|(\d{1,2})[.)]\s+|([✓✔✅☑▪●◆➤►]
 // Short label, a colon, then a value; not a URL ("https://…") or a time ("10:30").
 const SPEC = /^([^:\n]{1,40}?)\s*:\s+(.{1,200})$/;
 const HEADING = /^(#{1,2})\s+(.+)$/;
+// A picture: ![what it shows](https://…)
+export const IMAGE = /^!\[([^\]]{0,200})\]\((https?:\/\/[^\s)]+)\)$/;
 
 function kindOf(m: RegExpExecArray): ListKind {
   if (m[2]) return 'number';
@@ -60,6 +62,13 @@ export function parseDescription(description: string | null | undefined): Produc
       }
       continue;
     }
+    const img = IMAGE.exec(line);
+    if (img) {
+      flushTitle();
+      open = null;
+      blocks.push({ type: 'img', text: img[1]!.trim(), src: img[2]! });
+      continue;
+    }
     const bullet = BULLET.exec(line);
     if (bullet) {
       const body = bullet[4]!.trim();
@@ -89,7 +98,7 @@ export function parseDescription(description: string | null | undefined): Produc
     groups,
     specs,
     text: text.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
-    blocks: blocks.filter((bl) => bl.text),
+    blocks: blocks.filter((bl) => bl.type === 'img' || bl.text),
   };
 }
 

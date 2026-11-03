@@ -153,11 +153,12 @@ export function ProductForm({ product, variants, categories, images = [], costs 
           <div className="field">
             <label htmlFor="description" className="label">Description</label>
             <DescriptionEditor
+              productId={product?.id ?? newId}
               defaultValue={product?.description ?? ''}
               placeholder="Write about the product. Select text, then use the buttons above."
             />
             <p className="hint">
-              Select text, then press a button: <b>B</b> bold, <b>H1</b>/<b>H2</b> headings, or a list style (✓ • ➤ 1.). Lists show under <b>About this item</b>; a small heading right above a list becomes its title. Lines like <i>Material: PU</i> go to the <b>Product details</b> table. Press <b>Preview</b> to see the product page.
+              Select text, then press a button: <b>B</b> bold, <b>H1</b>/<b>H2</b> headings, a list style (✓ • ➤ 1.), or <b>Picture</b> to add photos (from your computer, a link, or Ctrl+V). Lists show under <b>About this item</b>; a small heading right above a list becomes its title. Lines like <i>Material: PU</i> go to the <b>Product details</b> table. Press <b>Preview</b> to see the product page.
             </p>
             <FieldError state={state} name="description" />
           </div>
