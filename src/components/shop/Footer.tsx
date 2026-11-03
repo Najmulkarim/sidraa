@@ -1,16 +1,26 @@
 import Link from 'next/link';
 import type { Category, StoreSettings } from '@/lib/types';
 import { parseStorefront } from '@/lib/storefront';
-import { Icon, type IconName } from '../icons';
+import { Icon } from '../icons';
 import { Logo } from './Header';
 import { NewsletterForm } from './NewsletterForm';
 
-const SOCIAL: Record<string, { label: string; icon: IconName }> = {
-  facebook: { label: 'Facebook', icon: 'facebook' },
-  instagram: { label: 'Instagram', icon: 'instagram' },
-  tiktok: { label: 'TikTok', icon: 'tiktok' },
-  youtube: { label: 'YouTube', icon: 'youtube' },
+// Each network in its own brand colour.
+const SOCIAL: Record<string, { label: string; bg: string }> = {
+  facebook: { label: 'Facebook', bg: '#1877F2' },
+  instagram: { label: 'Instagram', bg: 'linear-gradient(45deg, #F58529, #DD2A7B 45%, #8134AF 75%, #515BD4)' },
+  tiktok: { label: 'TikTok', bg: '#000000' },
+  youtube: { label: 'YouTube', bg: '#FF0000' },
 };
+
+/** White network marks, solid, for the coloured circles. */
+function BrandMark({ name }: { name: string }) {
+  const svg = { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true } as const;
+  if (name === 'facebook') return <svg {...svg} fill="currentColor"><path d="M14 8h3V4.5h-3c-2.5 0-4 1.6-4 4V11H7.5v3.5H10V21h3.5v-6.5h3L17 11h-3.5V8.6c0-.4.2-.6.5-.6Z" /></svg>;
+  if (name === 'youtube') return <svg {...svg} fill="currentColor"><path d="M9.5 7.8v8.4l7.2-4.2-7.2-4.2Z" /></svg>;
+  if (name === 'tiktok') return <svg {...svg} fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.6 2.2 4.4 5 4.6" /></svg>;
+  return <svg {...svg} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none" /></svg>;
+}
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -44,8 +54,8 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
             <ul className="flex gap-2">
               {social.map(([k, v]) => (
                 <li key={k}>
-                  <a href={v as string} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL[k]!.label} className={`grid h-9 w-9 place-items-center rounded-full ring-1 transition ${light ? 'ring-line hover:bg-night hover:text-white' : 'ring-white/25 hover:bg-white hover:text-night'}`}>
-                    <Icon name={SOCIAL[k]!.icon} size={16} />
+                  <a href={v as string} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL[k]!.label} style={{ background: SOCIAL[k]!.bg }} className="grid h-10 w-10 place-items-center rounded-full text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:brightness-110">
+                    <BrandMark name={k} />
                   </a>
                 </li>
               ))}
