@@ -91,6 +91,20 @@ body {
 }
 
 @layer components {
+  /* Admin description editor: shows headings, bold and the list styles the product page uses. */
+  .rte { white-space: pre-wrap; line-height: 1.6; height: auto; }
+  .rte > * + * { margin-top: 0.5rem; }
+  .rte h1 { font-size: 1.3rem; font-weight: 700; }
+  .rte h2 { font-size: 1.05rem; font-weight: 600; }
+  .rte b, .rte strong { font-weight: 700; }
+  .rte ul, .rte ol { padding-left: 1.6rem; }
+  .rte ol { list-style: decimal; }
+  .rte ul { list-style: '✓  '; }
+  .rte ul > li::marker { color: var(--ok, #16a34a); font-weight: 700; }
+  .rte ul[data-kind='dot'] { list-style: disc; }
+  .rte ul[data-kind='arrow'] { list-style: '➤  '; }
+  .rte ul[data-kind='dot'] > li::marker, .rte ul[data-kind='arrow'] > li::marker, .rte ol > li::marker { color: var(--brand); }
+
   .container-page {
     width: 100%;
     max-width: 78rem;

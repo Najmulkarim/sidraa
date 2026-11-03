@@ -154,10 +154,10 @@ export function ProductForm({ product, variants, categories, images = [], costs 
             <label htmlFor="description" className="label">Description</label>
             <DescriptionEditor
               defaultValue={product?.description ?? ''}
-              placeholder={'## Key features\n- **Soft lining**: keeps feet warm\n- Non-slip sole\n\nMaterial: PU\n\nA short paragraph about the product.'}
+              placeholder="Write about the product. Select text, then use the buttons above."
             />
             <p className="hint">
-              Select lines, then press a button: <b>H1</b>/<b>H2</b> headings, <b>B</b> bold, or a list style (✓ • ➤ 1.). Lists become the <b>About this item</b> section, and a small heading right above a list becomes its title. <b>Label: value</b> lines (e.g. <i>Material: Metal</i>) become the <b>Product details</b> table. Press <b>Preview</b> to see it.
+              Select text, then press a button: <b>B</b> bold, <b>H1</b>/<b>H2</b> headings, or a list style (✓ • ➤ 1.). Lists show under <b>About this item</b>; a small heading right above a list becomes its title. Lines like <i>Material: PU</i> go to the <b>Product details</b> table. Press <b>Preview</b> to see the product page.
             </p>
             <FieldError state={state} name="description" />
           </div>
