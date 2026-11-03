@@ -22,9 +22,9 @@ function BrandMark({ name }: { name: string }) {
   return <svg {...svg} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none" /></svg>;
 }
 
-function Column({ title, children }: { title: string; children: React.ReactNode }) {
+function Column({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div>
+    <div className={className}>
       <p className="ft-title mb-4 text-[12px] font-semibold uppercase tracking-[0.2em]">{title}</p>
       <ul className="space-y-2.5 text-[14px]">{children}</ul>
     </div>
@@ -39,7 +39,7 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
   const hasContact = show.contact && Boolean(settings.phone || settings.email || settings.address);
   // As many columns as there are blocks: a switched-off newsletter or contact leaves no gap.
   const columns = hasContact
-    ? show.newsletter ? 'lg:grid-cols-[1.5fr_1fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.6fr_1fr_1fr_1.3fr]'
+    ? show.newsletter ? 'lg:grid-cols-[1.4fr_0.9fr_1fr_1.3fr_1.5fr]' : 'lg:grid-cols-[1.6fr_1fr_1fr_1.3fr]'
     : show.newsletter ? 'lg:grid-cols-[1.5fr_1fr_1fr_1.6fr]' : 'lg:grid-cols-[1.6fr_1fr_1fr]';
   const link = light ? 'text-ink/70 transition hover:text-brand' : 'text-white/65 transition hover:text-white';
 
@@ -77,10 +77,10 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
           <li><Link href="/info/terms" className={link}>Terms &amp; conditions</Link></li>
         </Column>
 
-        {hasContact && <Column title="Contact">
-          {settings.phone && <li className="flex items-center gap-2"><Icon name="phone" size={15} className="text-accent" /><a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className={link}>{settings.phone}</a></li>}
-          {settings.email && <li className="flex items-center gap-2"><Icon name="mail" size={15} className="text-accent" /><a href={`mailto:${settings.email}`} className={`${link} break-all`}>{settings.email}</a></li>}
-          {settings.address && <li className="flex items-start gap-2"><Icon name="pin" size={15} className="mt-1 shrink-0 text-accent" /><span className={light ? 'text-ink/70' : 'text-white/65'}>{settings.address}</span></li>}
+        {hasContact && <Column title="Contact" className="col-span-2 sm:col-span-1">
+          {settings.phone && <li className="flex items-start gap-2.5"><Icon name="phone" size={15} className="mt-[3px] shrink-0 text-accent" /><a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className={link}>{settings.phone}</a></li>}
+          {settings.email && <li className="flex items-start gap-2.5"><Icon name="mail" size={15} className="mt-[3px] shrink-0 text-accent" /><a href={`mailto:${settings.email}`} className={`${link} min-w-0 [overflow-wrap:anywhere]`}>{settings.email.split('@').map((part, i) => (i ? <span key={i}><wbr />@{part}</span> : part))}</a></li>}
+          {settings.address && <li className="flex items-start gap-2.5"><Icon name="pin" size={15} className="mt-[3px] shrink-0 text-accent" /><span className={light ? 'text-ink/70' : 'text-white/65'}>{settings.address}</span></li>}
         </Column>}
 
         {show.newsletter && <div className="col-span-2 lg:col-span-1">
