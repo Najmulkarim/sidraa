@@ -30,6 +30,16 @@ export function SeeMore({ show, total, children }: { show: number; total: number
     return () => ro.disconnect();
   }, [long, measure]);
 
+  function toggle() {
+    measure();
+    if (open) {
+      // Closing: bring the page back up to the list, so the reader is not left far below it.
+      const top = box.current?.getBoundingClientRect().top ?? 0;
+      if (top < 190) window.scrollTo({ top: window.scrollY + top - 190, behavior: 'smooth' });
+    }
+    setOpen((o) => !o);
+  }
+
   if (!long) return <>{children}</>;
   const height = open ? (full ?? undefined) : (cut ?? undefined);
   return (
@@ -44,11 +54,11 @@ export function SeeMore({ show, total, children }: { show: number; total: number
       </div>
       <button
         type="button"
-        onClick={() => { measure(); setOpen((o) => !o); }}
+        onClick={toggle}
         aria-expanded={open}
         className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-semibold text-brand hover:underline"
       >
-        {open ? 'See less' : `See more (${total - show} more)`}
+        {open ? 'See less' : 'See more'}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`transition-transform duration-300 ${open ? 'rotate-180' : ''}`}>
           <path d="m6 9 6 6 6-6" />
         </svg>
