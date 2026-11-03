@@ -36,12 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug(slug);
   if (!p) return { title: 'Not found' };
   const description = p.seo_description ?? p.description?.slice(0, 160) ?? `Buy ${p.name} with cash on delivery.`;
-  const img = imageUrl(p.images[0]?.storage_path);
   return {
     title: p.seo_title ?? p.name,
     description,
     alternates: { canonical: `/product/${p.slug}` },
-    openGraph: { title: p.seo_title ?? p.name, description, url: `/product/${p.slug}`, images: img ? [{ url: img }] : undefined },
+    // The shared-link picture comes from opengraph-image.tsx (fixed size, so Facebook shows it at once).
+    openGraph: { type: 'website', siteName: 'Sidraa', title: p.seo_title ?? p.name, description, url: `/product/${p.slug}` },
   };
 }
 
