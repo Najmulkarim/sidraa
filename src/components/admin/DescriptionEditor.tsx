@@ -5,7 +5,7 @@ import { copyDescriptionImage } from '@/actions/admin-description-image';
 import { imageUrl } from '@/lib/env';
 import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import { descriptionToHtml, type ListMark } from '@/lib/description-html';
-import { parseDescription } from '@/lib/product-content';
+import { boldPerLine, parseDescription } from '@/lib/product-content';
 import { DescriptionFlow } from '../shop/DescriptionParts';
 
 const LIST_PREFIX: Record<ListMark, string> = { check: '- ', dot: '• ', arrow: '➤ ' };
@@ -23,7 +23,8 @@ function inlineText(node: Node): string {
   const weight = Number(node.style.fontWeight) || (node.style.fontWeight === 'bold' ? 700 : 0);
   if ((node.tagName === 'B' || node.tagName === 'STRONG' || weight >= 600) && inner.trim()) {
     const [, lead, body, tail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(inner)!;
-    return `${lead}**${body!.replace(/\*\*/g, '')}**${tail}`;
+    // Bold over several lines: each line gets its own marks.
+    return `${lead}${boldPerLine(`**${body!.replace(/\*\*/g, '')}**`)}${tail}`;
   }
   return inner;
 }

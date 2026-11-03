@@ -34,6 +34,13 @@ function kindOf(m: RegExpExecArray): ListKind {
   return 'check';
 }
 
+/** "**Email…\nPhone…**" (bold over several lines) → each line bold on its own, so no "**" is left showing. */
+export function boldPerLine(text: string): string {
+  return text.replace(/\*\*([^*]+?)\*\*/g, (m, inner: string) => (inner.includes('\n')
+    ? inner.split('\n').map((l) => { const t = l.trim(); return t ? l.replace(t, `**${t}**`) : l; }).join('\n')
+    : m));
+}
+
 export function parseDescription(description: string | null | undefined): ProductContent {
   const groups: ListGroup[] = [];
   const specs: [string, string][] = [];
@@ -55,7 +62,7 @@ export function parseDescription(description: string | null | undefined): Produc
     if (last?.type === 'p' && !last.text.endsWith('\n\n')) last.text += `\n${line}`;
     else add({ type: 'p', text: line });
   };
-  for (const raw of (description ?? '').split(/\r?\n/)) {
+  for (const raw of boldPerLine((description ?? '').replace(/\r\n/g, '\n')).split('\n')) {
     const line = raw.trim();
     if (!line) {
       if (pendingTitle === null) {

@@ -7,7 +7,7 @@
  */
 export type ListMark = 'check' | 'dot' | 'arrow';
 
-import { IMAGE } from './product-content';
+import { boldPerLine, IMAGE } from './product-content';
 
 const HEADING = /^(#{1,2})\s+(.+)$/;
 const BULLET = /^(?:([-•*])\s+|(\d{1,2})[.)]\s+|([✓✔✅☑▪●◆➤►]|🔹|🔸)️?\s*)(.+)$/u;
@@ -37,7 +37,7 @@ export function descriptionToHtml(text: string | null | undefined): string {
     }
     list = null;
   };
-  for (const raw of (text ?? '').split(/\r?\n/)) {
+  for (const raw of boldPerLine((text ?? '').replace(/\r\n/g, '\n')).split('\n')) {
     const line = raw.trim();
     if (!line) { flush(); continue; }
     const img = IMAGE.exec(line);
