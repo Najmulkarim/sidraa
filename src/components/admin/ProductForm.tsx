@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug';
 import type { Category, Product, ProductImage as ProductImageRow, Variant } from '@/lib/types';
 import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
+import { DescriptionEditor } from './DescriptionEditor';
 import { DiscountFields } from './DiscountFields';
 import { StockOutFields } from './StockOutFields';
 import { useDragSort } from './useDragSort';
@@ -151,17 +152,12 @@ export function ProductForm({ product, variants, categories, images = [], costs 
           </div>
           <div className="field">
             <label htmlFor="description" className="label">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              rows={8}
-              maxLength={10000}
+            <DescriptionEditor
               defaultValue={product?.description ?? ''}
-              placeholder={'A short paragraph about the product.\n\n- UV400 polarised lenses\n- Comes with a case and cloth\n\nMaterial: Metal\nFrame width: 140 mm'}
-              className="input"
+              placeholder={'## Key features\n- **Soft lining**: keeps feet warm\n- Non-slip sole\n\nMaterial: PU\n\nA short paragraph about the product.'}
             />
             <p className="hint">
-              On the product page, lines starting with <b>-</b> become the <b>About this item</b> list, and <b>Label: value</b> lines (e.g. <i>Material: Metal</i>) become the <b>Product details</b> table. Other text shows as the description.
+              Select lines, then press a button: <b>H1</b>/<b>H2</b> headings, <b>B</b> bold, or a list style (✓ • ➤ 1.). Lists become the <b>About this item</b> section, and a small heading right above a list becomes its title. <b>Label: value</b> lines (e.g. <i>Material: Metal</i>) become the <b>Product details</b> table. Press <b>Preview</b> to see it.
             </p>
             <FieldError state={state} name="description" />
           </div>

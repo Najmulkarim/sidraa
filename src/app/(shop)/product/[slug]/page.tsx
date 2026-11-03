@@ -11,7 +11,8 @@ import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
-import { parseDescription, splitBullet } from '@/lib/product-content';
+import { parseDescription } from '@/lib/product-content';
+import { ListGroups, TextBlocks } from '@/components/shop/DescriptionParts';
 import { Icon } from '@/components/icons';
 import { ProductReviews } from '@/components/shop/ProductReviews';
 import { Stars } from '@/components/shop/Stars';
@@ -125,20 +126,10 @@ export default async function ProductPage({ params }: Props) {
 
   const details = (
     <>
-      {content.bullets.length > 0 && (
+      {content.groups.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">About this item</h2>
-          <ul className="space-y-2 text-[15px] leading-relaxed">
-            {content.bullets.map((b, i) => {
-              const [lead, rest] = splitBullet(b);
-              return (
-                <li key={i} className="flex gap-2.5">
-                  <Icon name="check" size={18} className="mt-0.5 shrink-0 text-ok" />
-                  <span>{lead ? <><b className="font-semibold">{lead}</b> – {rest}</> : rest}</span>
-                </li>
-              );
-            })}
-          </ul>
+          <ListGroups groups={content.groups} />
         </section>
       )}
       {(content.specs.length > 0 || product.category || product.sku) && (
@@ -168,10 +159,10 @@ export default async function ProductPage({ params }: Props) {
           </table>
         </section>
       )}
-      {content.text && (
+      {content.blocks.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">Description</h2>
-          <div className="whitespace-pre-line text-[15px] leading-relaxed text-ink/85">{content.text}</div>
+          <TextBlocks blocks={content.blocks} />
         </section>
       )}
       <section className="card grid gap-3 p-4 text-[13px] sm:grid-cols-2">

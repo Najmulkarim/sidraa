@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseDescription, splitBullet, whatsappOrderLink } from '@/lib/product-content';
+import { boldRuns, parseDescription, splitBullet, whatsappOrderLink } from '@/lib/product-content';
 
 describe('parseDescription', () => {
   it('splits bullets, label: value lines and free text', () => {
@@ -24,7 +24,29 @@ describe('parseDescription', () => {
     expect(splitBullet('Comes with a case')).toEqual([null, 'Comes with a case']);
   });
   it('handles an empty description', () => {
-    expect(parseDescription(null)).toEqual({ bullets: [], specs: [], text: '' });
+    expect(parseDescription(null)).toEqual({ bullets: [], groups: [], specs: [], text: '', blocks: [] });
+  });
+});
+
+describe('formatted descriptions', () => {
+  it('reads list styles, list titles and headings', () => {
+    const r = parseDescription('# Winter slippers\nWarm and light.\n\n## Key features\n- **Soft** lining\n• Non-slip sole\n➤ Easy slip-on\n1. Wash by hand\n2. Dry flat');
+    expect(r.groups).toEqual([{ title: 'Key features', items: [
+      { kind: 'check', text: '**Soft** lining' }, { kind: 'dot', text: 'Non-slip sole' }, { kind: 'arrow', text: 'Easy slip-on' },
+      { kind: 'number', text: 'Wash by hand' }, { kind: 'number', text: 'Dry flat' },
+    ] }]);
+    expect(r.blocks).toEqual([{ type: 'h1', text: 'Winter slippers' }, { type: 'p', text: 'Warm and light.' }]);
+  });
+  it('keeps a small heading as text when no list follows it', () => {
+    expect(parseDescription('## Care\nWipe clean.').blocks).toEqual([{ type: 'h2', text: 'Care' }, { type: 'p', text: 'Wipe clean.' }]);
+  });
+  it('turns **bold** into bold runs', () => {
+    expect(boldRuns('A **soft** lining')).toEqual([['A ', false], ['soft', true], [' lining', false]]);
+    expect(boldRuns('no marks')).toEqual([['no marks', false]]);
+  });
+  it('bolds the part before a colon in a list item', () => {
+    expect(splitBullet('Soft Fleece Lining: Keeps feet warm')).toEqual(['Soft Fleece Lining', 'Keeps feet warm']);
+    expect(splitBullet('See https://x.com')).toEqual([null, 'See https://x.com']);
   });
 });
 
