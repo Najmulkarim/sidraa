@@ -46,6 +46,10 @@ const DEFAULT_POPUPS = {
   exit: { enabled: true, title: 'Wait! 10% off your first order', text: 'New customers get 10% off. Use this code at checkout.', code: 'WELCOME10', button: 'Shop now', link: '/products' },
 };
 
+// Footer pages (delivery, returns, privacy, terms) rewritten in Admin → Pages; empty text = the starter text.
+const infoPage = z.object({ title: z.string().trim().max(100).catch(''), body: z.string().max(20000).catch('') }).catch({ title: '', body: '' });
+const NO_PAGE = { title: '', body: '' };
+
 export const storefrontSchema = z.object({
   header: z.object({ announcement: on, search: on, track: on, call: on, menu: on, sticky: on }).catch({ announcement: true, search: true, track: true, call: true, menu: true, sticky: true }),
   footer: z.object({ newsletter: on, social: on, contact: on }).catch({ newsletter: true, social: true, contact: true }),
@@ -60,6 +64,8 @@ export const storefrontSchema = z.object({
     welcome: z.object({ enabled: on, title: popupText(80), text: popupText(200), button: popupText(30), link: popupLink }),
     exit: z.object({ enabled: on, title: popupText(80), text: popupText(200), code: z.string().trim().toUpperCase().regex(/^([A-Z0-9_-]{3,24})?$/).catch(''), button: popupText(30), link: popupLink }),
   }).catch(DEFAULT_POPUPS),
+  pages: z.object({ delivery: infoPage, returns: infoPage, privacy: infoPage, terms: infoPage })
+    .catch({ delivery: NO_PAGE, returns: NO_PAGE, privacy: NO_PAGE, terms: NO_PAGE }),
   live_chat: z.string().regex(/^[a-f0-9]{24}\/[a-z0-9]{1,40}$/i).nullable().catch(null),
   invoice: z
     .object({

@@ -92,7 +92,7 @@ function putCaret(root: HTMLElement, at: number) {
 }
 
 /** Product description, edited the way it looks (bold, headings, lists), saved as plain text. */
-export function DescriptionEditor({ defaultValue, placeholder, productId }: { defaultValue: string; placeholder: string; productId: string }) {
+export function DescriptionEditor({ defaultValue, placeholder, productId, plain: plainPreview = false }: { defaultValue: string; placeholder: string; productId?: string; plain?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [initial] = useState(() => descriptionToHtml(defaultValue));
   const [value, setValue] = useState(defaultValue);
@@ -192,12 +192,13 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
 
   async function uploadFiles(files: File[]) {
     const pictures = files.filter((f) => f.type.startsWith('image/'));
-    if (!pictures.length) return;
+    if (!pictures.length || !productId) return;
     setProblem('');
     setBusy(`Uploading ${pictures.length} picture${pictures.length > 1 ? 's' : ''}…`);
     const urls: string[] = [];
     const errors: string[] = [];
     for (const file of pictures) {
+      if (!productId) break;
       const r = await uploadProductPhoto(productId, file);
       if ('path' in r) urls.push(imageUrl(r.path)!);
       else errors.push(r.error);
@@ -211,6 +212,7 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
     if (!link.trim()) return;
     setProblem('');
     setBusy('Copying the picture…');
+    if (!productId) return;
     const r = await copyDescriptionImage(productId, link);
     setBusy('');
     if ('error' in r) return setProblem(r.error);
@@ -240,11 +242,11 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
         <button type="button" title="Arrow list" aria-label="Arrow list" onMouseDown={keep} onClick={() => list('arrow')} className={btn}>➤</button>
         <button type="button" title="Numbered list" aria-label="Numbered list" onMouseDown={keep} onClick={() => list('number')} className={btn}>1.</button>
         <button type="button" title="Normal text" aria-label="Normal text" onMouseDown={keep} onClick={plain} className={`${btn} font-normal`}>Text</button>
-        <span className="mx-1 h-6 w-px bg-line" aria-hidden />
+        {productId && <><span className="mx-1 h-6 w-px bg-line" aria-hidden />
         <button type="button" title="Add a picture" aria-label="Add a picture" aria-expanded={imagePanel} onMouseDown={keep} onClick={openImagePanel} className={`${btn} !flex gap-1.5 ${imagePanel ? 'border-brand text-brand' : ''}`}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
           Picture
-        </button>
+        </button></>}
         <button type="button" onClick={() => setPreview((p) => !p)} aria-pressed={preview} className={`ml-auto rounded-md px-3 py-1.5 text-[12.5px] font-semibold ${preview ? 'bg-night text-white' : 'border border-line bg-white hover:border-brand'}`}>
           {preview ? 'Hide preview' : 'Preview'}
         </button>
@@ -316,7 +318,10 @@ export function DescriptionEditor({ defaultValue, placeholder, productId }: { de
         {!value.trim() && <p className="pointer-events-none absolute left-3.5 top-2.5 text-sm text-muted">{placeholder}</p>}
       </div>
       <input type="hidden" name="description" value={value} />
-      {preview && (
+      {preview && plainPreview && (
+        <div className="rte rounded-xl border border-dashed border-line bg-soft/60 p-4" aria-label="Preview" dangerouslySetInnerHTML={{ __html: descriptionToHtml(value) }} />
+      )}
+      {preview && !plainPreview && (
         <div className="space-y-5 rounded-xl border border-dashed border-line bg-soft/60 p-4" aria-label="Preview">
           {content.flow.length > 0 && <section><p className="mb-2 text-lg font-bold">About this item</p><DescriptionFlow flow={content.flow} /></section>}
           {content.specs.length > 0 && (

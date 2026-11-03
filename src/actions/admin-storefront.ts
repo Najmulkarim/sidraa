@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from 'next/cache';
 import { requirePermission } from '@/lib/auth';
 import { CATALOG_TAG } from '@/lib/catalog';
 import { IMAGE_BUCKET } from '@/lib/env';
+import { INFO_PAGES, isInfoPage } from '@/lib/info-pages';
 import { parseStorefront, storefrontSchema, parseLiveChat } from '@/lib/storefront';
 import type { ActionState } from '@/lib/types';
 
@@ -43,6 +44,7 @@ export async function saveStorefront(_prev: ActionState, fd: FormData): Promise<
     site_title: text(fd, 'siteTitle').slice(0, 70),
     country: text(fd, 'country').slice(0, 60) || 'Bangladesh',
     live_chat: liveChat,
+    pages: old.pages,
     popups: {
       welcome: { enabled: flag(fd, 'pwOn'), title: text(fd, 'pwTitle'), text: text(fd, 'pwText'), button: text(fd, 'pwButton'), link: text(fd, 'pwLink') },
       exit: { enabled: flag(fd, 'peOn'), title: text(fd, 'peTitle'), text: text(fd, 'peText'), code: text(fd, 'peCode'), button: text(fd, 'peButton'), link: text(fd, 'peLink') },
@@ -64,6 +66,28 @@ export async function saveStorefront(_prev: ActionState, fd: FormData): Promise<
   }
   refresh();
   return { ok: true, message: 'Storefront settings saved.' };
+}
+
+/** Admin → Pages: one footer page's heading and text. Empty text goes back to the starter text. */
+export async function saveInfoPage(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const { supabase } = await requirePermission('store_settings');
+  const key = text(fd, 'page');
+  if (!isInfoPage(key)) return { ok: false, message: 'Unknown page.' };
+  const reset = fd.get('reset') === '1';
+  const body = reset ? '' : String(fd.get('description') ?? '').replace(/\r\n/g, '\n').trim();
+  if (body.length > 20000) return { ok: false, message: 'The text is too long (20,000 characters at most).' };
+  const { data: cur } = await supabase.from('store_settings').select('storefront').eq('id', 1).single<{ storefront: unknown }>();
+  const sf = parseStorefront(cur?.storefront);
+  const pages = { ...sf.pages, [key]: reset ? { title: '', body: '' } : { title: text(fd, 'title').slice(0, 100), body } };
+  const { error } = await supabase.from('store_settings').update({ storefront: { ...sf, pages } }).eq('id', 1);
+  if (error) {
+    console.error('[admin] info page', error);
+    return { ok: false, message: 'Could not save. Please try again.' };
+  }
+  refresh();
+  revalidatePath(`/info/${key}`);
+  revalidatePath('/admin/pages');
+  return { ok: true, message: reset ? `${INFO_PAGES[key].label}: the starter text is back.` : `${INFO_PAGES[key].label} saved.` };
 }
 
 const BRAND_FILE = /^brand\/[0-9a-f-]{36}\.(png|jpg|webp|avif|ico)$/;

@@ -35,6 +35,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
 /** Kept at the bottom of the sidebar: set-up pages used now and then. */
 const STORE: Item[] = [
   { href: '/admin/homepage', label: 'Homepage', icon: 'home', need: ['store_settings'] },
+  { href: '/admin/pages', label: 'Pages', icon: 'note', need: ['store_settings'] },
   { href: '/admin/settings', label: 'Settings', icon: 'settings', need: ['store_settings', 'courier_settings', 'marketing', 'staff'] },
   { href: '/admin/account', label: 'My account', icon: 'user' },
 ];

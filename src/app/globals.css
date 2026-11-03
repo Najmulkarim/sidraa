@@ -97,6 +97,11 @@ body {
   .rte h1 { font-size: 1.3rem; font-weight: 700; }
   .rte h2 { font-size: 1.05rem; font-weight: 600; }
   .rte b, .rte strong { font-weight: 700; }
+  /* Footer pages (/info/…) use the same look, a little roomier. */
+  .info-page { line-height: 1.75; }
+  .info-page > * + * { margin-top: 1rem; }
+  .info-page h1 { font-size: 1.6rem; margin-top: 2rem; }
+  .info-page h2 { font-size: 1.3rem; margin-top: 2rem; }
   .rte img { display: block; max-width: 100%; max-height: 22rem; margin: 0.25rem 0; border-radius: 0.6rem; }
   .rte ul, .rte ol { padding-left: 1.6rem; }
   .rte ol { list-style: decimal; }
