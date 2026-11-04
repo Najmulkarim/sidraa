@@ -50,7 +50,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
   // Date range: this month by default; "all" turns it off.
   const allTime = sp.range === 'all';
-  const range = isYmd(sp.from) && isYmd(sp.to) ? resolveRange('custom', sp.from, sp.to) : resolveRange(sp.range ?? 'this-month', undefined, undefined);
+  const range = isYmd(sp.from) && isYmd(sp.to) ? resolveRange('custom', sp.from, sp.to) : resolveRange(sp.range ?? 'today', undefined, undefined);
 
   let query = supabase
     .from('orders')

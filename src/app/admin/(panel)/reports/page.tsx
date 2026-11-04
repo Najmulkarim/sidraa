@@ -21,7 +21,7 @@ type Summary = {
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ supabase }, sp] = await Promise.all([requirePermission('revenue'), searchParams]);
-  const range = resolveRange(sp.range ?? '30d', sp.from, sp.to);
+  const range = resolveRange(sp.range ?? 'today', sp.from, sp.to);
 
   const [{ data: summary, error }, { data: products }] = await Promise.all([
     supabase.rpc('report_summary', { p_from: range.from, p_to: range.to }),

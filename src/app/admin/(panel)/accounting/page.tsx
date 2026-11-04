@@ -55,7 +55,7 @@ const money = (n: number) => {
 export default async function AccountingPage({ searchParams }: { searchParams: Promise<{ range?: string; from?: string; to?: string; group?: string }> }) {
   const [{ supabase }, sp] = await Promise.all([requirePermission('revenue'), searchParams]);
   const today = dhakaToday();
-  const range = resolveRange(sp.range ?? 'this-month', sp.from, sp.to, new Date(), 3650);
+  const range = resolveRange(sp.range ?? 'today', sp.from, sp.to, new Date(), 3650);
   const days = Math.round((utc(range.to).getTime() - utc(range.from).getTime()) / 86_400_000) + 1;
   const wanted = GROUPS.find((g) => g.value === sp.group)?.value ?? autoGroup(days);
   // Daily rows only up to about a year.
