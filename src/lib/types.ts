@@ -67,6 +67,8 @@ export type Product = {
   /** "Mother" SKU (SKU-0008); its variations are SKU-0008-01, SKU-0008-02, … */
   sku: string;
   category_id: string | null;
+  /** Other categories the product also shows in (category_id is the main one). */
+  extra_category_ids?: string[];
   name: string;
   slug: string;
   description: string | null;

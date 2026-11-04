@@ -16,7 +16,7 @@ import { sizeRank } from './sizes';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
-  'id, sku, category_id, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at, rating_avg, rating_count,' +
+  'id, sku, category_id, extra_category_ids, name, slug, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, status, is_featured, seo_title, seo_description, color_label, size_label, option3_label, published_at, created_at, updated_at, rating_avg, rating_count,' +
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
   ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active, sort_order)';
 
@@ -110,10 +110,12 @@ export const getCategories = cachedRead('categories', async (): Promise<Category
 
 /** How many published products each category has (for "120+ items" style captions). */
 export const getCategoryCounts = cachedRead('category_counts', async (): Promise<Record<string, number>> => {
-  const { data, error } = await createPublicClient().from('products').select('category_id').eq('status', 'published').not('category_id', 'is', null).limit(5000);
+  const { data, error } = await createPublicClient().from('products').select('category_id, extra_category_ids').eq('status', 'published').not('category_id', 'is', null).limit(5000);
   if (error) throw new CatalogReadError(error.message);
   const counts: Record<string, number> = {};
-  for (const r of (data ?? []) as { category_id: string }[]) counts[r.category_id] = (counts[r.category_id] ?? 0) + 1;
+  for (const r of (data ?? []) as { category_id: string; extra_category_ids: string[] | null }[]) {
+    for (const id of new Set([r.category_id, ...(r.extra_category_ids ?? [])])) counts[id] = (counts[id] ?? 0) + 1;
+  }
   return counts;
 }, {});
 
@@ -180,11 +182,17 @@ export const getProductsByIds = cache(async (ids: string[]): Promise<ProductWith
   return ids.map((id) => byId.get(id)).filter((p): p is ProductWithRelations => !!p);
 });
 
+/** PostgREST filter: the product's main category, or one it also shows in. */
+function inCategory(id: string): string {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return 'id.is.null'; // never matches
+  return `category_id.eq.${id},extra_category_ids.cs.{${id}}`;
+}
+
 export const getCategoryProducts = cache(async (categoryId: string, limit = 8): Promise<ProductWithRelations[]> => {
   const { data, error } = await createPublicClient()
     .from('products')
     .select(PRODUCT_SELECT)
-    .eq('category_id', categoryId)
+    .or(inCategory(categoryId))
     .order('published_at', { ascending: false })
     .limit(limit);
   if (error) console.error('[catalog] category products', error.message);
@@ -195,15 +203,16 @@ export const getCategoryProducts = cache(async (categoryId: string, limit = 8): 
 export const getCategoryCovers = cache(async (): Promise<Record<string, string | null>> => {
   const { data, error } = await createPublicClient()
     .from('products')
-    .select('category_id, images:product_images(storage_path, sort_order)')
+    .select('category_id, extra_category_ids, images:product_images(storage_path, sort_order)')
     .not('category_id', 'is', null)
     .order('published_at', { ascending: false })
     .limit(300);
   if (error) console.error('[catalog] covers', error.message);
   const covers: Record<string, string | null> = {};
-  for (const p of (data ?? []) as { category_id: string; images: { storage_path: string; sort_order: number }[] }[]) {
-    if (covers[p.category_id]) continue;
-    covers[p.category_id] = [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
+  for (const p of (data ?? []) as { category_id: string; extra_category_ids: string[] | null; images: { storage_path: string; sort_order: number }[] }[]) {
+    const photo = [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
+    if (!covers[p.category_id]) covers[p.category_id] = photo;
+    for (const id of p.extra_category_ids ?? []) if (covers[id] === undefined) covers[id] = photo;
   }
   return covers;
 });
@@ -301,7 +310,7 @@ async function readProductList(params: ListParams): Promise<ProductList> {
   let query = createPublicClient().from('products').select(select, { count: 'exact' });
   const q = params.q?.trim().slice(0, 80);
   if (q) query = query.ilike('name', `%${escapeLike(q)}%`);
-  if (params.category) query = query.eq('category_id', params.category);
+  if (params.category) query = query.or(inCategory(params.category));
   // Filter on the embedded (aliased) relation; !inner drops products with no match.
   if (params.inStock) query = query.gt('variants.stock', 0);
 

@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug';
 import type { Category, Product, ProductImage as ProductImageRow, Variant } from '@/lib/types';
 import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
+import { CategoryFields } from './CategoryFields';
 import { DescriptionEditor } from './DescriptionEditor';
 import { DiscountFields } from './DiscountFields';
 import { StockOutFields } from './StockOutFields';
@@ -330,13 +331,7 @@ export function ProductForm({ product, variants, categories, images = [], costs 
               <option value="archived">Archived — hidden, kept for orders</option>
             </select>
           </div>
-          <div className="field">
-            <label htmlFor="categoryId" className="label">Category</label>
-            <select id="categoryId" name="categoryId" defaultValue={product?.category_id ?? ''} className="input">
-              <option value="">None</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+          <CategoryFields categories={categories} main={product?.category_id ?? ''} extra={product?.extra_category_ids ?? []} />
           <DiscountFields
             basePrice={product ? Number(product.base_price) : null}
             compareAtPrice={product?.compare_at_price == null ? null : Number(product.compare_at_price)}

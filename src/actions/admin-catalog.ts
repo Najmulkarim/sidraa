@@ -34,6 +34,7 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
     name: p.name,
     slug: p.slug,
     category_id: p.categoryId ?? null,
+    extra_category_ids: p.categoryId ? p.extraCategoryIds.filter((id) => id !== p.categoryId) : [],
     description: p.description ?? null,
     base_price: p.basePrice,
     compare_at_price: p.compareAtPrice ?? null,
@@ -223,6 +224,7 @@ type CopySource = {
   name: string;
   slug: string;
   category_id: string | null;
+  extra_category_ids: string[] | null;
   description: string | null;
   base_price: number | string;
   compare_at_price: number | string | null;
@@ -251,7 +253,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
   if (!id.success) return { ok: false, message: 'Invalid product.' };
   const { data, error: readError } = await supabase
     .from('products')
-    .select('name, slug, category_id, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active, sort_order)')
+    .select('name, slug, category_id, extra_category_ids, description, base_price, compare_at_price, discount_style, stock_out_mode, preorder_days, seo_title, seo_description, color_label, size_label, option3_label, images:product_images(storage_path, alt, sort_order), variants:product_variants(sku, size, color, option3, image_path, price, is_active, sort_order)')
     .eq('id', id.data)
     .single();
   if (readError || !data) return { ok: false, message: 'Product not found.' };
@@ -270,6 +272,7 @@ export async function duplicateProduct(productId: string): Promise<ActionState> 
       name: `${src.name.slice(0, 153)} (copy)`,
       slug,
       category_id: src.category_id,
+      extra_category_ids: src.extra_category_ids ?? [],
       description: src.description,
       base_price: src.base_price,
       compare_at_price: src.compare_at_price,

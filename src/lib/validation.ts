@@ -156,6 +156,11 @@ export const productSchema = z
     name: z.string().trim().min(1, 'Name is required').max(160),
     slug: z.string().trim().toLowerCase().regex(SLUG_RE, 'Use lowercase letters, numbers and dashes').max(120),
     categoryId: z.preprocess(blankToUndefined, z.uuid().optional()),
+    /** Other categories the product also shows in, comma separated. */
+    extraCategoryIds: z.preprocess(
+      (v) => [...new Set(String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean))],
+      z.array(z.uuid('Invalid category')).max(20, 'At most 20 categories'),
+    ),
     description: optionalText(10_000),
     basePrice: money('Price'),
     compareAtPrice: optionalMoney('Compare-at price'),
