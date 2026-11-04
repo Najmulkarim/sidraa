@@ -80,6 +80,23 @@ function successRate(s: Stat | undefined): { text: string; tone: string; title: 
 
 const waLink = (phone: string) => `https://wa.me/88${phone}`;
 
+/** Click to copy (order number, name, phone, address); a short note says it worked. */
+function Copy({ text, what, className = '', children }: { text: string; what: string; className?: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={`Click to copy the ${what}`}
+      onClick={async () => {
+        try { await navigator.clipboard.writeText(text); notify(true, `${what[0]!.toUpperCase()}${what.slice(1)} copied: ${text}`); }
+        catch { notify(false, 'Could not copy — the browser blocked it.'); }
+      }}
+      className={`cursor-copy rounded text-left decoration-dotted underline-offset-2 hover:text-brand hover:underline ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function OrdersTable({
   orders,
   stats,
@@ -215,16 +232,17 @@ export function OrdersTable({
                     <input type="checkbox" aria-label={`Select ${o.public_ref}`} checked={selected.has(o.id)} onChange={() => toggle(o.id)} className="h-4 w-4 accent-[var(--brand)]" />
                   </td>
                   <td className="px-3 py-4">
-                    <Link href={`/admin/orders/${o.id}`} className="whitespace-nowrap font-mono text-[12.5px] font-bold text-ink hover:text-brand">{o.public_ref}</Link>
+                    <span className="flex items-center gap-1.5"><Copy text={o.public_ref} what="order number" className="whitespace-nowrap font-mono text-[12.5px] font-bold text-ink">{o.public_ref}</Copy>
+                      <Link href={`/admin/orders/${o.id}`} className="grid h-5 w-5 place-items-center rounded border border-line text-muted hover:border-brand hover:text-brand" title="Open this order" aria-label={`Open order ${o.public_ref}`}><Icon name="eye" size={12} /></Link></span>
                     <p className="mt-1 whitespace-nowrap font-mono text-[11px] text-muted">{formatDateTime(o.created_at)}</p>
                     {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]">{SOURCE_SHORT[o.source] ?? o.source}</span>}
                   </td>
                   <td className="max-w-[270px] px-3 py-4">
-                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><span>{o.customer_name}</span>
+                    <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><Copy text={o.customer_name} what="name">{o.customer_name}</Copy>
                       <Link href={`/admin/customers/${o.customer_phone}`} className="shrink-0 whitespace-nowrap rounded-full bg-tint px-2 py-0.5 text-[11px] font-bold text-brand hover:bg-brand hover:text-white" title="See all orders from this customer">{stats[o.customer_phone]?.orders ?? 1} order{(stats[o.customer_phone]?.orders ?? 1) === 1 ? '' : 's'}</Link></p>
                     <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
                       <Icon name="phone" size={13} className="text-muted" />
-                      <a href={`tel:${o.customer_phone}`} className="font-mono hover:text-brand">{o.customer_phone}</a>
+                      <Copy text={o.customer_phone} what="phone number" className="font-mono">{o.customer_phone}</Copy>
                       {SHOW_DELIVERY_RECORD && <CustomerRateButton phone={o.customer_phone} name={o.customer_name} text={rate.text} tone={rate.tone} title={`${rate.title}. Click for the record by courier.`} />}
                       {blockedSet.has(o.customer_phone) && <span className="rounded bg-bad px-1 text-[10px] font-bold text-white" title="This number is on the block list">Blocked</span>}
                       <a href={waLink(o.customer_phone)} target="_blank" rel="noopener noreferrer" className="grid h-5 w-5 place-items-center rounded-full bg-[#25d366] text-white" aria-label={`WhatsApp ${o.customer_name}`}>
@@ -233,7 +251,7 @@ export function OrdersTable({
                     </p>
                     <p className="mt-1 flex gap-1.5 text-[11.5px] leading-snug text-muted">
                       <Icon name="pin" size={13} className="mt-0.5 shrink-0" />
-                      <span>{o.address}{o.area ? `, ${o.area}` : ''}, {o.district}</span>
+                      <Copy text={`${o.address}${o.area ? `, ${o.area}` : ''}, ${o.district}`} what="address">{o.address}{o.area ? `, ${o.area}` : ''}, {o.district}</Copy>
                     </p>
                   </td>
                   <td className="px-3 py-4">
