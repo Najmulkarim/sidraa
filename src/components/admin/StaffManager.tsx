@@ -5,10 +5,14 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { deleteStaff, saveRolePermissions, saveStaff } from '@/actions/admin-settings';
 import { Icon } from '../icons';
 import { ConfirmDialog } from './ConfirmDialog';
+import { PasswordInput } from './PasswordInput';
 import { notify } from './Toaster';
 import { PERMISSION_LABEL, PERMISSIONS, ROLE_LABEL, ROLES, type AdminRole, type Permission } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
+
+// The same columns for every staff row and the add form, so labels and boxes line up.
+const ROW = 'grid items-start gap-x-4 gap-y-3 md:grid-cols-2 lg:grid-cols-[1fr_1.25fr_1fr_9.5rem_auto]';
 
 export type StaffMember = { user_id: string; email: string; full_name: string; role: AdminRole; is_active: boolean; mfa: boolean; created_at: string };
 
@@ -26,28 +30,31 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
     if (r.ok) router.refresh();
   });
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 py-4 md:grid-cols-[1.2fr_1.3fr_10rem_auto_auto_auto] md:items-end" noValidate>
+    <form onSubmit={onSubmit} className={`${ROW} py-5`} noValidate>
       <input type="hidden" name="userId" value={m.user_id} />
       <div className="field">
-        <label className="label" htmlFor={`sn-${m.user_id}`}>Name {isMe && <span className="badge badge-brand ml-1">You</span>}</label>
+        <label className="label flex items-center gap-1.5" htmlFor={`sn-${m.user_id}`}>Name {isMe && <span className="badge badge-brand py-0 text-[10.5px]">You</span>}</label>
         <input id={`sn-${m.user_id}`} name="fullName" defaultValue={m.full_name} maxLength={80} className="input" />
         <FieldError state={state} name="fullName" />
       </div>
-      <div className="field">
+      <div className="field min-w-0">
+        <label className="label" htmlFor={`se-${m.user_id}`}>Login email</label>
         {isMe ? (
-          <>
-            <span className="label">Login</span>
-            <p className="min-h-11 content-center truncate font-mono text-[12.5px] text-muted" title={m.email}>{m.email}</p>
-          </>
+          <input id={`se-${m.user_id}`} value={m.email} readOnly title="Change your own email under My account" className="input cursor-default bg-soft font-mono text-[13px] text-muted" />
         ) : (
-          <>
-            <label className="label" htmlFor={`se-${m.user_id}`}>Login email</label>
-            <input id={`se-${m.user_id}`} name="email" type="email" defaultValue={m.email} autoComplete="off" maxLength={120} className="input font-mono text-[13px]" />
-            <FieldError state={state} name="email" />
-          </>
+          <input id={`se-${m.user_id}`} name="email" type="email" defaultValue={m.email} autoComplete="off" maxLength={120} className="input font-mono text-[13px]" />
         )}
-        <p className="text-[11px] text-muted">{m.mfa ? 'Two-step sign-in on' : 'No two-step sign-in'} · since {formatDate(m.created_at)}</p>
+        <FieldError state={state} name="email" />
+        <p className="hint">{m.mfa ? 'Two-step sign-in on' : 'No two-step sign-in'} · since {formatDate(m.created_at)}</p>
       </div>
+      {isMe ? (
+        <div className="field">
+          <span className="label">Password</span>
+          <p className="input flex items-center bg-soft text-[13px] text-muted">Change it in My account</p>
+        </div>
+      ) : (
+        <PasswordInput id={`sp-${m.user_id}`} name="password" label="New password (optional)" placeholder="Leave empty to keep" ariaLabel={`New password for ${m.full_name}`} />
+      )}
       <div className="field">
         <label className="label" htmlFor={`sr-${m.user_id}`}>Role</label>
         <select id={`sr-${m.user_id}`} name="role" defaultValue={m.role} disabled={isMe} className="input">
@@ -55,30 +62,26 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
         </select>
         {isMe && <input type="hidden" name="role" value={m.role} />}
       </div>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" name="isActive" defaultChecked={m.is_active} disabled={isMe} className="h-4 w-4 accent-[var(--brand)]" />
-        {isMe && <input type="hidden" name="isActive" value="on" />}
-        Active
-      </label>
-      <PendingButton pending={pending} className="btn btn-outline btn-sm">Save</PendingButton>
-      {canDelete ? (
-        <button type="button" onClick={() => setAsking(true)} title={`Delete ${m.full_name}`} aria-label={`Delete ${m.full_name}`} className="grid h-9 w-9 place-items-center self-end rounded-full text-bad transition hover:bg-bad/10 md:mb-1">
-          <Icon name="trash" size={18} />
-        </button>
-      ) : <span className="hidden md:block md:w-9" aria-hidden />}
+      <div className="field">
+        <span className="label hidden lg:block" aria-hidden>&nbsp;</span>
+        <div className="flex min-h-11 items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="isActive" defaultChecked={m.is_active} disabled={isMe} className="h-4 w-4 accent-[var(--brand)]" />
+            {isMe && <input type="hidden" name="isActive" value="on" />}
+            Active
+          </label>
+          <PendingButton pending={pending} className="btn btn-outline btn-sm">Save</PendingButton>
+          {canDelete ? (
+            <button type="button" onClick={() => setAsking(true)} title={`Delete ${m.full_name}`} aria-label={`Delete ${m.full_name}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-bad transition hover:bg-bad/10">
+              <Icon name="trash" size={18} />
+            </button>
+          ) : <span className="w-9 shrink-0" aria-hidden />}
+        </div>
+      </div>
       <ConfirmDialog open={asking} title={`Delete ${m.full_name}?`} confirmLabel="Yes, delete" pendingLabel="Deleting…" pending={deleting} onConfirm={remove} onClose={() => setAsking(false)}>
         Their login ({m.email}) is removed and they can no longer sign in. Orders and notes they worked on stay; their open orders become unassigned. To only stop them for now, untick <b>Active</b> instead.
       </ConfirmDialog>
-      {!isMe && (
-        <details className="md:col-span-6">
-          <summary className="cursor-pointer text-[12px] text-muted">Set a new password</summary>
-          <div className="mt-2 max-w-sm">
-            <input name="password" type="password" autoComplete="new-password" minLength={10} placeholder="At least 10 characters" className="input" aria-label={`New password for ${m.full_name}`} />
-            <FieldError state={state} name="password" />
-          </div>
-        </details>
-      )}
-      <div className="md:col-span-6"><FormMessage state={state} /></div>
+      <div className="lg:col-span-5"><FormMessage state={state} /></div>
     </form>
   );
 }
@@ -86,26 +89,27 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
 function AddStaff() {
   const { state, onSubmit, pending } = useKeepValuesAction(saveStaff);
   const ref = useRef<HTMLFormElement>(null);
+  // A new key empties the password box too after a successful add.
+  const [formKey, setFormKey] = useState(0);
   useEffect(() => {
-    if (state.ok) ref.current?.reset();
+    if (state.ok) { ref.current?.reset(); setFormKey((k) => k + 1); }
   }, [state]);
   return (
-    <form ref={ref} onSubmit={onSubmit} className="grid gap-3 rounded-2xl bg-paper p-4 md:grid-cols-[1fr_1.2fr_1fr_10rem_auto] md:items-end" noValidate>
-      <h3 className="text-sm font-semibold md:col-span-5">Add a staff member</h3>
+    <form ref={ref} onSubmit={onSubmit} className={`${ROW} mt-2 rounded-2xl border border-dashed border-line bg-soft/50 p-4`} noValidate>
+      <h3 className="font-semibold lg:col-span-5">Add a staff member</h3>
       <input type="hidden" name="isActive" value="on" />
       <div className="field">
         <label className="label" htmlFor="ns-name">Name</label>
         <input id="ns-name" name="fullName" maxLength={80} className="input" />
         <FieldError state={state} name="fullName" />
       </div>
-      <div className="field">
+      <div className="field min-w-0">
         <label className="label" htmlFor="ns-email">Login email</label>
-        <input id="ns-email" name="email" type="email" autoComplete="off" className="input" />
+        <input id="ns-email" name="email" type="email" autoComplete="off" className="input font-mono text-[13px]" />
         <FieldError state={state} name="email" />
       </div>
-      <div className="field">
-        <label className="label" htmlFor="ns-pass">First password</label>
-        <input id="ns-pass" name="password" type="password" autoComplete="new-password" minLength={10} className="input" />
+      <div>
+        <PasswordInput key={formKey} id="ns-pass" name="password" label="First password" />
         <FieldError state={state} name="password" />
       </div>
       <div className="field">
@@ -114,8 +118,11 @@ function AddStaff() {
           {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
       </div>
-      <PendingButton pending={pending} className="btn btn-primary btn-sm">Add</PendingButton>
-      <div className="md:col-span-5"><FormMessage state={state} /></div>
+      <div className="field">
+        <span className="label hidden lg:block" aria-hidden>&nbsp;</span>
+        <div className="flex min-h-11 items-center"><PendingButton pending={pending} className="btn btn-primary btn-sm px-6">Add</PendingButton></div>
+      </div>
+      <div className="lg:col-span-5"><FormMessage state={state} /></div>
     </form>
   );
 }
@@ -150,7 +157,7 @@ export function StaffManager({ staff, meId, matrix }: { staff: StaffMember[]; me
       <section className="card p-5">
         <h2 className="font-semibold">Staff</h2>
         <p className="text-sm text-muted">Switched-off staff cannot sign in to the admin, and their open orders are unassigned. There is no public sign-up.</p>
-        <div className="divide-y divide-line">
+        <div className="mt-2 divide-y divide-line">
           {staff.map((m) => <StaffRow key={m.user_id} m={m} isMe={m.user_id === meId} />)}
         </div>
         <AddStaff />
