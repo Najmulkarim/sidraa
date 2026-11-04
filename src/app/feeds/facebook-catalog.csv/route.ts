@@ -1,4 +1,4 @@
-import { getSettings, priceRange, PRODUCT_SELECT, totalStock } from '@/lib/catalog';
+import { getSettings, priceRange, PRODUCT_SELECT, totalStock, visibleImages } from '@/lib/catalog';
 import { toCsv } from '@/lib/csv';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { createPublicClient } from '@/lib/supabase/public';
@@ -28,11 +28,13 @@ export async function GET() {
     return !u ? '' : u.startsWith('/') ? `${SITE_URL}${u}` : u;
   };
   const rows = ((data ?? []) as unknown as ProductWithRelations[])
-    .filter((p) => p.images.length > 0)
+    // Hidden variations stay out: price, stock and photos come from the shown ones only,
+    // and a product with every variation hidden is left out.
+    .filter((p) => p.images.length > 0 && p.variants.some((v) => v.is_active))
     .map((p) => {
       const { min } = priceRange(p);
       const compare = p.compare_at_price === null ? null : Number(p.compare_at_price);
-      const images = [...p.images].sort((a, b) => a.sort_order - b.sort_order);
+      const images = [...visibleImages(p)].sort((a, b) => a.sort_order - b.sort_order);
       const onSale = compare !== null && compare > min;
       return [
         p.id,

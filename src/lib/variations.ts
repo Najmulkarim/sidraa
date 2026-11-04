@@ -115,3 +115,14 @@ export function suggestSku(base: string, c: { color: string; size: string; optio
 export function splitValues(input: string): string[] {
   return input.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
 }
+
+/**
+ * The product's photos without those that belong only to hidden variations
+ * (a hidden colour's picture should not show in the gallery or the catalogue).
+ */
+export function visibleImages<T extends { storage_path: string }>(p: { images: T[]; variants: { image_path: string | null; is_active: boolean }[] }): T[] {
+  const shown = new Set(p.variants.filter((v) => v.is_active && v.image_path).map((v) => v.image_path));
+  const hidden = new Set(p.variants.filter((v) => !v.is_active && v.image_path && !shown.has(v.image_path)).map((v) => v.image_path));
+  const left = p.images.filter((i) => !hidden.has(i.storage_path));
+  return left.length ? left : p.images;
+}

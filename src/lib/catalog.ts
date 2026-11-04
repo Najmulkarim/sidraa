@@ -369,6 +369,8 @@ export function priceRange(p: ProductWithRelations): { min: number; max: number 
   return { min: Math.min(...prices), max: Math.max(...prices) };
 }
 
+export { visibleImages } from './variations';
+
 export function totalStock(p: ProductWithRelations): number {
   return p.variants.filter((v) => v.is_active).reduce((n, v) => n + Math.max(0, v.stock), 0);
 }

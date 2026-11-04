@@ -6,7 +6,7 @@ import { AddToCart } from '@/components/shop/AddToCart';
 import { Gallery } from '@/components/shop/Gallery';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { ProductGrid } from '@/components/shop/ProductCard';
-import { getProductBySlug, getProductReviews, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice } from '@/lib/catalog';
+import { getProductBySlug, getProductReviews, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice, visibleImages } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
@@ -59,6 +59,7 @@ export default async function ProductPage({ params }: Props) {
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
   const percentOff = compare !== null && compare > min ? Math.round((1 - min / compare) * 100) : 0;
   const content = parseDescription(product.description);
+  const images = visibleImages(product);
   const productUrl = `${SITE_URL}/product/${product.slug}`;
   const activeZones = zones.filter((z) => z.is_active !== false);
   const free = freeDelivery(activeZones);
@@ -69,7 +70,7 @@ export default async function ProductPage({ params }: Props) {
     name: product.name,
     description: plainDescription(product.description) || undefined,
     sku: product.sku,
-    image: product.images.map((i) => imageUrl(i.storage_path)).filter(Boolean),
+    image: images.map((i) => imageUrl(i.storage_path)).filter(Boolean),
     brand: { '@type': 'Brand', name: settings.store_name },
     offers: {
       '@type': 'AggregateOffer',
@@ -194,20 +195,20 @@ export default async function ProductPage({ params }: Props) {
       <VariantImageProvider>
         {/* minmax(0, …) columns: the thumbnail strip scrolls instead of widening the page. */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <Gallery images={product.images} name={product.name} badge={discountBadge(min, compare, product.discount_style)} />
+          <Gallery images={images} name={product.name} badge={discountBadge(min, compare, product.discount_style)} />
 
           {variants.length > 0 ? (
             <AddToCart
               productId={product.id}
               productName={product.name}
               productSlug={product.slug}
-              imagePath={product.images[0]?.storage_path ?? null}
+              imagePath={images[0]?.storage_path ?? null}
               compareAt={compare}
               // "Sale ongoing": the shopper just sees it in stock.
               variants={product.stock_out_mode === 'continue' ? variants.map((v) => ({ ...v, stock: Math.max(v.stock, 99) })) : variants}
               preorderDays={product.stock_out_mode === 'preorder' ? (product.preorder_days ?? 7) : null}
               labels={{ color_label: product.color_label, size_label: product.size_label, option3_label: product.option3_label }}
-              imageOrder={product.images.map((i) => i.storage_path)}
+              imageOrder={images.map((i) => i.storage_path)}
               keepOrder={product.variants.some((v) => v.sort_order > 0)}
               header={header}
               details={details}

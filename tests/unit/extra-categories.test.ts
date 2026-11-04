@@ -18,3 +18,16 @@ describe('extra categories', () => {
     expect(productSchema.safeParse({ ...base, extraCategoryIds: 'abc' }).success).toBe(false);
   });
 });
+
+import { visibleImages } from '@/lib/variations';
+describe('hidden variations', () => {
+  const img = (p: string) => ({ storage_path: p });
+  it('drops photos that belong only to hidden variations', () => {
+    const p = { images: [img('a'), img('b'), img('c')], variants: [{ image_path: 'a', is_active: true }, { image_path: 'b', is_active: false }] };
+    expect(visibleImages(p).map((i) => i.storage_path)).toEqual(['a', 'c']);
+  });
+  it('keeps a photo a shown variation also uses', () => {
+    const p = { images: [img('a')], variants: [{ image_path: 'a', is_active: true }, { image_path: 'a', is_active: false }] };
+    expect(visibleImages(p)).toHaveLength(1);
+  });
+});

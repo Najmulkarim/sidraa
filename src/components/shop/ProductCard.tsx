@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
-import { isPreorder, priceRange, sellable, variantLabel } from '@/lib/catalog';
+import { isPreorder, priceRange, sellable, variantLabel, visibleImages } from '@/lib/catalog';
 import type { ProductWithRelations } from '@/lib/types';
 import { ProductImage } from './ProductImage';
 import { QuickAdd } from './QuickAdd';
@@ -11,7 +11,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
   const soldOut = !sellable(product);
   const preorder = isPreorder(product);
-  const image = product.images[0];
+  const image = visibleImages(product)[0];
   const active = product.variants.filter((v) => v.is_active);
   const single = active.length === 1 && variantLabel(active[0]!) === '' ? active[0]! : null;
   const discount = discountBadge(min, compare, product.discount_style);

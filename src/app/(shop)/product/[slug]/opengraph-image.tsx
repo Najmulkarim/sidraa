@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { getProductBySlug } from '@/lib/catalog';
+import { getProductBySlug, visibleImages } from '@/lib/catalog';
 import { imageUrl, SITE_URL } from '@/lib/env';
 
 /**
@@ -26,7 +26,7 @@ async function photo(url: string | null): Promise<Buffer | null> {
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await getProductBySlug(slug);
-  const main = await photo(imageUrl(p?.images[0]?.storage_path));
+  const main = await photo(imageUrl(p ? visibleImages(p)[0]?.storage_path : null));
   const logo = main ? null : await photo(`${SITE_URL}/brand/logo-light.png`);
 
   let card = sharp({ create: { width: size.width, height: size.height, channels: 4, background: WHITE } });

@@ -234,14 +234,14 @@ export function ProductForm({ product, variants, categories, images = [], costs 
               <thead>
                 <tr>
                   <th aria-label="Drag to change the order"></th><th>Photo</th><th>{labels.color || 'Color'}</th><th>{labels.size || 'Size'}</th>{showOption3 && <th>{labels.option3 || 'Type 3'}</th>}
-                  <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th title="What one piece costs you. Empty: the product's cost price">Cost ৳</th><th>Stock</th><th>Active</th><th></th>
+                  <th title="Leave empty on a new row: it becomes the product SKU plus -01, -02, …">SKU</th><th>Price ৳</th><th title="What one piece costs you. Empty: the product's cost price">Cost ৳</th><th>Stock</th><th title="Hidden variations are not shown on the website or in the Facebook catalogue">Show</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {rowDrag.list.map((r, i) => {
                   const t = thumb(r.imagePath);
                   return (
-                    <tr key={r.key} {...rowDrag.handlers(i)} className={rowDrag.dragging === i ? 'bg-tint' : ''}>
+                    <tr key={r.key} {...rowDrag.handlers(i)} className={`transition-colors ${rowDrag.dragging === i ? 'bg-tint' : !r.isActive ? 'bg-bad/10 [&_input]:opacity-60 [&_img]:grayscale [&_img]:opacity-60' : ''}`}>
                       <td className="w-8 px-1">
                         <span {...rowDrag.handleProps} className="grid h-12 w-7 select-none place-items-center rounded-md text-lg text-muted hover:bg-soft" title="Drag to move" aria-hidden="true">⠿</span>
                       </td>
@@ -305,7 +305,22 @@ export function ProductForm({ product, variants, categories, images = [], costs 
                           <input aria-label="Opening stock" inputMode="numeric" value={r.openingStock} onChange={(e) => update(r.key, { openingStock: e.target.value.replace(/\D/g, '') })} className="input" title="Opening stock" />
                         )}
                       </td>
-                      <td className="pt-4"><input type="checkbox" aria-label="Active" checked={r.isActive} onChange={(e) => update(r.key, { isActive: e.target.checked })} className="h-4 w-4 accent-[var(--brand)]" /></td>
+                      <td className="pt-1.5">
+                        <button
+                          type="button"
+                          aria-pressed={r.isActive}
+                          aria-label={r.isActive ? 'Shown on the website: press to hide' : 'Hidden from the website: press to show'}
+                          title={r.isActive ? 'Shown — press to hide from the website and Facebook catalogue' : 'Hidden — press to show again'}
+                          onClick={() => update(r.key, { isActive: !r.isActive })}
+                          className={`grid h-9 w-9 place-items-center rounded-full transition ${r.isActive ? 'text-ink hover:bg-soft' : 'text-bad hover:bg-bad/10'}`}
+                        >
+                          {r.isActive ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.5M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 19 12 19a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" /></svg>
+                          )}
+                        </button>
+                      </td>
                       <td>
                         <button type="button" className="btn btn-ghost btn-sm text-bad" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label="Remove variation">✕</button>
                       </td>
