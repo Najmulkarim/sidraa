@@ -5,6 +5,7 @@ import { CopySku, PerPageSelect, ProductCardControls } from '@/components/admin/
 import { ProductImage } from '@/components/shop/ProductImage';
 import { ImportProductButton } from '@/components/admin/ImportProductButton';
 import { RefreshCatalogButton } from '@/components/admin/RefreshCatalogButton';
+import { NotifyOnLoad } from '@/components/admin/Toaster';
 import { requirePermission } from '@/lib/auth';
 import { escapeLike } from '@/lib/catalog';
 import { formatTaka, toNumber } from '@/lib/format';
@@ -113,6 +114,16 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
       </header>
 
       {sp.deleted && <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok">Product deleted.</p>}
+      {(sp.saved || sp.created) && (
+        <>
+          <NotifyOnLoad text={sp.created ? 'Product created.' : 'Product saved.'} />
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-ok/10 px-4 py-3 text-sm text-ok" role="status">
+            <span className="font-semibold">{sp.created ? 'Product created.' : 'Product saved.'}</span>
+            {/^[0-9a-f-]{36}$/.test(sp.saved ?? sp.created ?? '') && <Link href={`/admin/products/${sp.saved ?? sp.created}`} className="font-semibold underline">Open it again</Link>}
+          </p>
+        </>
+      )}
+      {sp.note && <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">{sp.note.slice(0, 500)}</p>}
 
       <section className="card space-y-3 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row">

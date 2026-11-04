@@ -154,10 +154,10 @@ export async function saveProduct(_prev: ActionState, formData: FormData): Promi
   if (costErrors.some((r) => r.error)) notes.push('Cost price not saved — run the latest database update (0033) in Supabase.');
 
   refreshStore();
-  // Redirect so the form remounts with the saved variant ids.
-  const qs = new URLSearchParams(p.id ? { saved: '1' } : { created: '1' });
+  // Back to all products, with a note of what was saved (and any warning).
+  const qs = new URLSearchParams(p.id ? { saved: productId } : { created: productId });
   if (notes.length) qs.set('note', notes.join(' ').slice(0, 500));
-  redirect(`/admin/products/${productId}?${qs.toString()}`);
+  redirect(`/admin/products?${qs.toString()}`);
 }
 
 type Db = Awaited<ReturnType<typeof requirePermission>>['supabase'];
