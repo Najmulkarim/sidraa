@@ -13,8 +13,9 @@ import type { ProductStatus } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Products' };
 
-const PER_PAGE_OPTIONS = [50, 100, 500, 1000, 5000];
-const DEFAULT_PER_PAGE = 50;
+// Multiples of 24 fill whole rows at 8, 6, 4, 3 and 2 cards across.
+const PER_PAGE_OPTIONS = [24, 48, 96, 192, 480];
+const DEFAULT_PER_PAGE = 48;
 // The database returns at most 1000 rows per request, so bigger pages are read in steps.
 const READ_STEP = 1000;
 // Off for now; turn on to bring back the Import button (the code is kept).
