@@ -105,8 +105,8 @@ export function MarketCard({ product, stockBar }: { product: ProductWithRelation
       <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden rounded-lg bg-soft">
         <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" />
         <span className="absolute left-2 top-2 flex flex-col gap-1">
-          {d.badge && <span className="rounded bg-[#16a34a] px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">{d.preorder ? 'Pre-order' : 'Sale'}</span>}
-          {product.is_featured && <span className="w-fit rounded bg-brand px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Hot</span>}
+          {d.badge && <span className="rounded bg-[#16a34a] px-2 py-0.5 text-[11px] font-bold uppercase text-white">{d.preorder ? 'Pre-order' : 'Sale'}</span>}
+          {product.is_featured && <span className="w-fit rounded bg-brand px-2 py-0.5 text-[11px] font-bold uppercase text-white">Hot</span>}
         </span>
       </Link>
       <div className="flex flex-1 flex-col gap-1 px-0.5 pt-2.5">
