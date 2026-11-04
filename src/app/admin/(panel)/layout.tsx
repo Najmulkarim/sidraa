@@ -37,7 +37,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="min-h-dvh bg-[#f4f3f8] lg:grid lg:grid-cols-[15.5rem_1fr]">
       <aside className="no-print bg-night lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-5">
+        <div className="flex items-center gap-3 px-6 py-5 lg:py-4">
           <Link href="/admin" aria-label="Dashboard"><Logo settings={settings} variant="dark" className="h-10" /></Link>
           <span className="text-[10px] font-bold uppercase leading-tight tracking-[0.16em] text-white/70">Admin<br />panel</span>
         </div>
