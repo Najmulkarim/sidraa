@@ -124,19 +124,21 @@ export const getCategoryCounts = cachedRead('category_counts', async (): Promise
 
 /** Categories with at least one product on sale: what the menu, footer and home tiles show. */
 export const getShopCategories = cachedRead('shop_categories', async (): Promise<Category[]> => {
-  const { data, error } = await createPublicClient()
-    .from('categories')
-    .select('id, parent_id, products!inner(id)')
-    .eq('products.status', 'published')
-    .limit(1, { referencedTable: 'products' });
-  if (error) throw new CatalogReadError(error.message);
-  const withProducts = new Set<string>();
-  for (const c of (data ?? []) as { id: string; parent_id: string | null }[]) {
-    withProducts.add(c.id);
-    if (c.parent_id) withProducts.add(c.parent_id);
-  }
+  const db = createPublicClient();
+  const [main, extra, all] = await Promise.all([
+    db.from('categories').select('id, products!inner(id)').eq('products.status', 'published').limit(1, { referencedTable: 'products' }),
+    // Categories a product only "also shows in" count too (e.g. Winter Collection for slippers).
+    db.from('products').select('extra_category_ids').eq('status', 'published').neq('extra_category_ids', '{}').limit(5000),
+    getCategories(),
+  ]);
+  if (main.error) throw new CatalogReadError(main.error.message);
+  if (extra.error) throw new CatalogReadError(extra.error.message);
+  const withProducts = new Set<string>((main.data ?? []).map((c) => (c as { id: string }).id));
+  for (const p of (extra.data ?? []) as { extra_category_ids: string[] | null }[]) for (const id of p.extra_category_ids ?? []) withProducts.add(id);
+  // A mother shows when one of its children has products.
+  for (const c of all) if (c.parent_id && withProducts.has(c.id)) withProducts.add(c.parent_id);
   // Child categories are reached from their mother's page, so the menu stays short.
-  return (await getCategories()).filter((c) => !c.parent_id && withProducts.has(c.id));
+  return all.filter((c) => !c.parent_id && withProducts.has(c.id));
 }, []);
 
 export const getZones = cachedRead('zones', async (): Promise<DeliveryZone[]> => {
