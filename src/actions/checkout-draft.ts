@@ -38,6 +38,9 @@ export async function saveCheckoutDraft(input: unknown): Promise<{ ok: boolean }
     if (!(await hit('draft:ip', await clientIp(), DRAFT_LIMIT))) return { ok: false };
 
     const admin = createAdminClient();
+    // This checkout already became an order (a late save after "Place order"): nothing to keep.
+    const { data: placed } = await admin.from('orders').select('id').eq('idempotency_key', d.key).limit(1);
+    if (placed?.length) return { ok: true };
     const row = {
       customer_phone: phone,
       customer_name: d.customerName,

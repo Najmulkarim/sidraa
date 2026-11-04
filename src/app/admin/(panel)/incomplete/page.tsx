@@ -18,7 +18,6 @@ type Row = {
 
 const TABS = [
   { key: 'open', label: 'Open' },
-  { key: 'converted', label: 'Ordered' },
   { key: 'cancelled', label: 'Cancelled' },
 ] as const;
 
@@ -58,7 +57,7 @@ export default async function IncompleteOrdersPage({ searchParams }: { searchPar
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Incomplete orders</h1>
-          <p className="max-w-2xl text-sm text-muted">Customers who entered their mobile number at checkout but did not place the order. Call them, then press <b>Make order</b> (you can change anything first), or cancel or delete it. When the customer orders by themselves, it moves to <b>Ordered</b> on its own.</p>
+          <p className="max-w-2xl text-sm text-muted">Customers who entered their mobile number at checkout but did not place the order. Call them, then press <b>Make order</b> (you can change anything first), or cancel or delete it. Customers who finish their order never show here.</p>
         </div>
       </header>
 
@@ -73,7 +72,7 @@ export default async function IncompleteOrdersPage({ searchParams }: { searchPar
 
       {error && <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">Run the latest database update (0044) in Supabase to use incomplete orders.</p>}
       {!error && rows.length === 0 && (
-        <p className="card p-8 text-center text-sm text-muted">{tab === 'open' ? 'No incomplete orders right now.' : tab === 'converted' ? 'None have become orders yet.' : 'Nothing cancelled.'}</p>
+        <p className="card p-8 text-center text-sm text-muted">{tab === 'open' ? 'No incomplete orders right now.' : 'Nothing cancelled.'}</p>
       )}
 
       <ul className="grid gap-4 xl:grid-cols-2">
