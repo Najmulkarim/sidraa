@@ -1,6 +1,7 @@
 import type { IconName } from '../../icons';
 import { About, Banners, Benefits, CategoryTiles, Collection, Gallery, HeroSection, Notice, ProductRowSection, QuickLinks, Testimonials } from './Sections';
 import { NovaBanners, NovaBenefits, NovaCategories, NovaFavourites, NovaGallery, NovaGrid, NovaHero, NovaLook, NovaNewsletter, NovaReviews, NovaStory } from './NovaSections';
+import { RandomPick } from './RandomPick';
 import { TopCircles, TopHero, TopProducts, TopSidebar } from './TopDealSections';
 import { UrbanBanner, UrbanCategories, UrbanHero, UrbanProducts, UrbanTrust } from './UrbanSections';
 import { MegaBanner, MegaDeals, MegaFrame, MegaGrid, MegaMobileCategories, MegaNotice, MegaSidebar } from './MegaSections';
@@ -33,8 +34,16 @@ function productsFor(s: ProductList): Promise<ProductWithRelations[]> {
     case 'new': return getNewArrivals(n);
     case 'sale': return getOnSale(n);
     case 'category': return s.category_id ? getCategoryProducts(s.category_id, n) : Promise.resolve([]);
+    case 'random': return getNewArrivals(60); // the pool the mixes are drawn from
     default: return getFeaturedProducts(n);
   }
+}
+
+const MIXES = 6;
+function shuffle<T>(list: T[]): T[] {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; }
+  return a;
 }
 
 const HAS_PRODUCTS: SectionType[] = ['collection', 'product_row', 'testimonials', 'deal'];
@@ -80,9 +89,8 @@ export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; an
       {/* One <h1> per page (search engines read it): these themes' heroes have none, so add a hidden one. */}
       {(!sections.some((s) => s.type === 'hero') || topdeal || urban || market || mega) && <h1 className="sr-only">{settings.store_name}{settings.tagline ? ` — ${settings.tagline}` : ''}</h1>}
       {(() => {
-      const raw = sections.map((s, i) => {
+      const renderSection = (s: (typeof sections)[number], i: number, products: ProductWithRelations[]) => {
         const key = s.id;
-        const products = lists[i]!;
         switch (s.type) {
           case 'hero':
             if (nova) return <NovaHero key={key} title={s.title} subtitle={s.subtitle} settings={s.settings as SectionSettings['hero']} store={settings} products={featured.length ? featured : latest} benefits={benefits} />;
@@ -179,6 +187,13 @@ export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; an
           default:
             return null;
         }
+      };
+      const raw = sections.map((s, i) => {
+        const products = lists[i]!;
+        if ((s.settings as Partial<ProductList>).source !== 'random' || products.length < 2) return renderSection(s, i, products);
+        // A few different mixes of the products; each visitor sees one of them.
+        const mixes = Array.from({ length: MIXES }, () => shuffle(products));
+        return <RandomPick key={s.id} variants={mixes.map((m) => renderSection(s, i, m))} />;
       });
       const body = anchors ? raw.map((el, i) => (el ? <div key={sections[i]!.id} id={`sec-${sections[i]!.id}`} className="scroll-mt-20">{el}</div> : null)) : raw;
       if (topdeal) {
