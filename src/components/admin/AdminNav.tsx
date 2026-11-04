@@ -15,6 +15,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: 'Sales',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: 'cart', need: ['orders'], tone: 'brand' },
+      { href: '/admin/incomplete', label: 'Incomplete orders', icon: 'clock', need: ['orders'], tone: 'warn' },
       { href: '/admin/customers', label: 'Customers', icon: 'users', need: ['customers'] },
       { href: '/admin/coupons', label: 'Coupons', icon: 'ticket', need: ['catalog'] },
       { href: '/admin/reports', label: 'Reports', icon: 'chart', need: ['revenue'] },
@@ -40,7 +41,7 @@ const STORE: Item[] = [
   { href: '/admin/account', label: 'My account', icon: 'user' },
 ];
 
-const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/inventory': 'variants running low', '/admin/reviews': 'reviews waiting for approval' };
+const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/incomplete': 'checkouts left without ordering', '/admin/inventory': 'variants running low', '/admin/reviews': 'reviews waiting for approval' };
 
 export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges?: Record<string, number>; user: { name: string; role: string } }) {
   const path = usePathname();

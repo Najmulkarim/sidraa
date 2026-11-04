@@ -20,8 +20,15 @@ const SOURCE_LABEL: Record<(typeof ORDER_SOURCES)[number], string> = {
   other: 'Other',
 };
 
+/** A new order started from something the customer already entered (an incomplete checkout). */
+export type OrderPrefill = {
+  customerName: string; customerPhone: string; address: string; district: string; area: string; note: string;
+  zoneId: string | null; source: string; lines: EditorLine[];
+};
+
 type Props = {
   order?: EditableOrder;
+  prefill?: OrderPrefill;
   options: VariantOption[];
   zones: DeliveryZone[];
   onSaved?: (r: ActionState) => void;
@@ -33,28 +40,28 @@ type Props = {
  * Facebook. Prices are editable on purpose (agreed prices, exchanges); the
  * server recalculates totals and checks stock on save.
  */
-export function OrderEditor({ order, options, zones, onSaved, onCancel }: Props) {
+export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel }: Props) {
   const isNew = !order;
   const [state, dispatch, pending] = useActionState(saveOrderFull, { ok: false } as ActionState);
   const [idemKey] = useState(() => (isNew ? crypto.randomUUID() : ''));
 
   const [customer, setCustomer] = useState({
-    customerName: order?.customer_name ?? '',
-    customerPhone: order?.customer_phone ?? '',
-    address: order?.address ?? '',
-    district: order?.district ?? '',
-    area: order?.area ?? '',
-    note: order?.note ?? '',
+    customerName: order?.customer_name ?? prefill?.customerName ?? '',
+    customerPhone: order?.customer_phone ?? prefill?.customerPhone ?? '',
+    address: order?.address ?? prefill?.address ?? '',
+    district: order?.district ?? prefill?.district ?? '',
+    area: order?.area ?? prefill?.area ?? '',
+    note: order?.note ?? prefill?.note ?? '',
   });
-  const [zoneId, setZoneId] = useState(order?.zone_id ?? zones.find((z) => z.is_active)?.id ?? '');
-  const [source, setSource] = useState<string>(order?.source ?? 'phone');
+  const [zoneId, setZoneId] = useState(order?.zone_id ?? prefill?.zoneId ?? zones.find((z) => z.is_active)?.id ?? '');
+  const [source, setSource] = useState<string>(order?.source ?? prefill?.source ?? 'phone');
   const [status, setStatus] = useState<'pending' | 'confirmed'>('confirmed');
   const [discount, setDiscount] = useState(order ? String(order.discount || '') : '');
   const [overrideDelivery, setOverrideDelivery] = useState(false);
   const [delivery, setDelivery] = useState(order ? String(order.delivery_charge) : '');
   const [paid, setPaid] = useState(order ? String(order.paid_amount) : '');
   const [lines, setLines] = useState<EditorLine[]>(
-    () => order?.items.filter((i) => i.variant_id).map((i) => ({ variantId: i.variant_id!, quantity: i.quantity, unitPrice: i.unit_price })) ?? [],
+    () => order?.items.filter((i) => i.variant_id).map((i) => ({ variantId: i.variant_id!, quantity: i.quantity, unitPrice: i.unit_price })) ?? prefill?.lines ?? [],
   );
   const [query, setQuery] = useState('');
 

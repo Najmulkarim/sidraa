@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 /** Small counts shown next to menu links: orders waiting for a call, variants running low. */
 async function navBadges(supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'], can: Set<Capability>): Promise<Record<string, number>> {
-  const [pending, low, reviews] = await Promise.all([
+  const [pending, low, reviews, incomplete] = await Promise.all([
     can.has('orders') ? supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('deleted_at', null) : null,
     can.has('inventory')
       ? supabase.from('store_settings').select('low_stock_threshold').eq('id', 1).maybeSingle<{ low_stock_threshold: number }>().then(({ data }) =>
@@ -25,8 +25,9 @@ async function navBadges(supabase: Awaited<ReturnType<typeof requireAdmin>>['sup
             .eq('is_active', true).lte('stock', data?.low_stock_threshold ?? 3).neq('product.status', 'archived'))
       : null,
     can.has('catalog') ? supabase.from('product_reviews').select('id', { count: 'exact', head: true }).eq('status', 'pending') : null,
+    can.has('orders') ? supabase.from('incomplete_orders').select('id', { count: 'exact', head: true }).eq('status', 'open') : null,
   ]);
-  return { '/admin/orders': pending?.count ?? 0, '/admin/inventory': low?.count ?? 0, '/admin/reviews': reviews?.count ?? 0 };
+  return { '/admin/orders': pending?.count ?? 0, '/admin/inventory': low?.count ?? 0, '/admin/reviews': reviews?.count ?? 0, '/admin/incomplete': incomplete?.count ?? 0 };
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

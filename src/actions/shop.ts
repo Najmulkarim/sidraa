@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { DB_FIELD_TO_FORM, mapDbError, type StockProblem } from '@/lib/db-errors';
 import { clientIp, hashKey, hit, LIMITS } from '@/lib/rate-limit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { closeIncompleteOrders } from '@/lib/incomplete-orders';
 import { createPublicClient } from '@/lib/supabase/public';
 import { LAST_ORDER_COOKIE } from '@/lib/cart';
 import { CATALOG_TAG } from '@/lib/catalog';
@@ -160,6 +161,11 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
 
     // Refresh cached product pages so stock labels catch up.
     const { data: order } = await admin.from('orders').select('id').eq('public_ref', row.public_ref).single<{ id: string }>();
+    // The customer finished: their incomplete order (if any) is closed.
+    if (order) {
+      const done = { key: input.idempotencyKey, phone: normalizeBdPhone(input.customerPhone), orderId: order.id };
+      after(() => closeIncompleteOrders(admin, done).catch((e) => console.error('[incomplete]', e)));
+    }
     const { data: slugs } = order
       ? await admin.from('order_items').select('product:products(slug)').eq('order_id', order.id)
       : { data: null };

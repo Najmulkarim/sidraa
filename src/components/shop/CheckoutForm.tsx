@@ -2,7 +2,9 @@
 
 import { SAVED_COUPON } from './SitePopups';
 import Link from 'next/link';
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { startTransition, useActionState, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { saveCheckoutDraft } from '@/actions/checkout-draft';
+import { normalizeBdPhone } from '@/lib/phone';
 import { placeOrder, type CheckoutState } from '@/actions/shop';
 import { describeStockProblem } from '@/lib/db-errors';
 import { toOrderItems } from '@/lib/cart';
@@ -69,6 +71,45 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
     });
   }, [quote]);
 
+  // Once the mobile number is valid, keep what was entered as an incomplete order
+  // (staff can call if the customer leaves). Saved a moment after typing stops.
+  const formRef = useRef<HTMLFormElement>(null);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDraft = useRef('');
+  const sendDraft = useCallback(() => {
+    const f = formRef.current;
+    if (!f || !idempotencyKey || lines.length === 0) return;
+    const fd = new FormData(f);
+    const get = (k: string) => String(fd.get(k) ?? '');
+    if (!normalizeBdPhone(get('customerPhone'))) return;
+    const draft = {
+      key: idempotencyKey,
+      customerPhone: get('customerPhone'),
+      customerName: get('customerName'),
+      address: get('address'),
+      district: get('district'),
+      area: get('area'),
+      note: get('note'),
+      zoneId: get('zoneId'),
+      items: toOrderItems(lines).map((l) => ({ variant_id: l.variantId, quantity: l.quantity })),
+    };
+    const json = JSON.stringify(draft);
+    if (json === lastDraft.current) return;
+    lastDraft.current = json;
+    saveCheckoutDraft(draft).catch(() => { lastDraft.current = ''; });
+  }, [idempotencyKey, lines]);
+  const queueDraft = useCallback(() => {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(sendDraft, 1500);
+  }, [sendDraft]);
+  // Cart or delivery area changed; leaving the page sends what is waiting.
+  useEffect(() => { queueDraft(); }, [queueDraft, zoneId]);
+  useEffect(() => {
+    const flush = () => { if (draftTimer.current) { clearTimeout(draftTimer.current); draftTimer.current = null; sendDraft(); } };
+    window.addEventListener('pagehide', flush);
+    return () => { window.removeEventListener('pagehide', flush); if (draftTimer.current) clearTimeout(draftTimer.current); };
+  }, [sendDraft]);
+
   // A <section> (not the empty-cart <div>) so React swaps the node instead of moving it: no layout shift.
   if (!ready) return <section className="card min-h-60 animate-pulse bg-soft" aria-busy="true"><span className="sr-only">Loading your cart…</span></section>;
   if (lines.length === 0) {
@@ -88,6 +129,8 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
 
   return (
     <form
+      ref={formRef}
+      onChange={queueDraft}
       onSubmit={(e: FormEvent<HTMLFormElement>) => {
         // Submitting this way (not <form action>) keeps what the customer
         // typed if the server sends the form back with an error.

@@ -41,6 +41,8 @@ export function defaultPageText(key: InfoPageKey, s: Pick<StoreSettings, 'cod_te
         '',
         'Your details are used only to confirm and deliver your order and are shared only with the delivery service that carries it.',
         '',
+        'If you enter your mobile number at checkout but do not finish, we may keep what you entered for a short time and call you to help with your order.',
+        '',
         'Order tracking shows status and items only, never your address or full phone number.',
       ].join('\n');
     case 'terms':
