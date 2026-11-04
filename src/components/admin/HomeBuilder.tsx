@@ -140,7 +140,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
                   key={s.id}
                   section={s}
                   ctx={{ products, categories, theme }}
-                  onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); }}
+                  onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); setOpen(null); }}
                   onDelete={() => remove(s)}
                   onMove={(d) => move(i, d)}
                   first={i === 0}
@@ -704,8 +704,8 @@ function IconBtn({ label, onClick, disabled, children }: { label: string; onClic
 function Switch({ checked, disabled, onChange, label }: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={() => onChange(!checked)} className="flex shrink-0 items-center gap-1.5 disabled:opacity-60">
-      <span className={`relative h-6 w-11 rounded-full transition-colors ${checked ? 'bg-ok' : 'bg-line'}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+      <span className={`relative block h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-ok' : 'bg-line'}`}>
+        <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
       </span>
       <span className={`hidden w-6 text-[12px] font-semibold sm:block ${checked ? 'text-ok' : 'text-muted'}`}>{label}</span>
     </button>
