@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { saveProduct } from '@/actions/admin-catalog';
+import { useRouter } from 'next/navigation';
+import { useState, type ChangeEvent } from 'react';
+import { addProductImage, saveProduct } from '@/actions/admin-catalog';
+import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import { slugify } from '@/lib/slug';
 import type { Category, Product, ProductImage as ProductImageRow, Variant } from '@/lib/types';
 import { combinations, splitValues } from '@/lib/variations';
@@ -14,6 +16,7 @@ import { RemoveVariationButton } from './RemoveVariationButton';
 import { StockOutFields } from './StockOutFields';
 import { useDragSort } from './useDragSort';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
+import { notify } from './Toaster';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
 type VariantRow = {
@@ -68,7 +71,13 @@ export function ProductForm({ product, variants, categories, images = [], costs 
   // New products get their id now, so photos can be uploaded before the first save.
   const [newId] = useState(() => (product ? '' : crypto.randomUUID()));
   const [newPhotos, setNewPhotos] = useState<PendingPhoto[]>([]);
-  const photoOptions: ProductImageRow[] = product ? images : newPhotos.map((ph, i) => ({ id: ph.path, storage_path: ph.path, alt: ph.alt || null, sort_order: i }));
+  // Photos uploaded from a variation's photo box, shown at once (the page refreshes behind).
+  const [uploaded, setUploaded] = useState<ProductImageRow[]>([]);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const router = useRouter();
+  const photoOptions: ProductImageRow[] = product
+    ? [...images, ...uploaded.filter((u) => !images.some((i) => i.storage_path === u.storage_path))]
+    : newPhotos.map((ph, i) => ({ id: ph.path, storage_path: ph.path, alt: ph.alt || null, sort_order: i }));
   const [applyToColor, setApplyToColor] = useState(true);
   const fe = state.fieldErrors ?? {};
   const showOption3 = !!labels.option3 || rows.some((r) => r.option3);
@@ -118,6 +127,28 @@ export function ProductForm({ product, variants, categories, images = [], costs 
   }
 
   const thumb = (path: string | null) => photoOptions.find((i) => i.storage_path === path);
+
+  /** A new photo from the computer for one variation: added to the product's photos and chosen for it. */
+  async function uploadForRow(row: VariantRow, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingFor(row.key);
+    const id = product?.id ?? newId;
+    const up = await uploadProductPhoto(id, file);
+    if ('error' in up) { setUploadingFor(null); notify(false, up.error); return; }
+    if (product) {
+      const res = await addProductImage({ productId: id, storagePath: up.path, alt: name || product.name });
+      if (!res.ok) { setUploadingFor(null); notify(false, res.message ?? 'The photo could not be added.'); return; }
+      setUploaded((u) => [...u, { id: up.path, storage_path: up.path, alt: name || null, sort_order: images.length + u.length }]);
+      router.refresh();
+    } else {
+      setNewPhotos((p) => [...p, { path: up.path, alt: '' }]);
+    }
+    setUploadingFor(null);
+    choosePhoto(row, up.path);
+    notify(true, 'Photo added to the product and chosen for this variation.');
+  }
 
   return (
     <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[1.6fr_1fr]" noValidate>
@@ -257,17 +288,21 @@ export function ProductForm({ product, variants, categories, images = [], costs 
                         </button>
                         {picking === r.key && (
                           <div className="absolute left-0 top-full z-20 mt-1 w-72 space-y-2 rounded-xl border border-line bg-white p-3 shadow-xl" role="dialog" aria-label="Choose a photo">
-                            {photoOptions.length === 0 ? (
-                              <p className="text-[12.5px] text-muted">Add photos above first, then pick one here.</p>
-                            ) : (
-                              <div className="grid grid-cols-4 gap-1.5">
-                                {photoOptions.map((img) => (
-                                  <button key={img.id} type="button" onClick={() => choosePhoto(r, img.storage_path)} className={`relative aspect-[4/5] overflow-hidden rounded-md border-2 ${img.storage_path === r.imagePath ? 'border-brand' : 'border-transparent'} bg-tint`} aria-label={img.alt ?? 'Photo'}>
-                                    <ProductImage path={img.storage_path} alt="" sizes="60px" />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            <p className="text-[12px] font-semibold text-muted">Choose a photo, or upload a new one</p>
+                            <div className="grid grid-cols-4 gap-1.5">
+                              <label className={`grid aspect-[4/5] cursor-pointer place-items-center rounded-md border-2 border-dashed border-brand/50 bg-tint/60 text-center text-brand transition hover:border-brand hover:bg-tint ${uploadingFor === r.key ? 'pointer-events-none opacity-60' : ''}`} title="Upload a new photo from your computer">
+                                <span className="grid justify-items-center gap-0.5 text-[10.5px] font-semibold leading-tight">
+                                  <span className="text-lg leading-none">{uploadingFor === r.key ? '…' : '+'}</span>
+                                  {uploadingFor === r.key ? 'Uploading' : 'Upload new'}
+                                </span>
+                                <input type="file" accept={PHOTO_ACCEPT} className="sr-only" disabled={uploadingFor === r.key} onChange={(e) => void uploadForRow(r, e)} aria-label="Upload a new photo for this variation" />
+                              </label>
+                              {photoOptions.map((img) => (
+                                <button key={img.id} type="button" onClick={() => choosePhoto(r, img.storage_path)} className={`relative aspect-[4/5] overflow-hidden rounded-md border-2 ${img.storage_path === r.imagePath ? 'border-brand' : 'border-transparent'} bg-tint`} aria-label={img.alt ?? 'Photo'}>
+                                  <ProductImage path={img.storage_path} alt="" sizes="60px" />
+                                </button>
+                              ))}
+                            </div>
                             {r.color && (
                               <label className="flex items-center gap-1.5 text-[12px] text-muted">
                                 <input type="checkbox" checked={applyToColor} onChange={(e) => setApplyToColor(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--brand)]" />
