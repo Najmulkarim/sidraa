@@ -53,6 +53,8 @@ export async function sendTestSms(phone: string): Promise<ActionState> {
   if (!s.api_key) return { ok: false, message: 'Save the API key first.' };
   const message = fillTemplate(s.order_text, { name: 'Customer', order: 'TEST-0001', total: '1,250', store: 'our shop', track: 'sidraabd.com/track' });
   const r = await sendSms(s, to, message);
-  await createAdminClient().from('sms_log').insert({ phone: to, kind: 'test', ok: r.ok, detail: r.detail });
+  const { error: logErr } = await createAdminClient().from('sms_log').insert({ phone: to, kind: 'test', ok: r.ok, detail: r.detail });
+  if (logErr) console.error('[sms] log', logErr.message);
+  revalidatePath('/admin/settings');
   return { ok: r.ok, message: r.ok ? `Test SMS sent to ${to}.` : `Not sent — ${r.detail}` };
 }

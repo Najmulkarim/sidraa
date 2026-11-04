@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { saveSmsSettings, sendTestSms } from '@/actions/admin-sms';
 import { formatDateTime } from '@/lib/format';
@@ -22,6 +23,7 @@ export function SmsSettingsForm({ view, log }: { view: SmsView; log: SmsLogRow[]
   const [text, setText] = useState(view.orderText);
   const [testTo, setTestTo] = useState('');
   const [testing, start] = useTransition();
+  const router = useRouter();
   // A Bangla letter makes the SMS "Unicode": 70 letters per part instead of 160.
   const unicode = /[^\u0000-\u007f]/.test(text);
   const per = unicode ? 70 : 160;
@@ -82,7 +84,7 @@ export function SmsSettingsForm({ view, log }: { view: SmsView; log: SmsLogRow[]
         <p className="text-sm text-muted">Uses the <b>saved</b> settings (save first). The test message is the order message with sample details.</p>
         <div className="flex max-w-md gap-2">
           <input value={testTo} onChange={(e) => setTestTo(e.target.value)} inputMode="tel" placeholder="01XXXXXXXXX" aria-label="Test number" className="input" />
-          <button type="button" disabled={testing || !testTo} onClick={() => start(async () => { const r = await sendTestSms(testTo); notify(r.ok, r.message); })} className="btn btn-outline btn-sm min-h-11 whitespace-nowrap">
+          <button type="button" disabled={testing || !testTo} onClick={() => start(async () => { const r = await sendTestSms(testTo); notify(r.ok, r.message); router.refresh(); })} className="btn btn-outline btn-sm min-h-11 whitespace-nowrap">
             <Icon name="send" size={15} /> {testing ? 'Sending…' : 'Send test'}
           </button>
         </div>
