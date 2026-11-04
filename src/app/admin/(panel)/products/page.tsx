@@ -88,7 +88,7 @@ export default async function ProductsAdminPage({ searchParams }: { searchParams
   let found = 0;
   for (let at = from; at < from + per; at += READ_STEP) {
     const want = Math.min(READ_STEP, from + per - at);
-    const { data, count } = await buildQuery().order('updated_at', { ascending: false }).order('id').range(at, at + want - 1);
+    const { data, count } = await buildQuery().order('created_at', { ascending: false }).order('id').range(at, at + want - 1);
     found = count ?? found;
     rows.push(...((data ?? []) as unknown as Row[]));
     if ((data ?? []).length < want) break;
