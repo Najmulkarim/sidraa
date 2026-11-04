@@ -12,34 +12,20 @@ function tree(categories: Category[]): { mother: Category; children: Category[] 
 }
 
 /**
- * Tick every category the product belongs in. The first one ticked is the
- * main category (breadcrumbs, Google, Facebook catalogue); the others are
- * "also show in". Any ticked one can be made the main one.
+ * Tick every category the product belongs in; it shows in all of them alike.
+ * (Stored as category_id = the first ticked, for the page path and Google,
+ * and extra_category_ids = the rest; staff never see the difference.)
  */
 export function CategoryFields({ categories, main: initialMain, extra: initialExtra }: { categories: Category[]; main: string; extra: string[] }) {
-  // Ticked categories, the main one first.
   const [picked, setPicked] = useState<string[]>(() => (initialMain ? [initialMain, ...initialExtra.filter((id) => id !== initialMain)] : []));
-  const main = picked[0] ?? '';
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const makeMain = (id: string) => setPicked((p) => [id, ...p.filter((x) => x !== id)]);
 
-  const row = (c: Category, child: boolean) => {
-    const on = picked.includes(c.id);
-    return (
-      <div key={c.id} className={`group flex min-h-8 items-center gap-2 ${child ? 'pl-7' : ''}`}>
-        <label className="flex cursor-pointer items-center gap-2.5 py-1 text-[14px]">
-          <input type="checkbox" checked={on} onChange={() => toggle(c.id)} className="h-4 w-4 accent-[var(--brand)]" />
-          <span className={child ? 'text-ink/80' : 'font-semibold'}>{c.name}</span>
-        </label>
-        {on && c.id === main && <span className="rounded-full bg-brand px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">Main</span>}
-        {on && c.id !== main && (
-          <button type="button" onClick={() => makeMain(c.id)} className="text-[12px] font-semibold text-muted opacity-0 transition hover:text-brand group-hover:opacity-100 focus:opacity-100">
-            Make main
-          </button>
-        )}
-      </div>
-    );
-  };
+  const row = (c: Category, child: boolean) => (
+    <label key={c.id} className={`flex min-h-8 cursor-pointer items-center gap-2.5 py-1 text-[14px] ${child ? 'pl-7' : ''}`}>
+      <input type="checkbox" checked={picked.includes(c.id)} onChange={() => toggle(c.id)} className="h-4 w-4 accent-[var(--brand)]" />
+      <span className={child ? 'text-ink/80' : 'font-semibold'}>{c.name}</span>
+    </label>
+  );
 
   return (
     <div className="field">
@@ -54,13 +40,9 @@ export function CategoryFields({ categories, main: initialMain, extra: initialEx
         ))}
       </div>
       <p className="hint">
-        {picked.length === 0
-          ? 'Tick one or more categories.'
-          : picked.length === 1
-            ? 'Tick more to show the product in other categories too.'
-            : `Shows in ${picked.length} categories. The one marked Main is used for the product page path and Google.`}
+        {picked.length === 0 ? 'Tick one or more categories.' : `The product shows in ${picked.length === 1 ? 'this category' : `all ${picked.length} ticked categories`}.`}
       </p>
-      <input type="hidden" name="categoryId" value={main} />
+      <input type="hidden" name="categoryId" value={picked[0] ?? ''} />
       <input type="hidden" name="extraCategoryIds" value={picked.slice(1).join(',')} />
     </div>
   );
