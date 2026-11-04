@@ -170,7 +170,8 @@ function Donut({ counts, total }: { counts: Report['status_counts']; total: numb
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ denied?: string; range?: string; from?: string; to?: string }> }) {
   const [{ supabase, profile, can }, sp] = await Promise.all([requireAdmin(), searchParams]);
-  const range = resolveRange(sp.range ?? '30d', sp.from, sp.to);
+  // Opens on today; the picker chooses any other period.
+  const range = resolveRange(sp.range ?? 'today', sp.from, sp.to);
   // /admin is also where permission redirects land, so it must render for everyone.
   const [{ data: report, error }, { data: stats }, { data: recent }] = await Promise.all([
     can.has('dashboard') ? supabase.rpc('dashboard_report', { p_from: range.from, p_to: range.to }) : Promise.resolve({ data: null, error: null }),
