@@ -3,6 +3,7 @@ import { discountBadge, formatTaka, toNumber } from '@/lib/format';
 import { isPreorder, priceRange, sellable, variantLabel, visibleImages } from '@/lib/catalog';
 import type { ProductWithRelations } from '@/lib/types';
 import { ProductImage } from './ProductImage';
+import { HoverPhoto } from './HoverPhoto';
 import { QuickAdd } from './QuickAdd';
 import { Stars } from './Stars';
 
@@ -11,7 +12,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   const compare = product.compare_at_price === null ? null : toNumber(product.compare_at_price);
   const soldOut = !sellable(product);
   const preorder = isPreorder(product);
-  const image = visibleImages(product)[0];
+  const [image, second] = visibleImages(product);
   const active = product.variants.filter((v) => v.is_active);
   const single = active.length === 1 && variantLabel(active[0]!) === '' ? active[0]! : null;
   const discount = discountBadge(min, compare, product.discount_style);
@@ -24,13 +25,7 @@ export function ProductCard({ product, priority = false, badge }: { product: Pro
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card transition hover:-translate-y-0.5 hover:shadow-[var(--shadow)] active:scale-[0.98]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-tint">
-        <ProductImage
-          path={image?.storage_path}
-          alt={image?.alt ?? product.name}
-          sizes="(min-width: 1024px) 22vw, (min-width: 640px) 33vw, 50vw"
-          priority={priority}
-          className="transition duration-500 group-hover:scale-[1.04]"
-        />
+        <HoverPhoto first={image?.storage_path} second={second?.storage_path} alt={image?.alt ?? product.name} sizes="(min-width: 1024px) 22vw, (min-width: 640px) 33vw, 50vw" priority={priority} />
         <span className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {soldOut ? (
             <span className="rounded-md bg-night px-2 py-0.5 text-[11px] font-bold uppercase text-white">Sold out</span>

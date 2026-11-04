@@ -5,6 +5,7 @@ import { formatTaka } from '@/lib/format';
 import type { Category, ProductWithRelations } from '@/lib/types';
 import { Icon, type IconName } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { AutoScroll } from './AutoScroll';
 import { Countdown } from './Countdown';
 import { MarketCard } from './MarketSections';
@@ -154,7 +155,7 @@ export function MegaDeals({ title, settings, products }: { title: string | null;
             <div key={p.id} className="w-[88%] shrink-0 snap-start md:w-[calc((100%-1rem)/2)]">
               <Link href={`/product/${p.slug}`} className="group grid h-full grid-cols-[42%_1fr] gap-4 rounded-xl border border-line bg-white p-3 hover:border-brand/50 hover:shadow-[var(--shadow)]">
                 <span className="relative aspect-square overflow-hidden rounded-lg bg-soft">
-                  <ProductImage path={d.image} alt={p.name} sizes="(min-width: 768px) 16vw, 38vw" className="transition duration-500 group-hover:scale-105" />
+                  <HoverPhoto first={d.image} second={d.second} alt={p.name} sizes="(min-width: 768px) 16vw, 38vw" />
                   {d.off > 0 && <span className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full bg-brand text-[12px] font-bold text-white">-{d.off}%</span>}
                 </span>
                 <span className="flex min-w-0 flex-col justify-center gap-1.5">

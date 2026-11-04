@@ -4,6 +4,7 @@ import { formatTaka } from '@/lib/format';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 import { Icon, type IconName } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { Head, info } from './ThemeSections';
@@ -155,7 +156,7 @@ function ChicCard({ product, badge }: { product: ProductWithRelations; badge?: s
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-line transition hover:ring-2 hover:ring-brand/50 hover:shadow-[var(--shadow)]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-[color-mix(in_oklab,var(--cream)_70%,white)]">
-        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 24vw, 48vw" className="transition duration-500 group-hover:scale-105" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 24vw, 48vw" />
         {tag && <span className="absolute left-3 top-3 rounded-md bg-brand px-2.5 py-1 text-[11px] font-bold text-white shadow">{tag}</span>}
         {d.stock <= 0 && <span className="absolute inset-x-3 bottom-3 rounded-md bg-white/90 py-1 text-center text-[11px] font-semibold uppercase text-night">Sold out</span>}
       </Link>

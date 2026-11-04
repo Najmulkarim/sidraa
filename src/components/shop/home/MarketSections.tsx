@@ -4,6 +4,7 @@ import { formatTaka } from '@/lib/format';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 import { Icon } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { Countdown } from './Countdown';
@@ -102,7 +103,7 @@ export function MarketCard({ product, stockBar }: { product: ProductWithRelation
   return (
     <div className="group flex h-full flex-col rounded-xl border border-line bg-white p-2.5 transition hover:border-brand/50 hover:shadow-[var(--shadow)]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden rounded-lg bg-soft">
-        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" className="transition duration-500 group-hover:scale-105" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" />
         <span className="absolute left-2 top-2 flex flex-col gap-1">
           {d.badge && <span className="rounded bg-[#16a34a] px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">{d.preorder ? 'Pre-order' : 'Sale'}</span>}
           {product.is_featured && <span className="w-fit rounded bg-brand px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Hot</span>}

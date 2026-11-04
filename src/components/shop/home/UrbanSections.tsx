@@ -4,6 +4,7 @@ import { formatTaka } from '@/lib/format';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 import { Icon, type IconName } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { CartIconButton } from './CartIconButton';
 import { info } from './ThemeSections';
 import { Stars } from '../Stars';
@@ -48,7 +49,7 @@ function Card({ product, badge }: { product: ProductWithRelations; badge?: strin
   return (
     <div className="group flex h-full flex-col text-center">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-[#efefef]">
-        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 22vw, 46vw" className="transition duration-500 group-hover:scale-105" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 22vw, 46vw" />
         {(d.badge || badge) && <span className="absolute right-2 top-2 grid h-7 min-w-7 place-items-center rounded-full bg-brand px-1.5 text-[10.5px] font-bold text-white">{d.badge ?? badge}</span>}
       </Link>
       <Link href={`/product/${product.slug}`} className="mt-2.5 line-clamp-1 text-[14px] font-semibold text-night hover:text-brand">{product.name}</Link>

@@ -6,6 +6,7 @@ import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types'
 import { Icon, type IconName } from '../../icons';
 import { NewsletterForm } from '../NewsletterForm';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { NovaSlides, NovaTabs } from './NovaClient';
@@ -210,7 +211,7 @@ export function NovaCard({ product, badge, tall = false }: { product: ProductWit
     <div className="group">
       <div className={`relative overflow-hidden bg-[#f3f1ee] ${tall ? 'aspect-[3/4]' : 'aspect-[4/5]'}`}>
         <Link href={`/product/${product.slug}`} className="absolute inset-0" aria-label={product.name}>
-          <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 16vw, 46vw" className="transition duration-700 group-hover:scale-105" />
+          <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 16vw, 46vw" />
         </Link>
         {tag && d.stock > 0 && <span className="pointer-events-none absolute bottom-2 left-2 bg-[var(--nova-ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">{tag}</span>}
         {d.stock <= 0 && <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-[var(--nova-ink)]/80 py-1 text-center text-[10.5px] font-semibold uppercase tracking-[0.16em] text-white">Sold out</span>}

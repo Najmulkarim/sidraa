@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { visibleImages } from '@/lib/variations';
 import { Icon, type IconName } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { NewsletterForm } from '../NewsletterForm';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
@@ -28,7 +30,8 @@ export function info(p: ProductWithRelations) {
   // Keep-selling products count as in stock (a big number); pre-orders get their own tag.
   const stock = sellable(p) ? Math.max(totalStock(p), p.stock_out_mode === 'sold_out' ? 0 : 99) : 0;
   const preorder = isPreorder(p);
-  return { min, compare, off, badge: preorder ? 'Pre-order' : discountBadge(min, compare, p.discount_style), stock, preorder, image: p.images[0]?.storage_path ?? null, single: preorder ? null : single };
+  const photos = visibleImages(p);
+  return { min, compare, off, badge: preorder ? 'Pre-order' : discountBadge(min, compare, p.discount_style), stock, preorder, image: photos[0]?.storage_path ?? null, second: photos[1]?.storage_path ?? null, single: preorder ? null : single };
 }
 
 export function Head({ theme, title, subtitle, href, linkLabel = 'View all' }: { theme: ShopTheme; title: string; subtitle?: string | null; href?: string | null; linkLabel?: string }) {
@@ -246,7 +249,7 @@ export function ShopCard({ theme, product, badge }: { theme: ShopTheme; product:
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-line transition hover:shadow-[var(--shadow)]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-soft">
-        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" className="transition duration-500 group-hover:scale-105" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" />
         {tag && <span className={`absolute left-2.5 top-2.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase text-white ${d.off > 0 ? 'bg-brand' : 'bg-night'}`}>{tag}</span>}
         {d.stock <= 0 && <span className="absolute inset-x-2.5 bottom-2.5 rounded-md bg-white/90 py-1 text-center text-[11px] font-semibold uppercase text-night">Sold out</span>}
       </Link>
@@ -457,13 +460,11 @@ export function ReviewCards({ theme, title, settings }: { theme: ShopTheme; titl
 /** Boutique card for the "All products" grid: tall photo, second photo on hover, quiet details. */
 function GridCard({ product, serif }: { product: ProductWithRelations; serif: boolean }) {
   const d = info(product);
-  const second = product.images[1]?.storage_path;
   const colours = new Set(product.variants.filter((v) => v.is_active && v.color).map((v) => v.color)).size;
   return (
     <article className="group">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-soft">
-        <ProductImage path={d.image} alt={product.name} sizes="(min-width: 1024px) 19vw, (min-width: 640px) 31vw, 48vw" className={`transition duration-700 ${second ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`} />
-        {second && <ProductImage path={second} alt="" sizes="(min-width: 1024px) 19vw, 48vw" className="opacity-0 transition duration-700 group-hover:scale-105 group-hover:opacity-100" />}
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 19vw, (min-width: 640px) 31vw, 48vw" />
         {d.badge && d.stock > 0 && <span className="absolute left-2.5 top-2.5 rounded-full bg-brand px-2.5 py-1 text-[10.5px] font-bold tracking-wide text-white shadow">{d.badge}</span>}
         {d.stock <= 0 && <span className="absolute inset-x-0 bottom-0 bg-night/75 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-white">Sold out</span>}
         {d.stock > 0 && (

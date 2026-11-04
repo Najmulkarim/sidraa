@@ -5,6 +5,7 @@ import { formatTaka } from '@/lib/format';
 import type { Category, ProductWithRelations, StoreSettings } from '@/lib/types';
 import { Icon } from '../../icons';
 import { ProductImage } from '../ProductImage';
+import { HoverPhoto } from '../HoverPhoto';
 import { AutoScroll } from './AutoScroll';
 import { CartIconButton } from './CartIconButton';
 import { info } from './ThemeSections';
@@ -144,7 +145,7 @@ function SideCard({ product }: { product: ProductWithRelations }) {
   return (
     <div className="flex h-full gap-3 rounded-xl border border-line bg-white p-3">
       <Link href={`/product/${product.slug}`} className="relative aspect-square w-[42%] shrink-0 overflow-hidden rounded-lg bg-soft">
-        <ProductImage path={d.image} alt={product.name} sizes="160px" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="160px" />
         {d.badge && <span className="absolute left-1.5 top-1.5 rounded bg-[#16a34a] px-1.5 py-0.5 text-[10px] font-bold text-white">{d.preorder ? 'Pre-order' : d.badge}</span>}
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
