@@ -48,6 +48,10 @@ const nextConfig: NextConfig = {
     dangerouslyAllowLocalIP: isDev,
     // 90 for hero banners (HD), 75 everywhere else.
     qualities: [75, 90],
+    // Fewer sizes to choose from: smaller pages (each photo lists every size) and fewer
+    // resized copies, still sharp on phones (2x) and full-width banners.
+    deviceSizes: [640, 828, 1080, 1440, 1920],
+    imageSizes: [96, 128, 256, 384],
     // AVIF where the browser supports it (about a third smaller than WebP).
     formats: ['image/avif', 'image/webp'],
   },

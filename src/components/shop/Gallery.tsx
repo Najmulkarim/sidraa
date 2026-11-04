@@ -85,7 +85,7 @@ export function Gallery({ images, name, badge }: { images: Photo[]; name: string
         <div ref={track} onScroll={onSwipe} className="flex aspect-square snap-x snap-mandatory overflow-x-auto overscroll-x-contain bg-card [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(images.length ? images : [null]).map((img, i) => (
             <button key={img?.id ?? 'none'} type="button" onClick={() => img && setFullScreen(true)} className="relative h-full w-full shrink-0 snap-center" aria-label={img ? `Open photo ${i + 1} full screen` : name}>
-              <ProductImage path={img?.storage_path} alt={img?.alt ?? name} sizes="100vw" priority={i === 0} className="object-contain!" />
+              <ProductImage path={img?.storage_path} alt={img?.alt ?? name} sizes="(min-width: 768px) 96px, 100vw" priority={i === 0} className="object-contain!" />
             </button>
           ))}
         </div>

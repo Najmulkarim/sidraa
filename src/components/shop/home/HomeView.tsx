@@ -39,7 +39,6 @@ function productsFor(s: ProductList): Promise<ProductWithRelations[]> {
   }
 }
 
-const MIXES = 6;
 function shuffle<T>(list: T[]): T[] {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; }
@@ -191,9 +190,11 @@ export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; an
       const raw = sections.map((s, i) => {
         const products = lists[i]!;
         if ((s.settings as Partial<ProductList>).source !== 'random' || products.length < 2) return renderSection(s, i, products);
-        // A few different mixes of the products; each visitor sees one of them.
-        const mixes = Array.from({ length: MIXES }, () => shuffle(products));
-        return <RandomPick key={s.id} variants={mixes.map((m) => renderSection(s, i, m))} />;
+        // One pool of products (twice the number shown); each visitor sees a random set of them.
+        const limit = (s.settings as { limit: number }).limit;
+        const pool = shuffle(products).slice(0, Math.min(products.length, Math.max(limit * 2, limit + 8), 40));
+        const section = { ...s, settings: { ...s.settings, limit: pool.length } } as typeof s;
+        return <RandomPick key={s.id} id={s.id} limit={limit} hidden={pool.slice(limit).map((p) => p.slug)}>{renderSection(section, i, pool)}</RandomPick>;
       });
       const body = anchors ? raw.map((el, i) => (el ? <div key={sections[i]!.id} id={`sec-${sections[i]!.id}`} className="scroll-mt-20">{el}</div> : null)) : raw;
       if (topdeal) {

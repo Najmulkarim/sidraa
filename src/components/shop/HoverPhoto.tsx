@@ -1,3 +1,4 @@
+import { HoverSecond } from './HoverSecond';
 import { ProductImage } from './ProductImage';
 
 /**
@@ -13,12 +14,11 @@ export function HoverPhoto({ first, second, alt, sizes, className = '', priority
         alt={alt}
         sizes={sizes}
         priority={priority}
-        className={`transition duration-500 ease-out in-[a:hover]:scale-105 ${second ? 'in-[a:hover]:opacity-0' : ''} ${className}`}
+        className={`transition duration-500 ease-out in-[a:hover]:scale-105 ${className}`}
       />
       {second && (
-        <ProductImage
+        <HoverSecond
           path={second}
-          alt=""
           sizes={sizes}
           className={`opacity-0 transition duration-500 ease-out in-[a:hover]:scale-105 in-[a:hover]:opacity-100 ${className}`}
         />
