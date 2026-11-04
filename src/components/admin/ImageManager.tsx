@@ -1,12 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, type ChangeEvent } from 'react';
-import { addProductImage, deleteImage, moveImage, reorderImages, updateImageAlt } from '@/actions/admin-catalog';
+import { useState, useTransition } from 'react';
+import { addProductImage, deleteImage, moveImage, reorderImages } from '@/actions/admin-catalog';
 import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import type { ProductImage as Img } from '@/lib/types';
-import { Icon } from '../icons';
-import { ProductImage } from '../shop/ProductImage';
+import { PhotoGrid } from './PhotoGrid';
 import { useDragSort } from './useDragSort';
 import { notify } from './Toaster';
 
@@ -36,9 +35,7 @@ export function ImageManager({ productId, images, productName }: { productId: st
     });
   });
 
-  async function onFiles(e: ChangeEvent<HTMLInputElement>) {
-    const files = [...(e.target.files ?? [])];
-    e.target.value = '';
+  async function onFiles(files: File[]) {
     if (files.length === 0) return;
     setBusy(true);
     setMessage(null);
@@ -67,53 +64,24 @@ export function ImageManager({ productId, images, productName }: { productId: st
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="font-semibold">Photos</h2>
-          <p className="text-xs text-muted">Drag photos to change the order — the first one is the cover. JPG, PNG, WebP or AVIF up to 5 MB. Portrait 3:4 looks best.</p>
+          <p className="text-xs text-muted">The first photo is the cover. Drag photos to change the order. JPG, PNG, WebP or AVIF up to 5 MB each, up to 20 photos.</p>
         </div>
         <label className={`btn btn-outline btn-sm ${busy ? 'pointer-events-none opacity-60' : ''}`}>
           {busy ? 'Uploading…' : 'Add photos'}
-          <input type="file" accept={PHOTO_ACCEPT} multiple className="sr-only" onChange={onFiles} disabled={busy} />
+          <input type="file" accept={PHOTO_ACCEPT} multiple className="sr-only" onChange={(e) => { const f = [...(e.target.files ?? [])]; e.target.value = ''; void onFiles(f); }} disabled={busy} />
         </label>
       </div>
       {message && <p className="text-sm text-muted" role="status">{message}</p>}
-      {images.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">No photos yet. The shop shows a neutral placeholder until you add one.</p>
-      ) : (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-          {list.map((img, i) => (
-            <li key={img.id} className={`min-w-0 space-y-1 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
-              <div className="pointer-events-none relative aspect-[3/4] overflow-hidden rounded-xl border border-line">
-                <ProductImage path={img.storage_path} alt={img.alt ?? productName} sizes="160px" />
-                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white text-[10px]">Cover</span>}
-              </div>
-              <input
-                aria-label="Alt text"
-                defaultValue={img.alt ?? ''}
-                maxLength={200}
-                placeholder="Describe the photo"
-                className="input min-h-8 px-2 py-1 text-xs"
-                onBlur={(e) => {
-                  if (e.target.value !== (img.alt ?? '')) run(() => updateImageAlt(img.id, e.target.value));
-                }}
-              />
-              <div className="flex justify-between">
-                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === 0} onClick={() => run(() => moveImage(img.id, 'up'))} aria-label="Move earlier">←</button>
-                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === list.length - 1} onClick={() => run(() => moveImage(img.id, 'down'))} aria-label="Move later">→</button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm min-h-8 px-1.5 text-bad"
-                  aria-label={`Remove photo ${i + 1}`}
-                  title="Remove"
-                  onClick={() => {
-                    if (window.confirm('Remove this photo?')) run(() => deleteImage(img.id));
-                  }}
-                >
-                  <Icon name="trash" size={15} />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <PhotoGrid
+        photos={list.map((img) => ({ key: img.id, path: img.storage_path, alt: img.alt ?? '' }))}
+        productName={productName}
+        busy={busy}
+        dragging={dragging}
+        handlers={handlers}
+        onAdd={(files) => void onFiles(files)}
+        onRemove={(i) => run(() => deleteImage(list[i]!.id))}
+        onMove={(i, d) => run(() => moveImage(list[i]!.id, d < 0 ? 'up' : 'down'))}
+      />
     </section>
   );
 }

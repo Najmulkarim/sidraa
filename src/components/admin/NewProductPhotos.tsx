@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, type ChangeEvent, type DragEvent } from 'react';
-import { PHOTO_ACCEPT, removeUploadedPhoto, uploadProductPhoto } from '@/lib/upload-photo';
-import { Icon } from '../icons';
-import { ProductImage } from '../shop/ProductImage';
+import { useState } from 'react';
+import { removeUploadedPhoto, uploadProductPhoto } from '@/lib/upload-photo';
+import { PhotoGrid } from './PhotoGrid';
 import { useDragSort } from './useDragSort';
 
 export type PendingPhoto = { path: string; alt: string };
@@ -16,7 +15,6 @@ export type PendingPhoto = { path: string; alt: string };
 export function NewProductPhotos({ productId, photos, onChange, productName }: { productId: string; photos: PendingPhoto[]; onChange: (p: PendingPhoto[]) => void; productName: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [over, setOver] = useState(false);
   const { list, dragging, handlers } = useDragSort(photos, onChange);
 
   async function add(files: File[]) {
@@ -36,16 +34,6 @@ export function NewProductPhotos({ productId, photos, onChange, productName }: {
     setMessage(problems.length ? problems.join(' ') : null);
   }
 
-  const onFiles = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = [...(e.target.files ?? [])];
-    e.target.value = '';
-    void add(files);
-  };
-  const onDrop = (e: DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    setOver(false);
-    void add([...e.dataTransfer.files]);
-  };
   const move = (i: number, d: -1 | 1) => {
     const next = [...photos];
     const [x] = next.splice(i, 1);
@@ -61,45 +49,19 @@ export function NewProductPhotos({ productId, photos, onChange, productName }: {
     <section className="card space-y-4 p-5">
       <div>
         <h2 className="font-semibold">Photos</h2>
-        <p className="text-xs text-muted">The first photo is the cover. JPG, PNG, WebP or AVIF up to 5 MB. Portrait 3:4 looks best. Drag photos to change the order. Add a photo for each colour, then pick it in Variations below.</p>
+        <p className="text-xs text-muted">The first photo is the cover. Drag photos to change the order. JPG, PNG, WebP or AVIF up to 5 MB each, up to 20 photos. Add a photo for each colour, then pick it in Variations below.</p>
       </div>
-      <label
-        onDragOver={(e) => { e.preventDefault(); setOver(true); }}
-        onDragLeave={() => setOver(false)}
-        onDrop={onDrop}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition ${over ? 'border-brand bg-tint' : 'border-line hover:border-brand/60'} ${busy ? 'pointer-events-none opacity-60' : ''}`}
-      >
-        <span className="text-2xl" aria-hidden="true">＋</span>
-        <span className="text-sm font-semibold">{busy ? 'Uploading…' : 'Click to choose photos, or drop them here'}</span>
-        <span className="text-xs text-muted">You can pick several at once</span>
-        <input type="file" accept={PHOTO_ACCEPT} multiple className="sr-only" onChange={onFiles} disabled={busy} aria-label="Add photos" />
-      </label>
       {message && <p className="text-sm text-bad" role="alert">{message}</p>}
-      {photos.length > 0 && (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-          {list.map((ph, i) => (
-            <li key={ph.path} className={`min-w-0 space-y-1 select-none rounded-xl transition ${dragging === i ? 'scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand' : ''}`} {...handlers(i)}>
-              <div className="pointer-events-none relative aspect-[3/4] overflow-hidden rounded-xl border border-line bg-tint">
-                <ProductImage path={ph.path} alt={ph.alt || productName} sizes="160px" />
-                {i === 0 && <span className="badge badge-brand absolute left-1 top-1 bg-white text-[10px]">Cover</span>}
-              </div>
-              <input
-                aria-label={`Describe photo ${i + 1}`}
-                value={ph.alt}
-                maxLength={200}
-                placeholder="Describe the photo"
-                className="input min-h-8 px-2 py-1 text-xs"
-                onChange={(e) => onChange(photos.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)))}
-              />
-              <div className="flex justify-between">
-                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">←</button>
-                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5" disabled={i === list.length - 1} onClick={() => move(i, 1)} aria-label="Move later">→</button>
-                <button type="button" className="btn btn-ghost btn-sm min-h-8 px-1.5 text-bad" onClick={() => remove(i)} aria-label={`Remove photo ${i + 1}`} title="Remove"><Icon name="trash" size={15} /></button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <PhotoGrid
+        photos={list.map((ph) => ({ key: ph.path, path: ph.path, alt: ph.alt }))}
+        productName={productName}
+        busy={busy}
+        dragging={dragging}
+        handlers={handlers}
+        onAdd={(files) => void add(files)}
+        onRemove={remove}
+        onMove={move}
+      />
     </section>
   );
 }
