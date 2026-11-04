@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { addProductImage, saveProduct } from '@/actions/admin-catalog';
 import { PHOTO_ACCEPT, uploadProductPhoto } from '@/lib/upload-photo';
 import { slugify } from '@/lib/slug';
@@ -68,6 +69,13 @@ export function ProductForm({ product, variants, categories, images = [], costs 
   const [rows, setRows] = useState<VariantRow[]>(variants && variants.length > 0 ? variants.map((v) => toRow(v, costs?.variants[v.id])) : [blankRow()]);
   const [gen, setGen] = useState({ colors: '', sizes: '', options: '' });
   const [picking, setPicking] = useState<string | null>(null);
+  // The photo popup closes with Esc too.
+  useEffect(() => {
+    if (!picking) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPicking(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [picking]);
   // New products get their id now, so photos can be uploaded before the first save.
   const [newId] = useState(() => (product ? '' : crypto.randomUUID()));
   const [newPhotos, setNewPhotos] = useState<PendingPhoto[]>([]);
@@ -286,10 +294,17 @@ export function ProductForm({ product, variants, categories, images = [], costs 
                         >
                           {t ? <ProductImage path={t.storage_path} alt="" sizes="40px" /> : <span className="text-lg">+</span>}
                         </button>
-                        {picking === r.key && (
-                          <div className="absolute left-0 top-full z-20 mt-1 w-72 space-y-2 rounded-xl border border-line bg-white p-3 shadow-xl" role="dialog" aria-label="Choose a photo">
-                            <p className="text-[12px] font-semibold text-muted">Choose a photo, or upload a new one</p>
-                            <div className="grid grid-cols-4 gap-1.5">
+                        {picking === r.key && createPortal(
+                          <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" onClick={() => setPicking(null)}>
+                          <div className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label="Choose a photo" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-start gap-3">
+                              <div className="min-w-0">
+                                <h2 className="text-lg font-bold">Variation photo</h2>
+                                <p className="truncate text-[13px] text-muted">{[r.color, r.size, r.option3].filter(Boolean).join(' / ') || 'This variation'} · choose a photo, or upload a new one</p>
+                              </div>
+                              <button type="button" onClick={() => setPicking(null)} aria-label="Close" className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full text-xl text-muted hover:bg-soft">×</button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                               <label className={`grid aspect-[4/5] cursor-pointer place-items-center rounded-md border-2 border-dashed border-brand/50 bg-tint/60 text-center text-brand transition hover:border-brand hover:bg-tint ${uploadingFor === r.key ? 'pointer-events-none opacity-60' : ''}`} title="Upload a new photo from your computer">
                                 <span className="grid justify-items-center gap-0.5 text-[10.5px] font-semibold leading-tight">
                                   <span className="text-lg leading-none">{uploadingFor === r.key ? '…' : '+'}</span>
@@ -304,16 +319,18 @@ export function ProductForm({ product, variants, categories, images = [], costs 
                               ))}
                             </div>
                             {r.color && (
-                              <label className="flex items-center gap-1.5 text-[12px] text-muted">
+                              <label className="flex items-center gap-2 text-[13px] text-muted">
                                 <input type="checkbox" checked={applyToColor} onChange={(e) => setApplyToColor(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--brand)]" />
                                 Use for every “{r.color}” row
                               </label>
                             )}
-                            <div className="flex justify-between">
-                              {r.imagePath && <button type="button" className="text-[12px] text-bad underline" onClick={() => choosePhoto(r, null)}>No photo</button>}
-                              <button type="button" className="ml-auto text-[12px] underline" onClick={() => setPicking(null)}>Close</button>
+                            <div className="flex items-center justify-between">
+                              {r.imagePath && <button type="button" className="text-[13px] text-bad underline" onClick={() => choosePhoto(r, null)}>No photo</button>}
+                              <button type="button" className="btn btn-outline btn-sm ml-auto" onClick={() => setPicking(null)}>Close</button>
                             </div>
                           </div>
+                          </div>,
+                          document.body,
                         )}
                       </td>
                       <td className="min-w-32"><input aria-label={labels.color || 'Color'} value={r.color} onChange={(e) => update(r.key, { color: e.target.value })} className="input" maxLength={30} /></td>
