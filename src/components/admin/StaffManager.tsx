@@ -6,6 +6,7 @@ import { deleteStaff, saveRolePermissions, saveStaff } from '@/actions/admin-set
 import { Icon } from '../icons';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PasswordInput } from './PasswordInput';
+import { SavedPassword } from './SavedPassword';
 import { notify } from './Toaster';
 import { PERMISSION_LABEL, PERMISSIONS, ROLE_LABEL, ROLES, type AdminRole, type Permission } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
@@ -53,7 +54,10 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
           <p className="input flex items-center bg-soft text-[13px] text-muted">Change it in My account</p>
         </div>
       ) : (
-        <PasswordInput id={`sp-${m.user_id}`} name="password" label="New password (optional)" placeholder="Leave empty to keep" ariaLabel={`New password for ${m.full_name}`} />
+        <div>
+          <PasswordInput id={`sp-${m.user_id}`} name="password" label="New password (optional)" placeholder="Leave empty to keep" ariaLabel={`New password for ${m.full_name}`} />
+          <SavedPassword key={state.message ?? ''} userId={m.user_id} />
+        </div>
       )}
       <div className="field">
         <label className="label" htmlFor={`sr-${m.user_id}`}>Role</label>

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { requirePermission, requireSuperAdmin } from '@/lib/auth';
 import { PERMISSIONS, isPermission } from '@/lib/permissions';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { openPassword, sealPassword } from '@/lib/staff-secret';
 import { mapDbError } from '@/lib/db-errors';
 import { IMAGE_BUCKET } from '@/lib/env';
 import type { ActionState } from '@/lib/types';
@@ -251,6 +252,11 @@ export async function saveStaff(_prev: ActionState, formData: FormData): Promise
     const { error: pwErr } = await admin.auth.admin.updateUserById(userId, { password: s.password });
     if (pwErr) return { ok: false, message: 'Saved, but the new password was not accepted.' };
   }
+  // Keep (encrypted) the password just set, so a super admin can look it up later.
+  if (s.password && userId !== user.id) {
+    const { error: keepErr } = await admin.from('staff_passwords').upsert({ user_id: userId, secret: sealPassword(s.password), set_at: new Date().toISOString() });
+    if (keepErr) console.error('[admin] keep staff password', keepErr.message);
+  }
   revalidatePath('/admin/settings');
   return { ok: true, message: created ? `${s.fullName} can now sign in with ${s.email}.` : 'Staff member saved.' };
 }
@@ -275,6 +281,18 @@ export async function deleteStaff(userId: string): Promise<ActionState> {
   revalidatePath('/admin/settings');
   revalidatePath('/admin', 'layout');
   return { ok: true, message: `${target.full_name} was deleted.` };
+}
+
+/** Super admin only: the password last set for a staff member here, decrypted on the server. */
+export async function revealStaffPassword(userId: string): Promise<{ ok: boolean; password?: string; setAt?: string; message?: string }> {
+  const { user } = await requireSuperAdmin();
+  if (!z.uuid().safeParse(userId).success || userId === user.id) return { ok: false, message: 'Not available.' };
+  const { data, error } = await createAdminClient().from('staff_passwords').select('secret, set_at').eq('user_id', userId).maybeSingle<{ secret: string; set_at: string }>();
+  if (error) return { ok: false, message: 'Run the latest database update (0045) in Supabase.' };
+  if (!data) return { ok: false, message: 'Not saved yet — set a new password to keep it here.' };
+  const password = openPassword(data.secret);
+  if (!password) return { ok: false, message: 'Cannot be read any more — set a new password.' };
+  return { ok: true, password, setAt: data.set_at };
 }
 
 export async function saveRolePermissions(_prev: ActionState, formData: FormData): Promise<ActionState> {
