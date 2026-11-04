@@ -10,6 +10,7 @@ import { ProductImage } from '../shop/ProductImage';
 import { CategoryFields } from './CategoryFields';
 import { DescriptionEditor } from './DescriptionEditor';
 import { DiscountFields } from './DiscountFields';
+import { RemoveVariationButton } from './RemoveVariationButton';
 import { StockOutFields } from './StockOutFields';
 import { useDragSort } from './useDragSort';
 import { NewProductPhotos, type PendingPhoto } from './NewProductPhotos';
@@ -322,7 +323,12 @@ export function ProductForm({ product, variants, categories, images = [], costs 
                         </button>
                       </td>
                       <td>
-                        <button type="button" className="btn btn-ghost btn-sm text-bad" disabled={rows.length === 1} onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label="Remove variation">✕</button>
+                        <RemoveVariationButton
+                          name={[r.color, r.size, r.option3].filter(Boolean).join(' / ') || r.sku || 'this variation'}
+                          saved={!!r.id}
+                          disabled={rows.length === 1}
+                          onConfirm={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
+                        />
                       </td>
                     </tr>
                   );
