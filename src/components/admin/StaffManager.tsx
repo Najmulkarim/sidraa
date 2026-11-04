@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { saveRolePermissions, saveStaff } from '@/actions/admin-settings';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { deleteStaff, saveRolePermissions, saveStaff } from '@/actions/admin-settings';
+import { Icon } from '../icons';
+import { ConfirmDialog } from './ConfirmDialog';
+import { notify } from './Toaster';
 import { PERMISSION_LABEL, PERMISSIONS, ROLE_LABEL, ROLES, type AdminRole, type Permission } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
@@ -10,8 +14,19 @@ export type StaffMember = { user_id: string; email: string; full_name: string; r
 
 function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
   const { state, onSubmit, pending } = useKeepValuesAction(saveStaff);
+  const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [deleting, start] = useTransition();
+  // Super admins are never deleted from here (nor yourself); everyone else can be.
+  const canDelete = !isMe && m.role !== 'super_admin';
+  const remove = () => start(async () => {
+    const r = await deleteStaff(m.user_id);
+    notify(r.ok, r.message);
+    setAsking(false);
+    if (r.ok) router.refresh();
+  });
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 py-4 md:grid-cols-[1.2fr_1.3fr_10rem_auto_auto] md:items-end" noValidate>
+    <form onSubmit={onSubmit} className="grid gap-3 py-4 md:grid-cols-[1.2fr_1.3fr_10rem_auto_auto_auto] md:items-end" noValidate>
       <input type="hidden" name="userId" value={m.user_id} />
       <div className="field">
         <label className="label" htmlFor={`sn-${m.user_id}`}>Name {isMe && <span className="badge badge-brand ml-1">You</span>}</label>
@@ -19,8 +34,18 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
         <FieldError state={state} name="fullName" />
       </div>
       <div className="field">
-        <span className="label">Login</span>
-        <p className="min-h-11 content-center truncate font-mono text-[12.5px] text-muted" title={m.email}>{m.email}</p>
+        {isMe ? (
+          <>
+            <span className="label">Login</span>
+            <p className="min-h-11 content-center truncate font-mono text-[12.5px] text-muted" title={m.email}>{m.email}</p>
+          </>
+        ) : (
+          <>
+            <label className="label" htmlFor={`se-${m.user_id}`}>Login email</label>
+            <input id={`se-${m.user_id}`} name="email" type="email" defaultValue={m.email} autoComplete="off" maxLength={120} className="input font-mono text-[13px]" />
+            <FieldError state={state} name="email" />
+          </>
+        )}
         <p className="text-[11px] text-muted">{m.mfa ? 'Two-step sign-in on' : 'No two-step sign-in'} · since {formatDate(m.created_at)}</p>
       </div>
       <div className="field">
@@ -36,8 +61,16 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
         Active
       </label>
       <PendingButton pending={pending} className="btn btn-outline btn-sm">Save</PendingButton>
+      {canDelete ? (
+        <button type="button" onClick={() => setAsking(true)} title={`Delete ${m.full_name}`} aria-label={`Delete ${m.full_name}`} className="grid h-9 w-9 place-items-center self-end rounded-full text-bad transition hover:bg-bad/10 md:mb-1">
+          <Icon name="trash" size={18} />
+        </button>
+      ) : <span className="hidden md:block md:w-9" aria-hidden />}
+      <ConfirmDialog open={asking} title={`Delete ${m.full_name}?`} confirmLabel="Yes, delete" pendingLabel="Deleting…" pending={deleting} onConfirm={remove} onClose={() => setAsking(false)}>
+        Their login ({m.email}) is removed and they can no longer sign in. Orders and notes they worked on stay; their open orders become unassigned. To only stop them for now, untick <b>Active</b> instead.
+      </ConfirmDialog>
       {!isMe && (
-        <details className="md:col-span-5">
+        <details className="md:col-span-6">
           <summary className="cursor-pointer text-[12px] text-muted">Set a new password</summary>
           <div className="mt-2 max-w-sm">
             <input name="password" type="password" autoComplete="new-password" minLength={10} placeholder="At least 10 characters" className="input" aria-label={`New password for ${m.full_name}`} />
@@ -45,7 +78,7 @@ function StaffRow({ m, isMe }: { m: StaffMember; isMe: boolean }) {
           </div>
         </details>
       )}
-      <div className="md:col-span-5"><FormMessage state={state} /></div>
+      <div className="md:col-span-6"><FormMessage state={state} /></div>
     </form>
   );
 }

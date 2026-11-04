@@ -234,6 +234,18 @@ export async function saveStaff(_prev: ActionState, formData: FormData): Promise
     if (created) await admin.auth.admin.deleteUser(userId);
     return { ok: false, message: mapDbError(error).message };
   }
+  // A new login email for someone else (they sign in with it from now on).
+  if (!created && s.email) {
+    const { data: cur } = await admin.auth.admin.getUserById(userId);
+    if (cur.user && cur.user.email?.toLowerCase() !== s.email.toLowerCase()) {
+      if (userId === user.id) return { ok: false, message: 'Change your own email under My account.' };
+      const { error: mailErr } = await admin.auth.admin.updateUserById(userId, { email: s.email, email_confirm: true });
+      if (mailErr) {
+        const taken = /already|exists|registered/i.test(mailErr.message);
+        return { ok: false, message: taken ? 'That email already has an account.' : 'Saved, but the new email was not accepted.', fieldErrors: taken ? { email: 'Already registered' } : undefined };
+      }
+    }
+  }
   if (!created && s.password) {
     if (userId === user.id) return { ok: false, message: 'Change your own password under My account.' };
     const { error: pwErr } = await admin.auth.admin.updateUserById(userId, { password: s.password });
@@ -241,6 +253,28 @@ export async function saveStaff(_prev: ActionState, formData: FormData): Promise
   }
   revalidatePath('/admin/settings');
   return { ok: true, message: created ? `${s.fullName} can now sign in with ${s.email}.` : 'Staff member saved.' };
+}
+
+/**
+ * Super admin only: removes a staff member's login for good. Not yourself and not
+ * another super admin. Their past work stays (orders, notes and history keep their
+ * records; only the link to this person is cleared) and their open orders are unassigned.
+ */
+export async function deleteStaff(userId: string): Promise<ActionState> {
+  const { supabase, user } = await requireSuperAdmin();
+  if (!z.uuid().safeParse(userId).success) return { ok: false, message: 'Not found.' };
+  if (userId === user.id) return { ok: false, message: 'You cannot delete yourself.' };
+  const { data: target } = await supabase.from('admin_profiles').select('role, full_name').eq('user_id', userId).maybeSingle<{ role: string; full_name: string }>();
+  if (!target) return { ok: false, message: 'That staff member no longer exists.' };
+  if (target.role === 'super_admin') return { ok: false, message: 'A super admin cannot be deleted. Change their role first.' };
+  const { error } = await createAdminClient().auth.admin.deleteUser(userId);
+  if (error) {
+    console.error('[admin] delete staff', error.message);
+    return { ok: false, message: 'Could not delete. Please try again.' };
+  }
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin', 'layout');
+  return { ok: true, message: `${target.full_name} was deleted.` };
 }
 
 export async function saveRolePermissions(_prev: ActionState, formData: FormData): Promise<ActionState> {
