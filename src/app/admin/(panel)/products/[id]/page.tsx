@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Icon } from '@/components/icons';
 import { notFound } from 'next/navigation';
 import { deleteProduct } from '@/actions/admin-catalog';
 import { ImageManager } from '@/components/admin/ImageManager';
@@ -46,7 +47,12 @@ export default async function EditProductPage({
           <h1 className="text-2xl font-bold tracking-tight">{p.name}</h1>
         </div>
         {p.status === 'published' && (
-          <Link href={`/product/${p.slug}`} target="_blank" className="btn btn-ghost btn-sm ml-auto">View on shop ↗</Link>
+          <Link href={`/product/${p.slug}`} target="_blank" rel="noopener" className="btn btn-outline btn-sm ml-auto gap-2 rounded-full px-5 shadow-sm hover:!bg-brand hover:!text-white">
+            <Icon name="eye" size={16} /> View on shop <Icon name="external" size={14} />
+          </Link>
+        )}
+        {p.status !== 'published' && (
+          <span className="ml-auto rounded-full bg-soft px-4 py-2 text-[12.5px] font-semibold text-muted">{p.status === 'draft' ? 'Draft — not on the shop yet' : 'Archived — not on the shop'}</span>
         )}
       </header>
 
