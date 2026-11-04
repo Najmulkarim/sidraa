@@ -436,7 +436,18 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
   const parsed = categorySchema.safeParse(formToObject(formData));
   if (!parsed.success) return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   const c = parsed.data;
-  const row = { name: c.name, slug: c.slug, description: c.description ?? null, sort_order: c.sortOrder, is_public: c.isPublic };
+  if (c.parentId) {
+    // One level only: Clothing → Shirt, never Clothing → Shirt → Formal.
+    if (c.parentId === c.id) return { ok: false, message: 'A category cannot be its own mother.', fieldErrors: { parentId: 'Choose another' } };
+    const { data: parent } = await supabase.from('categories').select('parent_id').eq('id', c.parentId).maybeSingle<{ parent_id: string | null }>();
+    if (!parent) return { ok: false, message: 'That mother category no longer exists.', fieldErrors: { parentId: 'Choose another' } };
+    if (parent.parent_id) return { ok: false, message: 'A child category cannot be a mother category.', fieldErrors: { parentId: 'Choose a top-level category' } };
+    if (c.id) {
+      const { count } = await supabase.from('categories').select('id', { count: 'exact', head: true }).eq('parent_id', c.id);
+      if (count) return { ok: false, message: 'This category has child categories, so it cannot go under another one.', fieldErrors: { parentId: 'Has child categories' } };
+    }
+  }
+  const row = { name: c.name, slug: c.slug, description: c.description ?? null, sort_order: c.sortOrder, is_public: c.isPublic, parent_id: c.parentId ?? null };
   const { error } = c.id
     ? await supabase.from('categories').update(row).eq('id', c.id)
     : await supabase.from('categories').insert(row);

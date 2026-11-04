@@ -39,6 +39,8 @@ export type Category = {
   image_path: string | null;
   sort_order: number;
   is_public: boolean;
+  /** The mother category (Clothing for Shirt); null for a top-level one. */
+  parent_id?: string | null;
 };
 
 export type ProductStatus = 'draft' | 'published' | 'archived';

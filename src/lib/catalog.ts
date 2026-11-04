@@ -101,7 +101,7 @@ export async function getLiveCouponCode(code: string, couponsOn: boolean): Promi
 export const getCategories = cachedRead('categories', async (): Promise<Category[]> => {
   const { data, error } = await createPublicClient()
     .from('categories')
-    .select('id, name, slug, description, image_path, sort_order, is_public')
+    .select('id, name, slug, description, image_path, sort_order, is_public, parent_id')
     .order('sort_order')
     .order('name');
   if (error) throw new CatalogReadError(error.message);
@@ -113,8 +113,11 @@ export const getCategoryCounts = cachedRead('category_counts', async (): Promise
   const { data, error } = await createPublicClient().from('products').select('category_id, extra_category_ids').eq('status', 'published').not('category_id', 'is', null).limit(5000);
   if (error) throw new CatalogReadError(error.message);
   const counts: Record<string, number> = {};
+  const parentOf = new Map((await getCategories()).map((c) => [c.id, c.parent_id ?? null]));
   for (const r of (data ?? []) as { category_id: string; extra_category_ids: string[] | null }[]) {
-    for (const id of new Set([r.category_id, ...(r.extra_category_ids ?? [])])) counts[id] = (counts[id] ?? 0) + 1;
+    const ids = new Set([r.category_id, ...(r.extra_category_ids ?? [])]);
+    for (const id of [...ids]) { const p = parentOf.get(id); if (p) ids.add(p); }
+    for (const id of ids) counts[id] = (counts[id] ?? 0) + 1;
   }
   return counts;
 }, {});
@@ -123,13 +126,17 @@ export const getCategoryCounts = cachedRead('category_counts', async (): Promise
 export const getShopCategories = cachedRead('shop_categories', async (): Promise<Category[]> => {
   const { data, error } = await createPublicClient()
     .from('categories')
-    .select('id, name, slug, description, image_path, sort_order, is_public, products!inner(id)')
+    .select('id, parent_id, products!inner(id)')
     .eq('products.status', 'published')
-    .limit(1, { referencedTable: 'products' })
-    .order('sort_order')
-    .order('name');
+    .limit(1, { referencedTable: 'products' });
   if (error) throw new CatalogReadError(error.message);
-  return ((data ?? []) as (Category & { products?: unknown })[]).map(({ products: _p, ...c }) => c as Category);
+  const withProducts = new Set<string>();
+  for (const c of (data ?? []) as { id: string; parent_id: string | null }[]) {
+    withProducts.add(c.id);
+    if (c.parent_id) withProducts.add(c.parent_id);
+  }
+  // Child categories are reached from their mother's page, so the menu stays short.
+  return (await getCategories()).filter((c) => !c.parent_id && withProducts.has(c.id));
 }, []);
 
 export const getZones = cachedRead('zones', async (): Promise<DeliveryZone[]> => {
@@ -182,17 +189,24 @@ export const getProductsByIds = cache(async (ids: string[]): Promise<ProductWith
   return ids.map((id) => byId.get(id)).filter((p): p is ProductWithRelations => !!p);
 });
 
-/** PostgREST filter: the product's main category, or one it also shows in. */
-function inCategory(id: string): string {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return 'id.is.null'; // never matches
-  return `category_id.eq.${id},extra_category_ids.cs.{${id}}`;
+/** A category and its child categories (Clothing → Shirt, T-Shirt …). */
+async function categoryFamily(id: string): Promise<string[]> {
+  const children = (await getCategories()).filter((c) => c.parent_id === id).map((c) => c.id);
+  return [id, ...children];
+}
+
+/** PostgREST filter: products whose main category, or one they also show in, is one of these. */
+function inCategory(ids: string[]): string {
+  const ok = ids.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!ok.length) return 'id.is.null'; // never matches
+  return `category_id.in.(${ok.join(',')}),extra_category_ids.ov.{${ok.join(',')}}`;
 }
 
 export const getCategoryProducts = cache(async (categoryId: string, limit = 8): Promise<ProductWithRelations[]> => {
   const { data, error } = await createPublicClient()
     .from('products')
     .select(PRODUCT_SELECT)
-    .or(inCategory(categoryId))
+    .or(inCategory(await categoryFamily(categoryId)))
     .order('published_at', { ascending: false })
     .limit(limit);
   if (error) console.error('[catalog] category products', error.message);
@@ -310,7 +324,7 @@ async function readProductList(params: ListParams): Promise<ProductList> {
   let query = createPublicClient().from('products').select(select, { count: 'exact' });
   const q = params.q?.trim().slice(0, 80);
   if (q) query = query.ilike('name', `%${escapeLike(q)}%`);
-  if (params.category) query = query.or(inCategory(params.category));
+  if (params.category) query = query.or(inCategory(await categoryFamily(params.category)));
   // Filter on the embedded (aliased) relation; !inner drops products with no match.
   if (params.inStock) query = query.gt('variants.stock', 0);
 

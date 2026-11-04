@@ -206,6 +206,8 @@ export const categorySchema = z.object({
   description: optionalText(2000),
   sortOrder: z.coerce.number().int().min(-1000).max(1000).default(0),
   isPublic: checkbox,
+  /** Mother category; empty for a top-level one. */
+  parentId: z.preprocess(blankToUndefined, z.uuid().optional()),
 });
 
 export const imageMetaSchema = z.object({

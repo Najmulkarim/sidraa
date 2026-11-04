@@ -6,7 +6,7 @@ import { slugify } from '@/lib/slug';
 import type { Category } from '@/lib/types';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
 
-export function CategoryForm({ category }: { category?: Category }) {
+export function CategoryForm({ category, mothers = [], hasChildren = false }: { category?: Category; mothers?: Category[]; hasChildren?: boolean }) {
   const { state, onSubmit, pending } = useKeepValuesAction(saveCategory);
   const [slug, setSlug] = useState(category?.slug ?? '');
   const [touched, setTouched] = useState(!!category);
@@ -21,7 +21,7 @@ export function CategoryForm({ category }: { category?: Category }) {
   }, [state, category]);
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-3 md:grid-cols-[1fr_1fr_1.4fr_6rem_auto_auto] md:items-end" noValidate>
+    <form ref={formRef} onSubmit={onSubmit} className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_1.2fr_5rem_auto_auto] md:items-end" noValidate>
       {category && <input type="hidden" name="id" value={category.id} />}
       <div className="field">
         <label className="label" htmlFor={`name-${category?.id ?? 'new'}`}>Name</label>
@@ -32,6 +32,21 @@ export function CategoryForm({ category }: { category?: Category }) {
         <label className="label" htmlFor={`slug-${category?.id ?? 'new'}`}>Web address</label>
         <input id={`slug-${category?.id ?? 'new'}`} name="slug" value={slug} onChange={(e) => { setSlug(e.target.value); setTouched(true); }} maxLength={80} required className="input" />
         <FieldError state={state} name="slug" />
+      </div>
+      <div className="field">
+        <label className="label" htmlFor={`parent-${category?.id ?? 'new'}`}>Mother category</label>
+        <select
+          id={`parent-${category?.id ?? 'new'}`}
+          name="parentId"
+          defaultValue={category?.parent_id ?? ''}
+          disabled={hasChildren}
+          title={hasChildren ? 'This is a mother category: it has child categories.' : undefined}
+          className="input"
+        >
+          <option value="">{hasChildren ? 'None (it is a mother)' : 'None (top level)'}</option>
+          {mothers.filter((m) => m.id !== category?.id).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        </select>
+        <FieldError state={state} name="parentId" />
       </div>
       <div className="field">
         <label className="label" htmlFor={`desc-${category?.id ?? 'new'}`}>Description</label>
@@ -46,7 +61,7 @@ export function CategoryForm({ category }: { category?: Category }) {
         Visible
       </label>
       <PendingButton pending={pending} className="btn btn-primary btn-sm">{category ? 'Save' : 'Add'}</PendingButton>
-      <div className="md:col-span-6"><FormMessage state={state} /></div>
+      <div className="md:col-span-7"><FormMessage state={state} /></div>
     </form>
   );
 }
