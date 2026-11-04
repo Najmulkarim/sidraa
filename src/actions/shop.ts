@@ -11,7 +11,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { closeIncompleteOrders } from '@/lib/incomplete-orders';
 import { createPublicClient } from '@/lib/supabase/public';
 import { LAST_ORDER_COOKIE } from '@/lib/cart';
-import { CATALOG_TAG } from '@/lib/catalog';
+import { CATALOG_TAG, getSettings } from '@/lib/catalog';
+import { sendOrderPlacedSms } from '@/lib/sms';
 import { SITE_URL } from '@/lib/env';
 import { normalizeBdPhone } from '@/lib/phone';
 import { bkashCreate, BkashError } from '@/lib/payments/bkash';
@@ -160,11 +161,17 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     after(() => sendPurchaseEvent({ ...ctx, ip: ctx.ip === 'unknown' ? null : ctx.ip }).catch((e) => console.error('[capi]', e)));
 
     // Refresh cached product pages so stock labels catch up.
-    const { data: order } = await admin.from('orders').select('id').eq('public_ref', row.public_ref).single<{ id: string }>();
+    const { data: order } = await admin.from('orders').select('id, total').eq('public_ref', row.public_ref).single<{ id: string; total: number | string }>();
     // The customer finished: their incomplete order (if any) is closed.
     if (order) {
       const done = { key: input.idempotencyKey, phone: normalizeBdPhone(input.customerPhone), orderId: order.id };
       after(() => closeIncompleteOrders(admin, done).catch((e) => console.error('[incomplete]', e)));
+      // "Order placed" SMS to the customer (Settings → SMS), after the response.
+      const sms = { id: order.id, publicRef: ref, name: input.customerName, phone: normalizeBdPhone(input.customerPhone) ?? input.customerPhone, total: Number(order.total) };
+      after(async () => {
+        const settings = await getSettings().catch(() => null);
+        await sendOrderPlacedSms(sms, { name: settings?.store_name ?? 'our shop', siteUrl: SITE_URL });
+      });
     }
     const { data: slugs } = order
       ? await admin.from('order_items').select('product:products(slug)').eq('order_id', order.id)

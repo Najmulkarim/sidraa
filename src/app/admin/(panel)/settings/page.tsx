@@ -10,6 +10,8 @@ import { PaymentSettingsForm } from '@/components/admin/PaymentSettingsForm';
 import { SettingsForm } from '@/components/admin/SettingsForm';
 import { BrandImageUploader } from '@/components/admin/BrandImageUploader';
 import { StorefrontSettingsForm } from '@/components/admin/StorefrontSettingsForm';
+import { SmsSettingsForm, type SmsLogRow, type SmsView } from '@/components/admin/SmsSettingsForm';
+import { readSmsSettings } from '@/lib/sms';
 import { parseStorefront } from '@/lib/storefront';
 import { StaffManager, type StaffMember } from '@/components/admin/StaffManager';
 import { ZoneForm } from '@/components/admin/ZoneForm';
@@ -56,6 +58,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {tab === 'delivery' && <DeliveryTab supabase={supabase} />}
       {tab === 'payments' && <PaymentsTab />}
       {tab === 'courier' && <CourierTab supabase={supabase} />}
+      {tab === 'sms' && <SmsTab />}
       {tab === 'facebook' && <FacebookTab supabase={supabase} />}
       {tab === 'staff' && <StaffTab supabase={supabase} meId={user.id} />}
     </div>
@@ -191,6 +194,19 @@ async function FacebookTab({ supabase }: { supabase: Db }) {
       </section>
     </div>
   );
+}
+
+/** SMS settings and log are server-only tables: read with the service key after the permission check above. */
+async function SmsTab() {
+  const admin = createAdminClient();
+  const [s, { data: log }] = await Promise.all([
+    readSmsSettings(),
+    admin.from('sms_log').select('id, phone, kind, ok, detail, created_at, order:orders(public_ref)').order('created_at', { ascending: false }).limit(20),
+  ]);
+  if (!s) return <p className="card p-5 text-sm text-warn">Run the latest database update (0046) in Supabase to set up SMS.</p>;
+  const view: SmsView = { enabled: s.enabled, provider: s.provider, keyHint: s.api_key ? `••••${s.api_key.slice(-4)}` : null, senderId: s.sender_id ?? '', orderText: s.order_text };
+  const rows: SmsLogRow[] = ((log ?? []) as unknown as (Omit<SmsLogRow, 'ref'> & { order: { public_ref: string } | null })[]).map(({ order, ...l }) => ({ ...l, ref: order?.public_ref ?? null }));
+  return <SmsSettingsForm view={view} log={rows} />;
 }
 
 async function StaffTab({ supabase, meId }: { supabase: Db; meId: string }) {

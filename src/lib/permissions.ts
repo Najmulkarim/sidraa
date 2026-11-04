@@ -75,6 +75,7 @@ export const SETTINGS_TABS = [
   { key: 'delivery', label: 'Delivery', need: 'store_settings' },
   { key: 'payments', label: 'Payments', need: 'store_settings' },
   { key: 'courier', label: 'Courier', need: 'courier_settings' },
+  { key: 'sms', label: 'SMS', need: 'store_settings' },
   { key: 'facebook', label: 'Facebook & tracking', need: 'marketing' },
   { key: 'staff', label: 'Staff & roles', need: 'staff' },
 ] as const satisfies readonly { key: string; label: string; need: Capability }[];
