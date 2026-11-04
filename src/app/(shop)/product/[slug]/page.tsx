@@ -11,7 +11,7 @@ import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
 import { parseStorefront } from '@/lib/storefront';
 import { discountBadge, formatTaka, toNumber } from '@/lib/format';
-import { parseDescription, plainDescription } from '@/lib/product-content';
+import { hasMoreAfter, parseDescription, plainDescription } from '@/lib/product-content';
 import { DescriptionFlow } from '@/components/shop/DescriptionParts';
 import { SeeMore } from '@/components/shop/SeeMore';
 import { Icon } from '@/components/icons';
@@ -131,7 +131,7 @@ export default async function ProductPage({ params }: Props) {
       {content.flow.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">About this item</h2>
-          <SeeMore show={6} total={content.bullets.length}>
+          <SeeMore show={4} total={content.bullets.length} more={hasMoreAfter(content.flow, 4)}>
             <DescriptionFlow flow={content.flow} />
           </SeeMore>
         </section>

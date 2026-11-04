@@ -154,3 +154,22 @@ export function whatsappOrderLink(shopPhone: string | null | undefined, message:
   const phone = normalizeBdPhone(shopPhone);
   return phone ? `https://wa.me/88${phone}?text=${encodeURIComponent(message)}` : null;
 }
+
+/**
+ * Is there anything after the first `show` list points (more points, text or
+ * pictures)? Then the product page folds it behind "See more".
+ */
+export function hasMoreAfter(flow: FlowItem[], show: number): boolean {
+  const total = flow.reduce((n, f) => n + (f.type === 'list' ? f.group.items.length : 0), 0);
+  const upTo = Math.min(show, total);
+  if (upTo === 0) return false;
+  let seen = 0;
+  for (const f of flow) {
+    if (seen >= upTo) return true;
+    if (f.type === 'list') {
+      if (seen + f.group.items.length > upTo) return true;
+      seen += f.group.items.length;
+    }
+  }
+  return false;
+}

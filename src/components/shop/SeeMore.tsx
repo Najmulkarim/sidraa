@@ -6,22 +6,24 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
  * Shows the first `show` list points; "See more" slides the rest open in place
  * and "See less" slides them shut. Nothing opens in a new page.
  */
-export function SeeMore({ show, total, children }: { show: number; total: number; children: ReactNode }) {
+export function SeeMore({ show, total, more, children }: { show: number; total: number; more?: boolean; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   // Height that shows the first points; a guess until the page has measured it.
   const [cut, setCut] = useState<number | null>(null);
   const [full, setFull] = useState<number | null>(null);
   const [closing, setClosing] = useState(false);
-  const long = total > show;
+  // Folds after the last of the first points shown, whatever follows (points, text, pictures).
+  const long = more ?? total > show;
+  const upTo = Math.max(1, Math.min(show, total));
 
   const measure = useCallback(() => {
     const el = box.current;
     if (!el) return;
-    const last = el.querySelectorAll('li')[show - 1];
+    const last = el.querySelectorAll('li')[upTo - 1];
     if (last) setCut(last.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 4);
     setFull(el.scrollHeight);
-  }, [show]);
+  }, [upTo]);
 
   useEffect(() => {
     if (!long) return;
@@ -38,7 +40,7 @@ export function SeeMore({ show, total, children }: { show: number; total: number
    */
   function close() {
     const el = box.current;
-    const last = el?.querySelectorAll('li')[show - 1];
+    const last = el?.querySelectorAll('li')[upTo - 1];
     if (!el || !last) { setOpen(false); return; }
     const from = el.getBoundingClientRect().height;
     const to = last.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 4;
