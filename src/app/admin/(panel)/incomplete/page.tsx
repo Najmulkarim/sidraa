@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { IncompleteActions } from '@/components/admin/IncompleteActions';
-import { Icon } from '@/components/icons';
-import { ProductImage } from '@/components/shop/ProductImage';
+import { IncompleteList } from '@/components/admin/IncompleteList';
+import type { DeliveryZone } from '@/lib/types';
 import { loadVariantOptions } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
 import { formatDateTime, formatTaka } from '@/lib/format';
@@ -38,7 +37,7 @@ function ago(iso: string): string {
 export default async function IncompleteOrdersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const [{ supabase, can }, sp] = await Promise.all([requirePermission('orders'), searchParams]);
   const tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as (typeof TABS)[number]['key']) : 'open';
-  const [{ data, error }, counts, options] = await Promise.all([
+  const [{ data, error }, counts, options, { data: zones }] = await Promise.all([
     supabase
       .from('incomplete_orders')
       .select('id, customer_phone, customer_name, address, district, area, note, zone_id, items, status, order_id, created_at, updated_at, zone:delivery_zones(name, charge), order:orders(public_ref)')
@@ -47,9 +46,9 @@ export default async function IncompleteOrdersPage({ searchParams }: { searchPar
       .limit(300),
     Promise.all(TABS.map((t) => supabase.from('incomplete_orders').select('id', { count: 'exact', head: true }).eq('status', t.key).then((r) => r.count ?? 0))),
     loadVariantOptions(supabase),
+    supabase.from('delivery_zones').select('id, name, charge, free_over, eta_text, sort_order, is_active').order('sort_order'),
   ]);
   const rows = (data ?? []) as unknown as Row[];
-  const byId = new Map(options.map((o) => [o.variant_id, o]));
   const canConvert = can.has('orders_edit');
 
   return (
@@ -57,7 +56,7 @@ export default async function IncompleteOrdersPage({ searchParams }: { searchPar
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Incomplete orders</h1>
-          <p className="max-w-2xl text-sm text-muted">Customers who entered their mobile number at checkout but did not place the order. Call them, then press <b>Make order</b> (you can change anything first), or cancel or delete it. Customers who finish their order never show here.</p>
+          <p className="max-w-2xl text-sm text-muted">Customers who entered their mobile number at checkout but did not place the order. Call them, then press <b>Make order</b>, or <b>Edit</b> the address and products first, or cancel or delete it. Customers who finish their order never show here.</p>
         </div>
       </header>
 
@@ -75,49 +74,19 @@ export default async function IncompleteOrdersPage({ searchParams }: { searchPar
         <p className="card p-8 text-center text-sm text-muted">{tab === 'open' ? 'No incomplete orders right now.' : 'Nothing cancelled.'}</p>
       )}
 
-      <ul className="grid gap-4 xl:grid-cols-2">
-        {rows.map((r) => {
-          const lines = (Array.isArray(r.items) ? r.items : []).map((l) => ({ ...l, o: byId.get(l.variant_id) }));
-          const subtotal = lines.reduce((n, l) => n + (l.o ? l.o.price * l.quantity : 0), 0);
-          const place = [r.address, r.area, r.district].filter(Boolean).join(', ');
-          return (
-            <li key={r.id} className="card flex min-w-0 flex-col gap-4 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-lg font-bold">{r.customer_name || <span className="font-semibold text-muted">No name yet</span>}</p>
-                  <a href={`tel:${r.customer_phone}`} className="inline-flex items-center gap-1.5 font-semibold text-brand hover:underline"><Icon name="phone" size={15} /> {formatBdPhone(r.customer_phone)}</a>
-                </div>
-                <div className="text-right text-[12.5px] text-muted">
-                  <p title={formatDateTime(r.updated_at)}>{ago(r.updated_at)}</p>
-                  {r.status === 'converted' && r.order && r.order_id && <Link href={`/admin/orders/${r.order_id}`} className="font-semibold text-ok hover:underline">Order {r.order.public_ref} ↗</Link>}
-                </div>
-              </div>
-
-              <div className="space-y-1 text-sm">
-                {place ? <p className="flex gap-2"><Icon name="pin" size={15} className="mt-0.5 shrink-0 text-muted" /> {place}</p> : <p className="text-muted">No address yet</p>}
-                {r.zone && <p className="flex gap-2 text-muted"><Icon name="truck" size={15} className="mt-0.5 shrink-0" /> {r.zone.name} · delivery {formatTaka(r.zone.charge)}</p>}
-                {r.note && <p className="flex gap-2 text-muted"><Icon name="note" size={15} className="mt-0.5 shrink-0" /> {r.note}</p>}
-              </div>
-
-              <ul className="divide-y divide-line rounded-xl border border-line">
-                {lines.map((l, i) => (
-                  <li key={i} className="flex items-center gap-3 p-2.5 text-sm">
-                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-tint"><ProductImage path={l.o?.image ?? null} alt="" sizes="48px" /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{l.o?.product_name ?? 'Item no longer available'}</span>
-                      {l.o?.label && <span className="block text-[12.5px] text-muted">{l.o.label}</span>}
-                    </span>
-                    <span className="shrink-0 text-right"><span className="text-muted">{l.quantity} ×</span> {l.o ? formatTaka(l.o.price) : '—'}</span>
-                  </li>
-                ))}
-                <li className="flex justify-between p-2.5 text-sm font-semibold"><span>Items total</span><span>{formatTaka(subtotal)}</span></li>
-              </ul>
-
-              <IncompleteActions id={r.id} status={r.status} canConvert={canConvert} name={r.customer_name || formatBdPhone(r.customer_phone)} />
-            </li>
-          );
-        })}
-      </ul>
+      {rows.length > 0 && (
+        <IncompleteList
+          canConvert={canConvert}
+          options={options}
+          zones={(zones ?? []) as DeliveryZone[]}
+          rows={rows.map((r) => ({
+            id: r.id, status: r.status, phone: r.customer_phone, phoneText: formatBdPhone(r.customer_phone), name: r.customer_name,
+            address: r.address, area: r.area, district: r.district, note: r.note, zoneId: r.zone_id,
+            zoneText: r.zone ? `${r.zone.name} · delivery ${formatTaka(r.zone.charge)}` : null,
+            items: Array.isArray(r.items) ? r.items : [], ago: ago(r.updated_at), when: formatDateTime(r.updated_at),
+          }))}
+        />
+      )}
     </div>
   );
 }

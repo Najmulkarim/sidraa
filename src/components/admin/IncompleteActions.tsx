@@ -9,7 +9,7 @@ import { Icon } from '../icons';
 import { notify } from './Toaster';
 
 /** Make order / Cancel / Delete for one incomplete order; delete asks first in the site's own popup. */
-export function IncompleteActions({ id, status, canConvert, name }: { id: string; status: 'open' | 'converted' | 'cancelled'; canConvert: boolean; name: string }) {
+export function IncompleteActions({ id, status, canConvert, name, onEdit }: { id: string; status: 'open' | 'converted' | 'cancelled'; canConvert: boolean; name: string; onEdit?: () => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [asking, setAsking] = useState(false);
@@ -29,17 +29,18 @@ export function IncompleteActions({ id, status, canConvert, name }: { id: string
   });
 
   return (
-    <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-4">
+    <div className="flex items-center gap-1.5 lg:justify-end">
       {status !== 'converted' && canConvert && (
-        <Link href={`/admin/orders/new?draft=${id}`} className="btn btn-primary btn-sm"><Icon name="cart" size={15} /> Make order</Link>
+        <Link href={`/admin/orders/new?draft=${id}`} className="btn btn-primary btn-sm whitespace-nowrap px-3"><Icon name="cart" size={14} /> Make order</Link>
       )}
+      {onEdit && <button type="button" disabled={pending} onClick={onEdit} className="btn btn-outline btn-sm px-3"><Icon name="pencil" size={14} /> Edit</button>}
       {status === 'open' && (
-        <button type="button" disabled={pending} onClick={() => run(() => setIncompleteStatus(id, 'cancelled'))} className="btn btn-outline btn-sm"><Icon name="ban" size={15} /> Cancel</button>
+        <button type="button" disabled={pending} onClick={() => run(() => setIncompleteStatus(id, 'cancelled'))} title="Cancel — keep it, but off the open list" aria-label="Cancel" className="btn btn-outline btn-sm px-3"><Icon name="ban" size={14} /><span className="hidden sm:inline"> Cancel</span></button>
       )}
       {status === 'cancelled' && (
-        <button type="button" disabled={pending} onClick={() => run(() => setIncompleteStatus(id, 'open'))} className="btn btn-outline btn-sm"><Icon name="restore" size={15} /> Reopen</button>
+        <button type="button" disabled={pending} onClick={() => run(() => setIncompleteStatus(id, 'open'))} className="btn btn-outline btn-sm px-3"><Icon name="restore" size={14} /> Reopen</button>
       )}
-      <button type="button" disabled={pending} onClick={() => setAsking(true)} className="btn btn-ghost btn-sm ml-auto text-bad"><Icon name="trash" size={15} /> Delete</button>
+      <button type="button" disabled={pending} onClick={() => setAsking(true)} title="Delete" aria-label={`Delete ${name}`} className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full text-bad hover:bg-bad/10 lg:ml-0"><Icon name="trash" size={16} /></button>
 
       {asking && createPortal(
         <div className="fixed inset-0 z-50 grid place-items-center bg-night/50 p-4 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby={`del-inc-${id}`} onClick={() => !pending && setAsking(false)}>
