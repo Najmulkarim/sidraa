@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition, type ReactNode } from 'react';
 import { addHomeSection, deleteHomeSection, reorderHomeSections, saveHomeSection, setHomeSectionEnabled } from '@/actions/admin-home';
 import { labelFieldsFor, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
-import { tagHref } from '@/lib/tags';
+import { tagHref, tagSlug } from '@/lib/tags';
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
@@ -12,7 +12,7 @@ import { useDragSort } from './useDragSort';
 import { notify } from './Toaster';
 
 export type PickProduct = { id: string; name: string; sku: string; image: string | null; status: string };
-export type PickCategory = { id: string; name: string };
+export type PickCategory = { id: string; name: string; slug?: string };
 
 type Ctx = { products: PickProduct[]; categories: PickCategory[]; tags: string[]; collections: { id: string; name: string; slug: string }[]; theme: string };
 
@@ -231,8 +231,10 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
     });
   }
 
-  const showTitle = t !== 'quick_links' && t !== 'benefits' && t !== 'notice';
-  const titleLabel = t === 'banners' ? 'Small line above the banner (e.g. LIMITED EDITION)' : t === 'testimonials' ? 'Heading over the customer comments' : 'Heading';
+  // Every section can be named; for these three the name is only for this list.
+  const showTitle = true;
+  const nameOnly = t === 'quick_links' || t === 'benefits' || t === 'notice';
+  const titleLabel = nameOnly ? 'Section name (shown in this list)' : t === 'banners' ? 'Small line above the banner (e.g. LIMITED EDITION)' : t === 'testimonials' ? 'Heading over the customer comments' : 'Heading';
   const subtitleLabel = t === 'notice' ? 'Notice text' : t === 'about' ? 'Story text' : 'Short text under the heading (optional)';
 
   return (
@@ -247,7 +249,7 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
               <input id={`t-${section.id}`} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="input" />
             </div>
           )}
-          {t !== 'banners' && t !== 'testimonials' && t !== 'gallery' && <div className={`field ${t === 'notice' ? 'md:col-span-2' : ''}`}>
+          {t !== 'banners' && t !== 'testimonials' && t !== 'gallery' && t !== 'quick_links' && t !== 'benefits' && <div className={`field ${t === 'notice' ? 'md:col-span-2' : ''}`}>
             <label className="label" htmlFor={`s-${section.id}`}>{subtitleLabel}</label>
             <textarea id={`s-${section.id}`} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={600} rows={t === 'about' ? 4 : 2} className="input" />
           </div>}
@@ -456,6 +458,7 @@ function HeroEditor({ settings, set, theme }: { settings: SectionSettings['hero'
 function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'tag' | 'collection_id' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
   return (
     <div className="space-y-4">
+      <FromLink ctx={ctx} set={set} />
       {autoplay !== undefined && (
         <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={autoplay} onChange={(e) => set({ autoplay: e.target.checked })} className="h-4 w-4 accent-[var(--brand)]" /> Scroll by itself (pauses when a visitor touches it)</label>
       )}
@@ -698,6 +701,39 @@ function ImageField({ value, onChange, aspect, hint, min, big }: { value: string
       </div>
       {warn && <p className="rounded-md bg-warn/10 px-2 py-1.5 text-[12px] text-warn">{warn}</p>}
       {err && <p className="error">{err}</p>}
+    </div>
+  );
+}
+
+/**
+ * Paste a category or collection link (from the website or the admin lists):
+ * the section then shows those products, and "View all" opens that page.
+ */
+function FromLink({ ctx, set }: { ctx: Ctx; set: (p: Record<string, unknown>) => void }) {
+  const [text, setText] = useState('');
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const use = (raw: string) => {
+    setText(raw);
+    const path = raw.trim().replace(/^https?:\/\/[^/]+/i, '').split(/[?#]/)[0]!.replace(/\/+$/, '');
+    if (!path) { setNote(null); return; }
+    const [, kind, rawSlug] = /^\/(category|collections)\/([^/]+)$/.exec(path) ?? [];
+    const slug = rawSlug ? decodeURIComponent(rawSlug).toLowerCase() : '';
+    if (kind === 'category') {
+      const c = ctx.categories.find((x) => x.slug === slug);
+      if (c) { set({ source: 'category', category_id: c.id, link: path }); setNote({ ok: true, text: `Showing the category “${c.name}”.` }); return; }
+    } else if (kind === 'collections') {
+      const c = ctx.collections.find((x) => x.slug === slug);
+      if (c) { set({ source: 'collection', collection_id: c.id, link: path }); setNote({ ok: true, text: `Showing the collection “${c.name}”.` }); return; }
+      const t = ctx.tags.find((x) => tagSlug(x) === slug);
+      if (t) { set({ source: 'tag', tag: t, link: path }); setNote({ ok: true, text: `Showing products tagged “${t}”.` }); return; }
+    }
+    setNote({ ok: false, text: 'Paste a link like /category/bags or /collections/top-sale (from this website).' });
+  };
+  return (
+    <div className="field rounded-xl border border-dashed border-brand/40 bg-tint/40 p-3">
+      <span className="label">Quick: paste a category or collection link</span>
+      <input value={text} onChange={(e) => use(e.target.value)} placeholder="https://sidraabd.com/collections/top-sale" maxLength={300} className="input font-mono text-[13px]" />
+      {note && <span className={`text-[12.5px] font-medium ${note.ok ? 'text-ok' : 'text-bad'}`}>{note.ok ? '✓ ' : ''}{note.text}</span>}
     </div>
   );
 }

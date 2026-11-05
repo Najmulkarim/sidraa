@@ -24,7 +24,7 @@ export default async function HomepageAdminPage({ searchParams }: { searchParams
 
   const [{ data: rows, error }, { data: cats }, { data: prods }, tags, { data: cols }] = await Promise.all([
     supabase.from('home_sections').select('id, type, title, subtitle, enabled, sort_order, settings').eq('theme', editing).order('sort_order').order('created_at'),
-    supabase.from('categories').select('id, name').order('sort_order').order('name'),
+    supabase.from('categories').select('id, name, slug').order('sort_order').order('name'),
     supabase.from('products').select('id, sku, name, status, images:product_images(storage_path, sort_order)').neq('status', 'archived').order('name').limit(2000),
     loadAllTags(supabase),
     supabase.from('collections').select('id, name, slug').order('sort_order').order('name'),
