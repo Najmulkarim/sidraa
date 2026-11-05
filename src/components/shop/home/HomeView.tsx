@@ -50,14 +50,20 @@ function shuffle<T>(list: T[]): T[] {
 
 const HAS_PRODUCTS: SectionType[] = ['collection', 'product_row', 'testimonials', 'deal'];
 
-/** The whole home page for one theme (the live page and the admin preview). anchors: each section gets an id the editor can scroll to. */
-export async function HomeView({ theme, anchors = false }: { theme: ThemeKey; anchors?: boolean }) {
+export type SectionDraft = { id: string; title: string | null; subtitle: string | null; settings: unknown };
+
+/**
+ * The whole home page for one theme (the live page and the admin preview). anchors: each section gets an id the editor can scroll to.
+ * draft: the admin preview shows a section's unsaved edits in place of what is saved.
+ */
+export async function HomeView({ theme, anchors = false, draft }: { theme: ThemeKey; anchors?: boolean; draft?: SectionDraft | null }) {
   const [settings, categories, zones, rows, covers, latest, featured, counts] = await Promise.all([
     getSettings(), getShopCategories(), getZones(), getHomeSections(theme), getCategoryCovers(), getNewArrivals(9), getFeaturedProducts(6), getCategoryCounts(),
   ]);
 
   const sections = (rows ?? FALLBACK)
     .filter((r): r is HomeSectionRow & { type: SectionType } => (SECTION_TYPES as readonly string[]).includes(r.type))
+    .map((r) => (draft && r.id === draft.id ? { ...r, title: draft.title, subtitle: draft.subtitle, settings: draft.settings as typeof r.settings } : r))
     .map((r) => ({ ...r, settings: parseSettings(r.type, r.settings) }));
   const lists = await Promise.all(sections.map((s) => (HAS_PRODUCTS.includes(s.type) ? productsFor(s.settings as ProductList) : Promise.resolve([]))));
   const photos = [...featured, ...lists.flat(), ...latest].map((p) => p.images[0]?.storage_path).filter((x): x is string => !!x);

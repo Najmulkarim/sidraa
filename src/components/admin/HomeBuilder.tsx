@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { addHomeSection, deleteHomeSection, reorderHomeSections, saveHomeSection, setHomeSectionEnabled } from '@/actions/admin-home';
 import { labelFieldsFor, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
 import { tagHref, tagSlug } from '@/lib/tags';
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
-import { ThemePreviewPane } from './ThemePreviewPane';
+import { ThemePreviewPane, type PreviewDraft } from './ThemePreviewPane';
 import { useDragSort } from './useDragSort';
 import { notify } from './Toaster';
 
@@ -34,6 +34,7 @@ export function HomeBuilder({ sections, products, categories, tags = [], collect
   const [version, setVersion] = useState(0);
   const [sheet, setSheet] = useState(false);
   const changed = () => setVersion((v) => v + 1);
+  const [draft, setDraft] = useState<PreviewDraft | null>(null);
 
   function persistOrder(next: HomeSection[]) {
     setItems(next);
@@ -142,6 +143,7 @@ export function HomeBuilder({ sections, products, categories, tags = [], collect
                   section={s}
                   ctx={{ products, categories, tags, collections, theme }}
                   onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); setOpen(null); }}
+                  onDraft={setDraft}
                   onDelete={() => remove(s)}
                   onMove={(d) => move(i, d)}
                   first={i === 0}
@@ -185,11 +187,11 @@ export function HomeBuilder({ sections, products, categories, tags = [], collect
       </div>
 
       <aside className="sticky top-20 hidden h-[calc(100dvh-6.5rem)] xl:block" aria-label="Live preview">
-        <ThemePreviewPane theme={theme} version={version} focus={open} />
+        <ThemePreviewPane theme={theme} version={version} focus={open} draft={open && draft?.id === open ? draft : null} />
       </aside>
       {sheet && (
         <div className="fixed inset-0 z-50 flex flex-col bg-night/60 p-2 backdrop-blur-sm sm:p-6 xl:hidden" role="dialog" aria-modal="true" aria-label="Live preview">
-          <div className="mx-auto h-full w-full max-w-md"><ThemePreviewPane theme={theme} version={version} focus={open} onClose={() => setSheet(false)} /></div>
+          <div className="mx-auto h-full w-full max-w-md"><ThemePreviewPane theme={theme} version={version} focus={open} draft={open && draft?.id === open ? draft : null} onClose={() => setSheet(false)} /></div>
         </div>
       )}
     </div>
@@ -210,8 +212,10 @@ function summary(s: HomeSection, collections: { id: string; name: string }[] = [
 
 // ------------------------------------------------------------- editor
 
-function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }: {
+function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last, onDraft }: {
   section: HomeSection; ctx: Ctx; onSaved: (s: HomeSection) => void; onDelete: () => void; onMove: (d: -1 | 1) => void; first: boolean; last: boolean;
+  /** Every edit, unsaved, for the live preview. */
+  onDraft: (d: PreviewDraft) => void;
 }) {
   const [title, setTitle] = useState(section.title ?? '');
   const [subtitle, setSubtitle] = useState(section.subtitle ?? '');
@@ -220,6 +224,10 @@ function SectionEditor({ section, ctx, onSaved, onDelete, onMove, first, last }:
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const set = (patch: Record<string, unknown>) => setSettings((cur) => ({ ...cur, ...patch }));
   const t = section.type;
+  const [saved] = useState(() => JSON.stringify([section.title ?? '', section.subtitle ?? '', section.settings]));
+  useEffect(() => {
+    onDraft({ id: section.id, name: title || SECTION_INFO[t].label, title, subtitle, settings, dirty: JSON.stringify([title, subtitle, settings]) !== saved });
+  }, [title, subtitle, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function save() {
     setMsg(null);
