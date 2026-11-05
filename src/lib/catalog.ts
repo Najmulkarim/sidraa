@@ -230,6 +230,20 @@ export const getTagProducts = cache(async (tags: string[], limit = 8): Promise<P
   return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
 });
 
+/** The first photo of each product, by its page slug (banners that link to a product but have no picture). */
+export const getProductPhotosBySlug = cache(async (slugs: string[]): Promise<Record<string, string>> => {
+  const ok = [...new Set(slugs)].filter((s) => /^[a-z0-9-]{1,120}$/.test(s)).slice(0, 20);
+  if (!ok.length) return {};
+  const { data, error } = await createPublicClient().from('products').select('slug, images:product_images(storage_path, sort_order)').in('slug', ok);
+  if (error) { console.error('[catalog] photos by slug', error.message); return {}; }
+  const out: Record<string, string> = {};
+  for (const p of (data ?? []) as { slug: string; images: { storage_path: string; sort_order: number }[] }[]) {
+    const first = [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0];
+    if (first) out[p.slug] = first.storage_path;
+  }
+  return out;
+});
+
 /** Collections shown on the website, in the admin's order. */
 export const getCollections = cachedRead('collections', async (): Promise<CollectionRow[]> => {
   const { data, error } = await createPublicClient().from('collections').select('id, name, slug, description, is_public, match, rules, product_ids, sort_order').eq('is_public', true).order('sort_order').order('name');

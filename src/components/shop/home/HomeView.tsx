@@ -9,7 +9,7 @@ import { MarketBanners, MarketCategoryGrid, MarketDeals, MarketHero, MarketProdu
 import { ChicBenefits, ChicCategories, ChicHero, ChicOffer, ChicProductRow } from './ChicSections';
 import { BestSellers, Deal, NewsletterBand, ProductGridSection, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
 import {
-  getShopCategories, getShopTags, getTagProducts, getCollectionProducts, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
+  getShopCategories, getShopTags, getTagProducts, getCollectionProducts, getProductPhotosBySlug, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
 } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
@@ -65,6 +65,17 @@ export async function HomeView({ theme, anchors = false, draft }: { theme: Theme
     .filter((r): r is HomeSectionRow & { type: SectionType } => (SECTION_TYPES as readonly string[]).includes(r.type))
     .map((r) => (draft && r.id === draft.id ? { ...r, title: draft.title, subtitle: draft.subtitle, settings: draft.settings as typeof r.settings } : r))
     .map((r) => ({ ...r, settings: parseSettings(r.type, r.settings) }));
+  // A banner or slide with no picture that links to a product (/product/…) or a
+  // category (/category/…) shows that product's photo or the category's picture.
+  const slugOf = (link: string, kind: 'product' | 'category') => new RegExp(`^(?:https?://[^/]+)?/${kind}/([a-z0-9-]+)`).exec(link.trim())?.[1];
+  const pictureless = sections.flatMap((s) => (s.type === 'banners' ? (s.settings as SectionSettings['banners']).items : s.type === 'hero' ? (s.settings as SectionSettings['hero']).slides : []).filter((b) => !b.image && b.link));
+  const productPhotos = await getProductPhotosBySlug(pictureless.map((b) => slugOf(b.link, 'product')).filter((x): x is string => !!x));
+  for (const b of pictureless) {
+    const p = slugOf(b.link, 'product');
+    const c = slugOf(b.link, 'category');
+    const cat = c ? categories.find((x) => x.slug === c) : undefined;
+    b.image = (p && productPhotos[p]) || (cat && (cat.image_path && !cat.image_path.startsWith('/demo/') ? cat.image_path : covers[cat.id])) || b.image;
+  }
   const lists = await Promise.all(sections.map((s) => (HAS_PRODUCTS.includes(s.type) ? productsFor(s.settings as ProductList) : Promise.resolve([]))));
   const photos = [...featured, ...lists.flat(), ...latest].map((p) => p.images[0]?.storage_path).filter((x): x is string => !!x);
   const discount = maxDiscount([...lists.flat(), ...featured]);
