@@ -14,6 +14,7 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { toNumber } from '@/lib/format';
 import { sizeRank } from './sizes';
 import { countTags } from './tags';
+import { collectionFilter, type CollectionRow } from './collections';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
@@ -229,6 +230,31 @@ export const getTagProducts = cache(async (tags: string[], limit = 8): Promise<P
   return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
 });
 
+/** Collections shown on the website, in the admin's order. */
+export const getCollections = cachedRead('collections', async (): Promise<CollectionRow[]> => {
+  const { data, error } = await createPublicClient().from('collections').select('id, name, slug, description, is_public, match, rules, product_ids, sort_order').eq('is_public', true).order('sort_order').order('name');
+  if (error) throw new CatalogReadError(error.message);
+  return (data as CollectionRow[] | null) ?? [];
+}, []);
+
+/** The product filter for a collection: its category rules include child categories, tag rules every spelling. */
+export async function filterForCollection(c: Pick<CollectionRow, 'match' | 'rules' | 'product_ids'>): Promise<string | null> {
+  const [categories, tags] = await Promise.all([getCategories(), getShopTags()]);
+  const family = (id: string) => [id, ...categories.filter((x) => x.parent_id === id).map((x) => x.id)];
+  const spellings = (tag: string) => tags.filter((t) => t.tag.toLowerCase() === tag.toLowerCase()).map((t) => t.tag);
+  return collectionFilter(c, family, spellings);
+}
+
+/** A collection's products, newest first (home page sections). */
+export const getCollectionProducts = cache(async (collectionId: string, limit = 8): Promise<ProductWithRelations[]> => {
+  const c = (await getCollections()).find((x) => x.id === collectionId);
+  const filter = c ? await filterForCollection(c) : null;
+  if (!filter) return [];
+  const { data, error } = await createPublicClient().from('products').select(PRODUCT_SELECT).or(filter).order('published_at', { ascending: false }).limit(limit);
+  if (error) console.error('[catalog] collection products', error.message);
+  return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
+});
+
 /** Tags on products for sale, most used first: the website's collections. */
 export const getShopTags = cachedRead('shop_tags', async (): Promise<{ tag: string; count: number }[]> => {
   const { data, error } = await createPublicClient().from('products').select('tags').eq('status', 'published').neq('tags', '{}').limit(5000);
@@ -316,6 +342,8 @@ export type ListParams = {
   category?: string; // category id
   /** A collection: products with any of these tags (spellings of one tag). */
   tags?: string[];
+  /** A collection's product filter (from collectionFilter). */
+  filter?: string;
   sort?: 'new' | 'price-asc' | 'price-desc' | 'name';
   inStock?: boolean;
   page?: number;
@@ -337,7 +365,7 @@ type ProductList = { products: ProductWithRelations[]; total: number; page: numb
 
 /** A page of products, cached for five minutes or until the next catalog change. */
 export function listProducts(params: ListParams): Promise<ProductList> {
-  const key = JSON.stringify([params.q?.trim().slice(0, 80).toLowerCase() ?? '', params.category ?? '', (params.tags ?? []).join('|').toLowerCase(), params.sort ?? '', !!params.inStock, Math.floor(params.page ?? 1)]);
+  const key = JSON.stringify([params.q?.trim().slice(0, 80).toLowerCase() ?? '', params.category ?? '', (params.tags ?? []).join('|').toLowerCase(), params.filter ?? '', params.sort ?? '', !!params.inStock, Math.floor(params.page ?? 1)]);
   return cachedRead(`list:${key}`, () => readProductList(params), { products: [], total: 0, page: 1, pages: 1 })();
 }
 
@@ -351,6 +379,7 @@ async function readProductList(params: ListParams): Promise<ProductList> {
   if (q) query = query.ilike('name', `%${escapeLike(q)}%`);
   if (params.category) query = query.or(inCategory(await categoryFamily(params.category)));
   if (params.tags?.length) query = query.overlaps('tags', params.tags);
+  if (params.filter) query = query.or(params.filter);
   // Filter on the embedded (aliased) relation; !inner drops products with no match.
   if (params.inStock) query = query.gt('variants.stock', 0);
 

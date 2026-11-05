@@ -41,6 +41,7 @@ export async function Listing({
   showCategoryFilter,
   hideChips = false,
   tags,
+  filter,
 }: {
   basePath: string;
   searchParams: Search;
@@ -51,10 +52,12 @@ export async function Listing({
   hideChips?: boolean;
   /** A collection page: only products with these tags. */
   tags?: string[];
+  /** A collection page: its product filter. */
+  filter?: string;
 }) {
   const params = readListParams(searchParams);
   const categoryFilter = category?.id ?? categories.find((c) => c.slug === first(searchParams.category))?.id;
-  const [{ products, total, page, pages }, chips] = await Promise.all([listProducts({ ...params, category: categoryFilter, tags }), getShopCategories()]);
+  const [{ products, total, page, pages }, chips] = await Promise.all([listProducts({ ...params, category: categoryFilter, tags, filter }), getShopCategories()]);
   const currentSlug = category?.slug ?? first(searchParams.category) ?? null;
 
   return (

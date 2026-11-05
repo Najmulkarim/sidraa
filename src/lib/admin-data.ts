@@ -65,3 +65,19 @@ export async function loadAllTags(supabase: Db): Promise<string[]> {
   const { data } = await supabase.from('products').select('tags').neq('tags', '{}').limit(5000);
   return countTags((data ?? []) as { tags: string[] | null }[]).map((t) => t.tag);
 }
+
+/** What the collection form needs: categories, tags in use and products to pick from. */
+export async function loadCollectionFormData(supabase: Db) {
+  const [{ data: cats }, tags, { data: prods }] = await Promise.all([
+    supabase.from('categories').select('id, name, parent_id').order('sort_order').order('name'),
+    loadAllTags(supabase),
+    supabase.from('products').select('id, name, sku, status, images:product_images(storage_path, sort_order)').neq('status', 'archived').order('created_at', { ascending: false }).limit(2000),
+  ]);
+  return {
+    categories: (cats ?? []) as { id: string; name: string; parent_id: string | null }[],
+    tags,
+    products: ((prods ?? []) as { id: string; name: string; sku: string; status: string; images: { storage_path: string; sort_order: number }[] }[]).map((p) => ({
+      id: p.id, name: p.name, sku: p.sku, status: p.status, image: [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null,
+    })),
+  };
+}

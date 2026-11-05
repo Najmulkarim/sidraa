@@ -14,7 +14,7 @@ import { notify } from './Toaster';
 export type PickProduct = { id: string; name: string; sku: string; image: string | null; status: string };
 export type PickCategory = { id: string; name: string };
 
-type Ctx = { products: PickProduct[]; categories: PickCategory[]; tags: string[]; theme: string };
+type Ctx = { products: PickProduct[]; categories: PickCategory[]; tags: string[]; collections: { id: string; name: string; slug: string }[]; theme: string };
 
 /**
  * Home page builder: every section of the shop's home page in order. Drag
@@ -22,7 +22,7 @@ type Ctx = { products: PickProduct[]; categories: PickCategory[]; tags: string[]
  * or hide it, open it to edit its heading, pictures, links and products.
  * A live preview of the theme sits beside it and reloads after each save.
  */
-export function HomeBuilder({ sections, products, categories, tags = [], theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; tags?: string[]; theme: string }) {
+export function HomeBuilder({ sections, products, categories, tags = [], collections = [], theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; tags?: string[]; collections?: { id: string; name: string; slug: string }[]; theme: string }) {
   const [items, setItems] = useState(sections);
   const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -127,7 +127,7 @@ export function HomeBuilder({ sections, products, categories, tags = [], theme }
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-soft text-[12px] font-bold text-muted">{i + 1}</span>
                 <button type="button" data-draggable onClick={() => { if (!wasDrag()) setOpen(open === s.id ? null : s.id); }} className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing">
                   <span className="block truncate text-[14px] font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
-                  <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s)}</span>
+                  <span className="block truncate text-[12px] text-muted">{SECTION_INFO[s.type].label}{summary(s, collections)}</span>
                 </button>
                 <Switch checked={s.enabled} disabled={pending} onChange={(v) => setAsk({ s, enabled: v })} label={s.enabled ? 'On' : 'Off'} />
                 <div className="flex gap-1">
@@ -140,7 +140,7 @@ export function HomeBuilder({ sections, products, categories, tags = [], theme }
                 <SectionEditor
                   key={s.id}
                   section={s}
-                  ctx={{ products, categories, tags, theme }}
+                  ctx={{ products, categories, tags, collections, theme }}
                   onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); setOpen(null); }}
                   onDelete={() => remove(s)}
                   onMove={(d) => move(i, d)}
@@ -196,11 +196,11 @@ export function HomeBuilder({ sections, products, categories, tags = [], theme }
   );
 }
 
-function summary(s: HomeSection): string {
+function summary(s: HomeSection, collections: { id: string; name: string }[] = []): string {
   const st = s.settings as Record<string, unknown>;
   if (s.type === 'collection' || s.type === 'product_row') {
     const src = st.source as keyof typeof SOURCE_LABEL;
-    return ` · ${src === 'manual' ? `${(st.product_ids as string[]).length} chosen products` : src === 'tag' && st.tag ? `Collection: ${st.tag}` : SOURCE_LABEL[src]}`;
+    return ` · ${src === 'manual' ? `${(st.product_ids as string[]).length} chosen products` : src === 'tag' && st.tag ? `Tag: ${st.tag}` : src === 'collection' && st.collection_id ? `Collection: ${collections.find((c) => c.id === st.collection_id)?.name ?? 'deleted'}` : SOURCE_LABEL[src]}`;
   }
   if (s.type === 'hero') return ` · ${(st.slides as unknown[]).length} slide(s)`;
   if (s.type === 'banners') return ` · ${(st.items as unknown[]).length} banner(s)`;
@@ -453,7 +453,7 @@ function HeroEditor({ settings, set, theme }: { settings: SectionSettings['hero'
   );
 }
 
-function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'tag' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
+function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'tag' | 'collection_id' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
   return (
     <div className="space-y-4">
       {autoplay !== undefined && (
@@ -473,6 +473,16 @@ function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settin
               <option value="">Choose…</option>
               {ctx.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+          </div>
+        )}
+        {settings.source === 'collection' && (
+          <div className="field">
+            <span className="label">Collection</span>
+            <select value={settings.collection_id ?? ''} onChange={(e) => { const c = ctx.collections.find((x) => x.id === e.target.value); set({ collection_id: c?.id ?? null, ...(c && !settings.link ? { link: `/collections/${c.slug}` } : {}) }); }} className="input">
+              <option value="">Choose…</option>
+              {ctx.collections.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {ctx.collections.length === 0 && <span className="hint">No collections yet — make one in Collections.</span>}
           </div>
         )}
         {settings.source === 'tag' && (

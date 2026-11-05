@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Listing } from '@/components/shop/Listing';
-import { getCategories, getShopTags } from '@/lib/catalog';
+import { filterForCollection, getCategories, getCollections, getShopTags } from '@/lib/catalog';
 import { tagHref, tagsForSlug } from '@/lib/tags';
 
 type Props = {
@@ -10,20 +10,23 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** The tag (and its other spellings) behind /collections/<slug>. */
+/**
+ * /collections/<slug>: a collection made in Admin › Collections, or else a
+ * product tag (every tag works as a simple collection too).
+ */
 async function findCollection(slug: string) {
-  const all = await getShopTags();
-  const tags = tagsForSlug(all.map((t) => t.tag), slug);
-  return tags.length ? { name: tags[0]!, tags } : null;
+  const made = (await getCollections()).find((c) => c.slug === decodeURIComponent(slug));
+  if (made) return { name: made.name, description: made.description, href: `/collections/${made.slug}`, filter: (await filterForCollection(made)) ?? 'id.is.null', tags: undefined };
+  const tags = tagsForSlug((await getShopTags()).map((t) => t.tag), slug);
+  return tags.length ? { name: tags[0]!, description: null, href: tagHref(tags[0]!), filter: undefined, tags } : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await findCollection((await params).slug);
   if (!c) return { title: 'Not found' };
-  return { title: c.name, description: `Shop ${c.name}. Cash on delivery across Bangladesh.`, alternates: { canonical: tagHref(c.name) } };
+  return { title: c.name, description: c.description ?? `Shop ${c.name}. Cash on delivery across Bangladesh.`, alternates: { canonical: c.href } };
 }
 
-/** A collection: every product for sale with this tag (tags are set on each product in the admin). */
 export default async function CollectionPage({ params, searchParams }: Props) {
   const [{ slug }, sp, categories] = await Promise.all([params, searchParams, getCategories()]);
   const c = await findCollection(slug);
@@ -33,8 +36,9 @@ export default async function CollectionPage({ params, searchParams }: Props) {
       <header className="mb-5 space-y-1.5 md:mb-8 md:space-y-2">
         <p className="eyebrow"><Link href="/collections" className="hover:underline">Collection</Link></p>
         <h1 className="font-display text-3xl font-semibold md:text-4xl">{c.name}</h1>
+        {c.description && <p className="max-w-2xl text-[14px] text-muted md:text-base">{c.description}</p>}
       </header>
-      <Listing basePath={tagHref(c.name)} searchParams={sp} categories={categories} showCategoryFilter={false} hideChips tags={c.tags} />
+      <Listing basePath={c.href} searchParams={sp} categories={categories} showCategoryFilter={false} hideChips tags={c.tags} filter={c.filter} />
     </div>
   );
 }

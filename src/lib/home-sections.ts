@@ -50,7 +50,7 @@ export const SECTION_INFO: Record<SectionType, { label: string; hint: string }> 
   gallery: { label: 'Photo gallery (Follow our style)', hint: 'A strip of photos, e.g. from your Facebook or Instagram. Without photos it shows your newest product photos.' },
 };
 
-export const PRODUCT_SOURCES = ['manual', 'featured', 'new', 'sale', 'category', 'tag', 'random'] as const;
+export const PRODUCT_SOURCES = ['manual', 'featured', 'new', 'sale', 'category', 'collection', 'tag', 'random'] as const;
 export type ProductSource = (typeof PRODUCT_SOURCES)[number];
 export const SOURCE_LABEL: Record<ProductSource, string> = {
   manual: 'Products I choose (in my order)',
@@ -58,7 +58,8 @@ export const SOURCE_LABEL: Record<ProductSource, string> = {
   new: 'Newest products',
   sale: 'Products on sale',
   category: 'Products from a category',
-  tag: 'A collection (products with a tag)',
+  collection: 'A collection',
+  tag: 'Products with a tag',
   random: 'Mixed — different products on every visit',
 };
 
@@ -88,6 +89,8 @@ const productList = z.object({
   category_id: z.uuid().nullable().default(null),
   /** source 'tag': the collection's tag. */
   tag: z.string().trim().max(40).default(''),
+  /** source 'collection': the collection made in Admin › Collections. */
+  collection_id: z.uuid().nullable().default(null),
   product_ids: uuidList,
   limit: z.coerce.number().int().min(1).max(24).default(8),
 });
