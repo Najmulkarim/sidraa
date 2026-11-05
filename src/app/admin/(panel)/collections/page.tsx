@@ -48,7 +48,6 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
                 </span>
                 <span className="block truncate text-[12.5px] text-muted">{describeRules(c, (id) => catName.get(id))}</span>
               </Link>
-              <span className="font-mono text-[12px] text-muted">/collections/{c.slug}</span>
               <CollectionRowActions id={c.id} name={c.name} slug={c.slug} />
             </li>
           ))}

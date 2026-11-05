@@ -16,6 +16,18 @@ export function CollectionRowActions({ id, name, slug }: { id: string; name: str
   const btn = 'grid h-9 w-9 place-items-center rounded-full border border-line hover:border-brand hover:text-brand';
   return (
     <span className="flex items-center gap-1.5">
+      <button
+        type="button"
+        title="Click to copy the link"
+        onClick={async () => {
+          const url = `${window.location.origin}/collections/${slug}`;
+          try { await navigator.clipboard.writeText(url); notify(true, `Link copied: ${url}`); }
+          catch { notify(false, 'Could not copy — the browser blocked it.'); }
+        }}
+        className="mr-1 inline-flex cursor-copy items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-[12px] text-muted hover:border-brand hover:text-brand"
+      >
+        /collections/{slug} <Icon name="copy" size={13} />
+      </button>
       <a href={`/collections/${slug}`} target="_blank" rel="noreferrer" title="View on website" aria-label={`View ${name} on the website`} className={btn}><Icon name="eye" size={15} /></a>
       <Link href={`/admin/collections/${id}`} title="Edit" aria-label={`Edit ${name}`} className={btn}><Icon name="pencil" size={15} /></Link>
       <button type="button" onClick={() => setAsking(true)} title="Delete" aria-label={`Delete ${name}`} className="grid h-9 w-9 place-items-center rounded-full border border-line text-bad hover:border-bad hover:bg-bad/10"><Icon name="trash" size={15} /></button>
