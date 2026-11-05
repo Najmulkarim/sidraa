@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Listing } from '@/components/shop/Listing';
 import { filterForCollection, getCategories, getCollections, getShopTags } from '@/lib/catalog';
@@ -33,11 +32,8 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   if (!c) notFound();
   return (
     <div className="container-page py-6 md:py-10">
-      <header className="mb-5 space-y-1.5 md:mb-8 md:space-y-2">
-        <p className="eyebrow"><Link href="/collections" className="hover:underline">Collection</Link></p>
-        <h1 className="font-display text-3xl font-semibold md:text-4xl">{c.name}</h1>
-        {c.description && <p className="max-w-2xl text-[14px] text-muted md:text-base">{c.description}</p>}
-      </header>
+      {/* No visible heading (the products start at once); search engines still read the name. */}
+      <h1 className="sr-only">{c.name}</h1>
       <Listing basePath={c.href} searchParams={sp} categories={categories} showCategoryFilter={false} hideChips tags={c.tags} filter={c.filter} />
     </div>
   );
