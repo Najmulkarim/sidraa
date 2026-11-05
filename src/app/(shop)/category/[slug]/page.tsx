@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ChipRowFocus } from '@/components/shop/ChipRowFocus';
 import { notFound } from 'next/navigation';
 import { Listing } from '@/components/shop/Listing';
 import { getCategories } from '@/lib/catalog';
@@ -39,16 +38,15 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <h1 className="font-display text-3xl font-semibold md:text-4xl">{category.name}</h1>
         {category.description && <p className="max-w-2xl text-[14px] text-muted md:text-base">{category.description}</p>}
         {chips.length > 0 && (
-          <nav aria-label={`${family.name} categories`} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 pt-2 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+          <nav aria-label={`${family.name} categories`} className="flex flex-wrap gap-1.5 pt-2 md:gap-2">
             {[{ id: family.id, slug: family.slug, name: `All ${family.name}` }, ...chips].map((c) => {
               const on = c.id === category.id;
               return on ? (
-                <span key={c.id} aria-current="page" className="shrink-0 rounded-full bg-night px-4 py-1.5 text-[13px] font-semibold text-white">{c.name}</span>
+                <span key={c.id} aria-current="page" className="shrink-0 rounded-full bg-night px-3.5 py-1.5 text-[12.5px] md:px-4 md:text-[13px] font-semibold text-white">{c.name}</span>
               ) : (
-                <Link key={c.id} href={`/category/${c.slug}`} scroll={false} className="shrink-0 rounded-full border border-line bg-white px-4 py-1.5 text-[13px] font-medium hover:border-brand hover:text-brand">{c.name}</Link>
+                <Link key={c.id} href={`/category/${c.slug}`} scroll={false} className="shrink-0 rounded-full border border-line bg-white px-3.5 py-1.5 text-[12.5px] md:px-4 md:text-[13px] font-medium hover:border-brand hover:text-brand">{c.name}</Link>
               );
             })}
-            <ChipRowFocus />
           </nav>
         )}
       </header>

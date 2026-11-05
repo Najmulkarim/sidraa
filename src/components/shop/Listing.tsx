@@ -58,11 +58,11 @@ export async function Listing({
     <div className="space-y-5 md:space-y-6">
       {/* Phones: swipeable category chips, like a shopping app. */}
       {chips.length > 1 && !hideChips && (
-        <nav aria-label="Categories" className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+        <nav aria-label="Categories" className="flex flex-wrap gap-1.5 md:hidden">
           {[{ slug: null as string | null, name: 'All', href: '/products' }, ...chips.map((c) => ({ slug: c.slug as string | null, name: c.name, href: `/category/${c.slug}` }))].map((c) => {
             const on = c.slug === currentSlug;
             return (
-              <Link key={c.href} href={c.href} aria-current={on ? 'page' : undefined} className={`shrink-0 snap-start rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-95 ${on ? 'bg-night text-white' : 'bg-card text-ink ring-1 ring-line'}`}>
+              <Link key={c.href} href={c.href} aria-current={on ? 'page' : undefined} className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition active:scale-95 ${on ? 'bg-night text-white' : 'bg-card text-ink ring-1 ring-line'}`}>
                 {c.name}
               </Link>
             );
