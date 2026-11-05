@@ -57,7 +57,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     .select(
       'id, public_ref, status, customer_name, customer_phone, address, area, district, note, total, paid_amount, payment_method, payment_status, assigned_to, deleted_at, created_at, source,' +
         ' courier, courier_consignment_id, courier_tracking_code, courier_status, courier_error,' +
-        ' items:order_items(id, product_name, variant_label, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))',
+        ' items:order_items(id, product_name, sku, variant_label, unit_price, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))',
       { count: 'exact' },
     );
   if (tab === 'deleted') query = query.not('deleted_at', 'is', null);
@@ -94,7 +94,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (error) console.error('[admin] orders', error);
 
   type Raw = Omit<OrderRow, 'items' | 'last_note'> & {
-    items: { id: string; product_name: string; variant_label: string; quantity: number; variant: { image_path: string | null } | null; product: { images: { storage_path: string; sort_order: number }[] } | null }[];
+    items: { id: string; product_name: string; sku: string; variant_label: string; unit_price: number | string; quantity: number; variant: { image_path: string | null } | null; product: { images: { storage_path: string; sort_order: number }[] } | null }[];
   };
   const raw = (data ?? []) as unknown as Raw[];
   const ids = raw.map((o) => o.id);
@@ -120,7 +120,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     items: o.items.map((i) => ({
       id: i.id,
       product_name: i.product_name,
+      sku: i.sku,
       variant_label: i.variant_label,
+      unit_price: Number(i.unit_price),
       quantity: i.quantity,
       image: i.variant?.image_path ?? [...(i.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null,
     })),

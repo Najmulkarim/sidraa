@@ -12,6 +12,7 @@ import type { ActionState, Staff } from '@/lib/types';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { OrderEditDialog } from './OrderEditDialog';
+import { OrderItemsDialog } from './OrderItemsDialog';
 import { CustomerRateButton } from './CustomerRateButton';
 import { DuplicateOrderButton } from './DuplicateOrderButton';
 import { SendCourierDialog } from './SendCourierDialog';
@@ -41,8 +42,10 @@ export type OrderRow = {
   courier_tracking_code: string | null;
   courier_status: string | null;
   courier_error: string | null;
-  items: { id: string; product_name: string; variant_label: string; quantity: number; image: string | null }[];
+  items: OrderItemInfo[];
 };
+
+export type OrderItemInfo = { id: string; product_name: string; sku: string; variant_label: string; unit_price: number; quantity: number; image: string | null };
 
 export type Stat = { delivered: number; failed: number; orders: number };
 export type CourierOptions = { default_courier: CourierName | null; steadfast: boolean; pathao: boolean };
@@ -255,15 +258,17 @@ export function OrdersTable({
                     </p>
                   </td>
                   <td className="px-3 py-4">
+                    <OrderItemsDialog items={o.items} orderRef={o.public_ref}>
                     <div className="flex max-w-[150px] flex-wrap gap-1.5">
                       {o.items.slice(0, 4).map((i) => (
-                        <span key={i.id} className="relative block h-11 w-11 overflow-hidden rounded-lg border border-line bg-tint" title={`${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''} × ${i.quantity}`}>
+                        <span key={i.id} className="relative block h-11 w-11 overflow-hidden rounded-lg border border-line bg-tint transition group-hover/items:border-brand" title={`${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''} × ${i.quantity}`}>
                           <ProductImage path={i.image} alt={i.product_name} sizes="44px" />
                           {i.quantity > 1 && <span className="absolute bottom-0 right-0 rounded-tl-md bg-night px-1 text-[9px] font-bold text-white">×{i.quantity}</span>}
                         </span>
                       ))}
                       {o.items.length > 4 && <span className="grid h-11 w-11 place-items-center rounded-lg border border-line text-[11px] text-muted">+{o.items.length - 4}</span>}
                     </div>
+                    </OrderItemsDialog>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 font-mono">
                     <p className="text-[13.5px] font-bold">{formatTaka(total)}</p>
