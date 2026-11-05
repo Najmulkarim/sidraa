@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { HomeBuilder, type PickCategory, type PickProduct } from '@/components/admin/HomeBuilder';
 import { ThemePicker } from '@/components/admin/ThemePicker';
+import { loadAllTags } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
 import { isTheme, parseSettings, SECTION_TYPES, THEME_INFO, type HomeSection, type SectionType, type ThemeKey } from '@/lib/home-sections';
 
@@ -21,10 +22,11 @@ export default async function HomepageAdminPage({ searchParams }: { searchParams
   const hidden: ThemeKey[] = (s?.hidden_themes ?? []).filter(isTheme).filter((t) => t !== live);
   const editing: ThemeKey = isTheme(sp.theme) && !hidden.includes(sp.theme) ? sp.theme : live;
 
-  const [{ data: rows, error }, { data: cats }, { data: prods }] = await Promise.all([
+  const [{ data: rows, error }, { data: cats }, { data: prods }, tags] = await Promise.all([
     supabase.from('home_sections').select('id, type, title, subtitle, enabled, sort_order, settings').eq('theme', editing).order('sort_order').order('created_at'),
     supabase.from('categories').select('id, name').order('sort_order').order('name'),
     supabase.from('products').select('id, sku, name, status, images:product_images(storage_path, sort_order)').neq('status', 'archived').order('name').limit(2000),
+    loadAllTags(supabase),
   ]);
 
   const sections: HomeSection[] = ((rows ?? []) as Row[])
@@ -57,7 +59,7 @@ export default async function HomepageAdminPage({ searchParams }: { searchParams
       {error ? (
         <p className="rounded-xl bg-bad/10 px-4 py-3 text-sm text-bad">Could not load the sections. Run the latest database update in Supabase, then reload.</p>
       ) : (
-        <HomeBuilder key={editing} theme={editing} sections={sections} products={products} categories={(cats ?? []) as PickCategory[]} />
+        <HomeBuilder key={editing} theme={editing} sections={sections} products={products} categories={(cats ?? []) as PickCategory[]} tags={tags} />
       )}
     </div>
   );

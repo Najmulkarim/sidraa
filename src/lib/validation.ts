@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { normalizeBdPhone } from './phone';
 import { SLUG_RE } from './slug';
+import { cleanTags, MAX_TAGS } from './tags';
 import { ORDER_STATUSES } from './order-status';
 
 // ---------------------------------------------------------------- helpers
@@ -161,6 +162,8 @@ export const productSchema = z
       (v) => [...new Set(String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean))],
       z.array(z.uuid('Invalid category')).max(20, 'At most 20 categories'),
     ),
+    /** Tags, comma separated (each one is also a collection on the website). */
+    tags: z.preprocess((v) => cleanTags(v), z.array(z.string()).max(MAX_TAGS)),
     description: optionalText(10_000),
     basePrice: money('Price'),
     compareAtPrice: optionalMoney('Compare-at price'),

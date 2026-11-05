@@ -11,6 +11,7 @@ import type { Category, Product, ProductImage as ProductImageRow, Variant } from
 import { combinations, splitValues } from '@/lib/variations';
 import { ProductImage } from '../shop/ProductImage';
 import { CategoryFields } from './CategoryFields';
+import { TagField } from './TagField';
 import { DescriptionEditor } from './DescriptionEditor';
 import { DiscountFields } from './DiscountFields';
 import { RemoveVariationButton } from './RemoveVariationButton';
@@ -60,7 +61,7 @@ const same = (a: { color: string; size: string; option3: string }, b: { color: s
   a.color.toLowerCase() === b.color.toLowerCase() && a.size.toLowerCase() === b.size.toLowerCase() && a.option3.toLowerCase() === b.option3.toLowerCase();
 
 /** costs: the product's cost price and per-variation costs (staff-only data). */
-export function ProductForm({ product, variants, categories, images = [], costs }: { product?: Product; variants?: Variant[]; categories: Category[]; images?: ProductImageRow[]; costs?: { product: number | null; variants: Record<string, number> } }) {
+export function ProductForm({ product, variants, categories, images = [], costs, allTags = [] }: { product?: Product; variants?: Variant[]; categories: Category[]; images?: ProductImageRow[]; costs?: { product: number | null; variants: Record<string, number> }; allTags?: string[] }) {
   const { state, onSubmit, pending } = useKeepValuesAction(saveProduct);
   const [name, setName] = useState(product?.name ?? '');
   const [slug, setSlug] = useState(product?.slug ?? '');
@@ -405,6 +406,7 @@ export function ProductForm({ product, variants, categories, images = [], costs 
             </select>
           </div>
           <CategoryFields categories={categories} main={product?.category_id ?? ''} extra={product?.extra_category_ids ?? []} />
+          <TagField initial={product?.tags ?? []} suggestions={allTags} />
           <DiscountFields
             basePrice={product ? Number(product.base_price) : null}
             compareAtPrice={product?.compare_at_price == null ? null : Number(product.compare_at_price)}

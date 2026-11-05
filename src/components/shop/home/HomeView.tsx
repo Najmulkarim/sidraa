@@ -9,10 +9,11 @@ import { MarketBanners, MarketCategoryGrid, MarketDeals, MarketHero, MarketProdu
 import { ChicBenefits, ChicCategories, ChicHero, ChicOffer, ChicProductRow } from './ChicSections';
 import { BestSellers, Deal, NewsletterBand, ProductGridSection, ReviewCards, ThemeBanners, ThemeBenefits, ThemeCategories, ThemeHero, ThemeProductRow, type ShopTheme } from './ThemeSections';
 import {
-  getShopCategories, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
+  getShopCategories, getShopTags, getTagProducts, getCategoryCounts, getCategoryCovers, getCategoryProducts, getFeaturedProducts, getHomeSections, getNewArrivals, getOnSale, getProductsByIds, getSettings, getZones, maxDiscount,
   type HomeSectionRow,
 } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
+import { tagsForSlug, tagSlug } from '@/lib/tags';
 import { formatTaka } from '@/lib/format';
 import { lbl, parseSettings, SECTION_TYPES, type SectionSettings, type SectionType, type ThemeKey } from '@/lib/home-sections';
 import type { ProductWithRelations } from '@/lib/types';
@@ -25,7 +26,7 @@ const FALLBACK: HomeSectionRow[] = [
   { id: 'loved', type: 'product_row', title: 'Most loved this week', subtitle: null, enabled: true, sort_order: 40, settings: { source: 'featured', limit: 12 } },
 ];
 
-type ProductList = Pick<SectionSettings['collection'], 'source' | 'category_id' | 'product_ids' | 'limit'>;
+type ProductList = Pick<SectionSettings['collection'], 'source' | 'category_id' | 'tag' | 'product_ids' | 'limit'>;
 
 function productsFor(s: ProductList): Promise<ProductWithRelations[]> {
   const n = s.limit + 1;
@@ -34,6 +35,7 @@ function productsFor(s: ProductList): Promise<ProductWithRelations[]> {
     case 'new': return getNewArrivals(n);
     case 'sale': return getOnSale(n);
     case 'category': return s.category_id ? getCategoryProducts(s.category_id, n) : Promise.resolve([]);
+    case 'tag': return s.tag ? getShopTags().then((all) => getTagProducts(tagsForSlug(all.map((t) => t.tag), tagSlug(s.tag)), n)) : Promise.resolve([]);
     case 'random': return getNewArrivals(60); // the pool the mixes are drawn from
     default: return getFeaturedProducts(n);
   }

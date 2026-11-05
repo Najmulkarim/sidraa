@@ -71,6 +71,8 @@ export type Product = {
   category_id: string | null;
   /** Other categories the product also shows in (category_id is the main one). */
   extra_category_ids?: string[];
+  /** Tags; each one is also a collection (/collections/eid-sale). */
+  tags?: string[];
   name: string;
   slug: string;
   description: string | null;

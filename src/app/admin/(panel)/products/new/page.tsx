@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ProductForm } from '@/components/admin/ProductForm';
+import { loadAllTags } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
 import type { Category } from '@/lib/types';
 
@@ -8,7 +9,7 @@ export const metadata: Metadata = { title: 'New product' };
 
 export default async function NewProductPage() {
   const { supabase } = await requirePermission('catalog');
-  const { data } = await supabase.from('categories').select('*').order('sort_order').order('name');
+  const [{ data }, allTags] = await Promise.all([supabase.from('categories').select('*').order('sort_order').order('name'), loadAllTags(supabase)]);
   return (
     <div className="space-y-6">
       <header>
@@ -16,7 +17,7 @@ export default async function NewProductPage() {
         <h1 className="text-2xl font-bold tracking-tight">New product</h1>
         <p className="text-sm text-muted">Add the name, photos, variations and price, then create the product.</p>
       </header>
-      <ProductForm categories={(data ?? []) as Category[]} />
+      <ProductForm categories={(data ?? []) as Category[]} allTags={allTags} />
     </div>
   );
 }

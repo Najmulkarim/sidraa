@@ -50,7 +50,7 @@ export const SECTION_INFO: Record<SectionType, { label: string; hint: string }> 
   gallery: { label: 'Photo gallery (Follow our style)', hint: 'A strip of photos, e.g. from your Facebook or Instagram. Without photos it shows your newest product photos.' },
 };
 
-export const PRODUCT_SOURCES = ['manual', 'featured', 'new', 'sale', 'category', 'random'] as const;
+export const PRODUCT_SOURCES = ['manual', 'featured', 'new', 'sale', 'category', 'tag', 'random'] as const;
 export type ProductSource = (typeof PRODUCT_SOURCES)[number];
 export const SOURCE_LABEL: Record<ProductSource, string> = {
   manual: 'Products I choose (in my order)',
@@ -58,6 +58,7 @@ export const SOURCE_LABEL: Record<ProductSource, string> = {
   new: 'Newest products',
   sale: 'Products on sale',
   category: 'Products from a category',
+  tag: 'A collection (products with a tag)',
   random: 'Mixed — different products on every visit',
 };
 
@@ -85,6 +86,8 @@ const labels = z.record(z.string().regex(/^[a-z0-9_]{1,30}$/), z.string().trim()
 const productList = z.object({
   source: z.enum(PRODUCT_SOURCES).default('featured'),
   category_id: z.uuid().nullable().default(null),
+  /** source 'tag': the collection's tag. */
+  tag: z.string().trim().max(40).default(''),
   product_ids: uuidList,
   limit: z.coerce.number().int().min(1).max(24).default(8),
 });

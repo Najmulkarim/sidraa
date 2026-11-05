@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition, type ReactNode } from 'react';
 import { addHomeSection, deleteHomeSection, reorderHomeSections, saveHomeSection, setHomeSectionEnabled } from '@/actions/admin-home';
 import { labelFieldsFor, PRODUCT_SOURCES, SECTION_INFO, SECTION_TYPES, SOURCE_LABEL, type HomeSection, type SectionSettings, type SectionType } from '@/lib/home-sections';
+import { tagHref } from '@/lib/tags';
 import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
@@ -13,7 +14,7 @@ import { notify } from './Toaster';
 export type PickProduct = { id: string; name: string; sku: string; image: string | null; status: string };
 export type PickCategory = { id: string; name: string };
 
-type Ctx = { products: PickProduct[]; categories: PickCategory[]; theme: string };
+type Ctx = { products: PickProduct[]; categories: PickCategory[]; tags: string[]; theme: string };
 
 /**
  * Home page builder: every section of the shop's home page in order. Drag
@@ -21,7 +22,7 @@ type Ctx = { products: PickProduct[]; categories: PickCategory[]; theme: string 
  * or hide it, open it to edit its heading, pictures, links and products.
  * A live preview of the theme sits beside it and reloads after each save.
  */
-export function HomeBuilder({ sections, products, categories, theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; theme: string }) {
+export function HomeBuilder({ sections, products, categories, tags = [], theme }: { sections: HomeSection[]; products: PickProduct[]; categories: PickCategory[]; tags?: string[]; theme: string }) {
   const [items, setItems] = useState(sections);
   const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -139,7 +140,7 @@ export function HomeBuilder({ sections, products, categories, theme }: { section
                 <SectionEditor
                   key={s.id}
                   section={s}
-                  ctx={{ products, categories, theme }}
+                  ctx={{ products, categories, tags, theme }}
                   onSaved={(saved) => { setItems((cur) => cur.map((x) => (x.id === saved.id ? saved : x))); changed(); setOpen(null); }}
                   onDelete={() => remove(s)}
                   onMove={(d) => move(i, d)}
@@ -199,7 +200,7 @@ function summary(s: HomeSection): string {
   const st = s.settings as Record<string, unknown>;
   if (s.type === 'collection' || s.type === 'product_row') {
     const src = st.source as keyof typeof SOURCE_LABEL;
-    return ` · ${src === 'manual' ? `${(st.product_ids as string[]).length} chosen products` : SOURCE_LABEL[src]}`;
+    return ` · ${src === 'manual' ? `${(st.product_ids as string[]).length} chosen products` : src === 'tag' && st.tag ? `Collection: ${st.tag}` : SOURCE_LABEL[src]}`;
   }
   if (s.type === 'hero') return ` · ${(st.slides as unknown[]).length} slide(s)`;
   if (s.type === 'banners') return ` · ${(st.items as unknown[]).length} banner(s)`;
@@ -452,7 +453,7 @@ function HeroEditor({ settings, set, theme }: { settings: SectionSettings['hero'
   );
 }
 
-function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
+function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settings: Pick<SectionSettings['collection'], 'source' | 'category_id' | 'tag' | 'product_ids' | 'limit' | 'link' | 'image'>; set: (p: Record<string, unknown>) => void; ctx: Ctx; withImage: boolean; autoplay?: boolean }) {
   return (
     <div className="space-y-4">
       {autoplay !== undefined && (
@@ -472,6 +473,17 @@ function ProductListEditor({ settings, set, ctx, withImage, autoplay }: { settin
               <option value="">Choose…</option>
               {ctx.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+          </div>
+        )}
+        {settings.source === 'tag' && (
+          <div className="field">
+            <span className="label">Collection (tag)</span>
+            <select value={settings.tag} onChange={(e) => set({ tag: e.target.value, ...(e.target.value && !settings.link ? { link: tagHref(e.target.value) } : {}) })} className="input">
+              <option value="">Choose…</option>
+              {ctx.tags.map((t) => <option key={t} value={t}>{t}</option>)}
+              {settings.tag && !ctx.tags.includes(settings.tag) && <option value={settings.tag}>{settings.tag} (no products now)</option>}
+            </select>
+            {ctx.tags.length === 0 && <span className="hint">No tags yet — add tags to products first.</span>}
           </div>
         )}
         <div className="field">

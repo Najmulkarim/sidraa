@@ -13,6 +13,7 @@ import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
 import { toNumber } from '@/lib/format';
 import { sizeRank } from './sizes';
+import { countTags } from './tags';
 import type { Category, DeliveryZone, ProductWithRelations, StoreSettings, Variant } from '@/lib/types';
 
 export const PRODUCT_SELECT =
@@ -215,6 +216,26 @@ export const getCategoryProducts = cache(async (categoryId: string, limit = 8): 
   return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
 });
 
+/** Products with a tag (a collection), newest first. */
+export const getTagProducts = cache(async (tags: string[], limit = 8): Promise<ProductWithRelations[]> => {
+  if (!tags.length) return [];
+  const { data, error } = await createPublicClient()
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .overlaps('tags', tags)
+    .order('published_at', { ascending: false })
+    .limit(limit);
+  if (error) console.error('[catalog] tag products', error.message);
+  return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
+});
+
+/** Tags on products for sale, most used first: the website's collections. */
+export const getShopTags = cachedRead('shop_tags', async (): Promise<{ tag: string; count: number }[]> => {
+  const { data, error } = await createPublicClient().from('products').select('tags').eq('status', 'published').neq('tags', '{}').limit(5000);
+  if (error) throw new CatalogReadError(error.message);
+  return countTags((data ?? []) as { tags: string[] | null }[]);
+}, []);
+
 /** A photo for each category (its newest product's first photo), for category circles without their own picture. */
 export const getCategoryCovers = cache(async (): Promise<Record<string, string | null>> => {
   const { data, error } = await createPublicClient()
@@ -293,6 +314,8 @@ export const getRelatedProducts = cache(async (productId: string, categoryId: st
 export type ListParams = {
   q?: string;
   category?: string; // category id
+  /** A collection: products with any of these tags (spellings of one tag). */
+  tags?: string[];
   sort?: 'new' | 'price-asc' | 'price-desc' | 'name';
   inStock?: boolean;
   page?: number;
@@ -314,7 +337,7 @@ type ProductList = { products: ProductWithRelations[]; total: number; page: numb
 
 /** A page of products, cached for five minutes or until the next catalog change. */
 export function listProducts(params: ListParams): Promise<ProductList> {
-  const key = JSON.stringify([params.q?.trim().slice(0, 80).toLowerCase() ?? '', params.category ?? '', params.sort ?? '', !!params.inStock, Math.floor(params.page ?? 1)]);
+  const key = JSON.stringify([params.q?.trim().slice(0, 80).toLowerCase() ?? '', params.category ?? '', (params.tags ?? []).join('|').toLowerCase(), params.sort ?? '', !!params.inStock, Math.floor(params.page ?? 1)]);
   return cachedRead(`list:${key}`, () => readProductList(params), { products: [], total: 0, page: 1, pages: 1 })();
 }
 
@@ -327,6 +350,7 @@ async function readProductList(params: ListParams): Promise<ProductList> {
   const q = params.q?.trim().slice(0, 80);
   if (q) query = query.ilike('name', `%${escapeLike(q)}%`);
   if (params.category) query = query.or(inCategory(await categoryFamily(params.category)));
+  if (params.tags?.length) query = query.overlaps('tags', params.tags);
   // Filter on the embedded (aliased) relation; !inner drops products with no match.
   if (params.inStock) query = query.gt('variants.stock', 0);
 

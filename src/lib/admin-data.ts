@@ -1,5 +1,6 @@
 import 'server-only';
 import { toNumber } from '@/lib/format';
+import { countTags } from '@/lib/tags';
 import type { createClient } from '@/lib/supabase/server';
 import type { EditableOrder, VariantOption } from '@/lib/types';
 
@@ -57,4 +58,10 @@ export async function loadEditableOrder(supabase: Db, id: string): Promise<Edita
     total: toNumber(data.total),
     items: items.map(({ created_at: _c, ...i }) => ({ ...i, unit_price: toNumber(i.unit_price) })),
   };
+}
+
+/** Every tag used on any product, most used first (suggestions in the product form). */
+export async function loadAllTags(supabase: Db): Promise<string[]> {
+  const { data } = await supabase.from('products').select('tags').neq('tags', '{}').limit(5000);
+  return countTags((data ?? []) as { tags: string[] | null }[]).map((t) => t.tag);
 }

@@ -1,3 +1,5 @@
+import { getShopTags } from '@/lib/catalog';
+import { tagHref } from '@/lib/tags';
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/env';
 import { createPublicClient } from '@/lib/supabase/public';
@@ -17,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    ...(await getShopTags()).map((t) => ({ url: `${SITE_URL}${tagHref(t.tag)}`, changeFrequency: 'weekly' as const, priority: 0.6 })),
     ...((categories as { slug: string; updated_at: string }[] | null) ?? []).map((c) => ({
       url: `${SITE_URL}/category/${c.slug}`,
       lastModified: c.updated_at,
