@@ -259,14 +259,15 @@ export function OrdersTable({
                   </td>
                   <td className="px-3 py-4">
                     <OrderItemsDialog items={o.items} orderRef={o.public_ref}>
-                    <div className="flex max-w-[150px] flex-wrap gap-1.5">
-                      {o.items.slice(0, 4).map((i) => (
-                        <span key={i.id} className="relative block h-11 w-11 overflow-hidden rounded-lg border border-line bg-tint transition group-hover/items:border-brand" title={`${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''} × ${i.quantity}`}>
+                    {/* One overlapping row (never wraps): stays short on phones too; click for the full list. */}
+                    <div className="flex w-max items-center -space-x-3">
+                      {o.items.slice(0, 3).map((i) => (
+                        <span key={i.id} className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-lg border-2 border-white bg-tint shadow-sm ring-1 ring-line transition group-hover/items:ring-brand" title={`${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''} × ${i.quantity}`}>
                           <ProductImage path={i.image} alt={i.product_name} sizes="44px" />
                           {i.quantity > 1 && <span className="absolute bottom-0 right-0 rounded-tl-md bg-night px-1 text-[9px] font-bold text-white">×{i.quantity}</span>}
                         </span>
                       ))}
-                      {o.items.length > 4 && <span className="grid h-11 w-11 place-items-center rounded-lg border border-line text-[11px] text-muted">+{o.items.length - 4}</span>}
+                      {o.items.length > 3 && <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-white bg-night text-[12px] font-bold text-white ring-1 ring-line">+{o.items.length - 3}</span>}
                     </div>
                     </OrderItemsDialog>
                   </td>
