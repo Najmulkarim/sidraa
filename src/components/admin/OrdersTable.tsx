@@ -313,10 +313,16 @@ export function OrdersTable({
                         aria-label={`Status of ${o.public_ref}`}
                         value={o.status}
                         disabled={busy}
-                        onChange={(e) => run(() => quickStatus(o.id, e.target.value))}
-                        className={`cursor-pointer rounded-full border-0 py-1 pl-2.5 pr-6 text-[11px] font-semibold outline-none focus:ring-2 focus:ring-brand/40 ${STATUS_STYLE[o.status]}`}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          // "Shipped done" is not a status of its own: the order stays In courier, marked as gone out.
+                          if (v === 'shipped_done' || v === 'shipped_back') run(() => setShippedDone([o.id], v === 'shipped_done'));
+                          else run(() => quickStatus(o.id, v));
+                        }}
+                        className={`cursor-pointer rounded-full border-0 py-1 pl-2.5 pr-6 text-[11px] font-semibold outline-none focus:ring-2 focus:ring-brand/40 ${o.status === 'shipped' && o.dispatched_at ? 'bg-[#dcfce7] text-[#15803d]' : STATUS_STYLE[o.status]}`}
                       >
-                        <option value={o.status}>● {o.status === 'cancelled' && isPickupCancelled(o.courier_status) ? 'Pickup cancelled' : STATUS_LABEL[o.status]}</option>
+                        <option value={o.status}>● {o.status === 'cancelled' && isPickupCancelled(o.courier_status) ? 'Pickup cancelled' : o.status === 'shipped' && o.dispatched_at ? 'Shipped done' : STATUS_LABEL[o.status]}</option>
+                        {o.status === 'shipped' && (o.dispatched_at ? <option value="shipped_back">{STATUS_LABEL.shipped}</option> : <option value="shipped_done">Shipped done</option>)}
                         {next.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                       </select>
                     )}
