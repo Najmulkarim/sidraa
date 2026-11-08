@@ -9,6 +9,7 @@ import type { DeliveryZone, VariantOption } from '@/lib/types';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { IncompleteActions } from './IncompleteActions';
+import { OrderItemsDialog } from './OrderItemsDialog';
 import { notify } from './Toaster';
 
 export type IncompleteRow = {
@@ -50,11 +51,16 @@ export function IncompleteList({ rows, options, zones, canConvert }: { rows: Inc
               </div>
 
               <div className="flex min-w-0 items-center gap-2.5">
-                <span className="flex shrink-0 -space-x-2">
-                  {lines.slice(0, 3).map((l, i) => (
-                    <span key={i} className="relative block h-9 w-9 overflow-hidden rounded-lg border-2 border-white bg-tint"><ProductImage path={l.o?.image ?? null} alt="" sizes="36px" /></span>
-                  ))}
-                </span>
+                <OrderItemsDialog
+                  orderRef={r.name || r.phoneText}
+                  items={lines.map((l, i) => ({ id: `${l.variant_id}-${i}`, product_name: l.o?.product_name ?? 'Item no longer available', sku: l.o?.sku ?? '—', variant_label: l.o?.label ?? '', unit_price: l.o?.price ?? 0, quantity: l.quantity, image: l.o?.image ?? null }))}
+                >
+                  <span className="flex shrink-0 -space-x-2">
+                    {lines.slice(0, 3).map((l, i) => (
+                      <span key={i} className="relative block h-9 w-9 overflow-hidden rounded-lg border-2 border-white bg-tint ring-1 ring-line transition group-hover/items:ring-brand"><ProductImage path={l.o?.image ?? null} alt="" sizes="36px" /></span>
+                    ))}
+                  </span>
+                </OrderItemsDialog>
                 <span className="min-w-0">
                   <span className="block truncate text-[12.5px]" title={lines.map((l) => `${l.o?.product_name ?? 'Unavailable item'} × ${l.quantity}`).join('\n')}>
                     {first ? first.product_name : lines.length ? 'Item no longer available' : <span className="text-muted">No products</span>}
