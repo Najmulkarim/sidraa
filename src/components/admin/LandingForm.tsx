@@ -20,7 +20,7 @@ export type LandingCoupon = { code: string; words: string; live: boolean };
  * Make or edit a landing page: the product, the link (/offer/…), the offer
  * (badge + coupon), headline, video, points and questions.
  */
-export function LandingForm({ page, products, coupons }: { page?: LandingPage; products: LandingProduct[]; coupons: LandingCoupon[] }) {
+export function LandingForm({ page, products, coupons, startTemplate }: { page?: LandingPage; products: LandingProduct[]; coupons: LandingCoupon[]; startTemplate?: LandingTemplate }) {
   const router = useRouter();
   const [productId, setProductId] = useState(page?.product_id ?? '');
   const [slug, setSlug] = useState(page?.slug ?? '');
@@ -37,7 +37,7 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
   const [showDescription, setShowDescription] = useState(page?.show_description ?? true);
   const [showReviews, setShowReviews] = useState(page?.show_reviews ?? true);
   const [q, setQ] = useState('');
-  const [template, setTemplate] = useState<LandingTemplate>(page?.template ?? 'showcase');
+  const [template, setTemplate] = useState<LandingTemplate>(page?.template ?? startTemplate ?? 'showcase');
   const [sections, setSections] = useState<Showcase>(page?.sections ?? parseShowcase({}));
   const [photos, setPhotos] = useState<string[]>([]);
   const [filling, startFill] = useTransition();
