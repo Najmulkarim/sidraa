@@ -31,7 +31,10 @@ function Field({
   );
 }
 
-export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = true, payments }: { zones: DeliveryZone[]; codTerms: string; returnDays: number; couponsEnabled?: boolean; payments: PaymentOptions }) {
+/** `landing`: the form on a landing page — one column, the page's own offer coupon applied by itself. */
+export type LandingCheckout = { slug: string; coupon: string | null; buttonText: string | null; empty: string };
+
+export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = true, payments, landing }: { zones: DeliveryZone[]; codTerms: string; returnDays: number; couponsEnabled?: boolean; payments: PaymentOptions; landing?: LandingCheckout }) {
   const { lines, ready } = useCart();
   const [state, action, submitting] = useActionState(placeOrder, initial);
   const [zoneId, setZoneId] = useState<string>(state.values?.zoneId || zones[0]?.id || '');
@@ -41,15 +44,19 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
   useEffect(() => setKey(crypto.randomUUID()), []);
   // A code taken from the popup waits in the box; the customer still presses Apply.
   useEffect(() => {
+    if (landing) return;
     try {
       const saved = localStorage.getItem(SAVED_COUPON);
       if (saved) setCouponInput((v) => v || saved);
     } catch { /* storage blocked */ }
   }, []);
   const [couponInput, setCouponInput] = useState(state.values?.couponCode ?? '');
-  const [coupon, setCoupon] = useState<string | null>(state.values?.couponCode || null);
+  const [coupon, setCoupon] = useState<string | null>(state.values?.couponCode || landing?.coupon || null);
   const { quote, error: quoteError, pending: quoting } = useQuote(zoneId || null, state.stock ? JSON.stringify(state.stock) : '', coupon);
-  const couponError = coupon && quote?.coupon?.error ? quote.coupon.error : null;
+  const offerError = landing && coupon && quote?.coupon?.error ? quote.coupon.error : null;
+  // A landing page's offer that does not apply (e.g. too small an order) never blocks the order.
+  const couponError = !landing && coupon && quote?.coupon?.error ? quote.coupon.error : null;
+  const sendCoupon = coupon && !couponError && !offerError ? coupon : '';
   const [pay, setPay] = useState<PayChoice>(() => {
     const m = state.values?.paymentMethod;
     return m === 'bkash' || m === 'nagad' ? { method: m, mode: state.values?.paymentMode === 'manual' ? 'manual' : 'merchant' } : defaultChoice(payments);
@@ -112,6 +119,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
 
   // A <section> (not the empty-cart <div>) so React swaps the node instead of moving it: no layout shift.
   if (!ready) return <section className="card min-h-60 animate-pulse bg-soft" aria-busy="true"><span className="sr-only">Loading your cart…</span></section>;
+  if (lines.length === 0 && landing) return <p className="card p-5 text-center text-sm font-semibold text-muted">{landing.empty}</p>;
   if (lines.length === 0) {
     return (
       <div className="card grid min-h-60 place-content-center justify-items-center p-10 text-center">
@@ -139,14 +147,15 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
         const fd = new FormData(e.currentTarget);
         startTransition(() => action(fd));
       }}
-      className="grid gap-8 lg:grid-cols-[1fr_24rem]"
+      className={landing ? 'grid gap-5' : 'grid gap-8 lg:grid-cols-[1fr_24rem]'}
       noValidate
     >
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input type="hidden" name="items" value={JSON.stringify(toOrderItems(lines))} />
-      <input type="hidden" name="couponCode" value={coupon && !couponError ? coupon : ''} />
+      <input type="hidden" name="couponCode" value={sendCoupon} />
+      {landing && <input type="hidden" name="landingSlug" value={landing.slug} />}
 
-      <div className="space-y-8">
+      <div className={landing ? 'space-y-5' : 'space-y-8'}>
         {state.message && !state.ok && (
           <div className="rounded-2xl border border-bad/30 bg-bad/5 p-4 text-sm text-bad" role="alert">
             <p className="font-semibold">{state.message}</p>
@@ -155,7 +164,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
                 {state.stock.map((p) => <li key={p.variant_id}>{describeStockProblem(p)}</li>)}
               </ul>
             )}
-            {state.stock && <p className="mt-2"><Link href="/cart" className="underline">Update your cart</Link></p>}
+            {state.stock && !landing && <p className="mt-2"><Link href="/cart" className="underline">Update your cart</Link></p>}
           </div>
         )}
 
@@ -209,7 +218,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
         <PaymentPicker options={payments} choice={pay} onChange={setPay} total={quote?.total ?? null} errors={fe} values={v} />
       </div>
 
-      <aside className="card h-fit space-y-5 p-5 sm:p-6 lg:sticky lg:top-24">
+      <aside className={`card h-fit space-y-5 p-5 sm:p-6 ${landing ? '' : 'lg:sticky lg:top-24'}`}>
         <h2 className="font-display text-2xl font-semibold">Order summary</h2>
         <ul className="space-y-3 text-sm">
           {(quote?.lines ?? []).map((l) => (
@@ -225,7 +234,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
             </li>
           ))}
         </ul>
-        {couponsEnabled && (
+        {couponsEnabled && !landing && (
           <div className="space-y-1.5 border-t border-line pt-4">
             <label htmlFor="coupon" className="label">Coupon code</label>
             <div className="flex gap-2">
@@ -257,7 +266,7 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
         )}
         <dl className="space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{quote ? formatTaka(quote.subtotal) : '…'}</dd></div>
-          {quote && quote.discount > 0 && <div className="flex justify-between text-ok"><dt>Discount</dt><dd>− {formatTaka(quote.discount)}</dd></div>}
+          {quote && quote.discount > 0 && <div className="flex justify-between text-ok"><dt>{landing ? 'Offer discount' : 'Discount'}</dt><dd>− {formatTaka(quote.discount)}</dd></div>}
           <div className="flex justify-between">
             <dt className="text-muted">Delivery</dt>
             <dd>{quote?.delivery_charge == null ? '…' : quote.delivery_charge === 0 ? 'Free' : formatTaka(quote.delivery_charge)}</dd>
@@ -275,10 +284,11 @@ export function CheckoutForm({ zones, codTerms, returnDays, couponsEnabled = tru
         </div>}
 
         {quoteError && <p className="error" role="alert">{quoteError}</p>}
-        {problems.length > 0 && <p className="error">Some items need attention. <Link href="/cart" className="underline">Fix in cart</Link></p>}
+        {offerError && <p className="text-[13px] text-muted">Offer: {offerError}</p>}
+        {problems.length > 0 && (landing ? <p className="error">Please choose another option.</p> : <p className="error">Some items need attention. <Link href="/cart" className="underline">Fix in cart</Link></p>)}
 
         <button type="submit" className="btn btn-primary w-full" disabled={!canSubmit} aria-busy={submitting}>
-          {submitting ? 'Placing your order…' : `${!cod && pay.mode === 'merchant' ? 'Place order & pay' : 'Place order'}${quote?.total != null ? ` · ${formatTaka(quote.total)}` : ''}`}
+          {submitting ? 'Placing your order…' : `${!cod && pay.mode === 'merchant' ? 'Place order & pay' : landing?.buttonText || 'Place order'}${quote?.total != null ? ` · ${formatTaka(quote.total)}` : ''}`}
         </button>
         <p className="text-center text-xs text-muted">{cod ? 'No payment now. You pay the rider when the parcel arrives.' : pay.mode === 'merchant' ? 'You will pay on the secure payment page next.' : 'We confirm your order after checking the payment.'}</p>
       </aside>

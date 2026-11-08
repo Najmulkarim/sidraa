@@ -58,3 +58,13 @@ export function useCart(): CartContextValue {
   if (!ctx) throw new Error('useCart must be used inside <CartProvider>');
   return ctx;
 }
+
+/**
+ * A landing page's own cart: just the product chosen on that page, never the
+ * shop cart in the browser. The checkout form inside reads it like the cart.
+ */
+export function FixedCartProvider({ lines, children }: { lines: CartLine[]; children: ReactNode }) {
+  const dispatch = useCallback(() => {}, []);
+  const value = useMemo(() => ({ lines, count: cartCount(lines), ready: true, dispatch }), [lines, dispatch]);
+  return <CartContext value={value}>{children}</CartContext>;
+}

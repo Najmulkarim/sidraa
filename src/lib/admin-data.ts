@@ -81,3 +81,22 @@ export async function loadCollectionFormData(supabase: Db) {
     })),
   };
 }
+
+/** Products and coupons for the landing page form. */
+export async function loadLandingFormData(supabase: Db) {
+  const [{ data: prods }, { data: coupons }] = await Promise.all([
+    supabase.from('products').select('id, name, sku, status, images:product_images(storage_path, sort_order)').neq('status', 'archived').order('created_at', { ascending: false }).limit(2000),
+    supabase.from('coupons').select('code, kind, value, is_active, ends_at').order('created_at', { ascending: false }).limit(200),
+  ]);
+  const now = Date.now();
+  return {
+    products: ((prods ?? []) as { id: string; name: string; sku: string; status: string; images: { storage_path: string; sort_order: number }[] }[]).map((p) => ({
+      id: p.id, name: p.name, sku: p.sku, status: p.status, image: [...p.images].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null,
+    })),
+    coupons: ((coupons ?? []) as { code: string; kind: string; value: number | string; is_active: boolean; ends_at: string | null }[]).map((c) => ({
+      code: c.code,
+      words: c.kind === 'percent' ? `${Number(c.value)}% off` : `৳${Number(c.value)} off`,
+      live: c.is_active && (!c.ends_at || Date.parse(c.ends_at) > now),
+    })),
+  };
+}

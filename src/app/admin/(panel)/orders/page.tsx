@@ -57,7 +57,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     .from('orders')
     .select(
       'id, public_ref, status, customer_name, customer_phone, address, area, district, note, total, paid_amount, payment_method, payment_status, assigned_to, deleted_at, created_at, source,' +
-        ' dispatched_at, courier, courier_consignment_id, courier_tracking_code, courier_status, courier_error,' +
+        ' dispatched_at, landing_slug, courier, courier_consignment_id, courier_tracking_code, courier_status, courier_error,' +
         ' items:order_items(id, product_name, sku, variant_label, unit_price, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))',
       { count: 'exact' },
     );

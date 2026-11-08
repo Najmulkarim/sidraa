@@ -152,6 +152,13 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     }
   }
 
+  // Ordered from a landing page: the Orders page shows which one.
+  const landingSlug = typeof raw.landingSlug === 'string' && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(raw.landingSlug) && raw.landingSlug.length <= 60 ? raw.landingSlug : null;
+  if (row.created && landingSlug) {
+    const { error: lpErr } = await admin.from('orders').update({ landing_slug: landingSlug }).eq('public_ref', row.public_ref);
+    if (lpErr) console.error('[checkout] saving landing page failed', row.public_ref, lpErr);
+  }
+
   if (row.created) {
     // Facebook Conversions API, after the response (never slows checkout).
     const jar = await cookies();

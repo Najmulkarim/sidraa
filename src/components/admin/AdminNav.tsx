@@ -28,6 +28,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: '/admin/products', label: 'Products', icon: 'box', need: ['catalog'] },
       { href: '/admin/categories', label: 'Categories', icon: 'tag', need: ['catalog'] },
       { href: '/admin/collections', label: 'Collections', icon: 'grid', need: ['catalog'] },
+      { href: '/admin/landing-pages', label: 'Landing pages', icon: 'external', need: ['catalog'] },
       { href: '/admin/reviews', label: 'Reviews', icon: 'star', need: ['catalog'], tone: 'brand' },
       { href: '/admin/inventory', label: 'Inventory', icon: 'layers', need: ['inventory'], tone: 'warn' },
     ],

@@ -19,7 +19,7 @@ const csp = (frameAncestors: string) => [
   `frame-ancestors ${frameAncestors}`,
   "form-action 'self'",
   // 'self': the Homepage editor shows /preview in a frame.
-  "frame-src 'self' https://www.facebook.com https://*.tawk.to",
+  "frame-src 'self' https://www.facebook.com https://*.tawk.to https://www.youtube-nocookie.com",
   "base-uri 'self'",
   "object-src 'none'",
 ].join('; ');

@@ -44,6 +44,8 @@ export type OrderRow = {
   courier_error: string | null;
   /** When the parcel left the house ("Shipped done"). */
   dispatched_at?: string | null;
+  /** Ordered from this landing page (/offer/…). */
+  landing_slug?: string | null;
   items: OrderItemInfo[];
 };
 
@@ -255,6 +257,7 @@ export function OrdersTable({
                     <span className="flex items-center gap-1.5"><Copy text={o.public_ref} what="order number" className="whitespace-nowrap font-mono text-[12.5px] font-bold text-ink">{o.public_ref}</Copy>
                       <Link href={`/admin/orders/${o.id}`} className="grid h-5 w-5 place-items-center rounded border border-line text-muted hover:border-brand hover:text-brand" title="Open this order" aria-label={`Open order ${o.public_ref}`}><Icon name="eye" size={12} /></Link></span>
                     <p className="mt-1 whitespace-nowrap font-mono text-[11px] text-muted">{formatDateTime(o.created_at)}</p>
+                    {o.landing_slug && <span className="mt-1 mr-1 inline-block rounded bg-[#fce7f3] px-1.5 text-[10.5px] font-semibold text-[#be185d]" title={`Ordered from sidraabd.com/offer/${o.landing_slug}`}>Offer page</span>}
                     {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]">{SOURCE_SHORT[o.source] ?? o.source}</span>}
                   </td>
                   <td className="max-w-[270px] px-3 py-4">
