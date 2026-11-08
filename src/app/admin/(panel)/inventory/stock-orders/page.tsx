@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Stock-in orders' };
 
 type Row = {
   id: string; ref: string; status: 'draft' | 'received' | 'cancelled'; supplier: string | null; expected_on: string | null; created_at: string; received_at: string | null;
-  items: { quantity: number; unit_cost: number | string | null; variant: { image_path: string | null; product: { images: { storage_path: string; sort_order: number }[] } | null } | null }[];
+  items: { quantity: number; unit_cost: number | string | null; new_image: string | null; variant: { image_path: string | null; product: { images: { storage_path: string; sort_order: number }[] } | null } | null }[];
 };
 const CHIP = { draft: 'bg-[#fef3c7] text-[#92400e]', received: 'bg-[#dcfce7] text-[#15803d]', cancelled: 'bg-soft text-muted' } as const;
 const LABEL = { draft: 'Draft', received: 'Received', cancelled: 'Cancelled' } as const;
@@ -21,7 +21,7 @@ export default async function StockOrdersPage() {
   const withCost = can.has('catalog') || can.has('revenue');
   const { data, error } = await supabase
     .from('stock_orders')
-    .select('id, ref, status, supplier, expected_on, created_at, received_at, items:stock_order_items(quantity, unit_cost, variant:product_variants(image_path, product:products(images:product_images(storage_path, sort_order))))')
+    .select('id, ref, status, supplier, expected_on, created_at, received_at, items:stock_order_items(quantity, unit_cost, new_image, variant:product_variants(image_path, product:products(images:product_images(storage_path, sort_order))))')
     .order('created_at', { ascending: false })
     .limit(200);
   const rows = (data ?? []) as unknown as Row[];
@@ -63,7 +63,7 @@ export default async function StockOrdersPage() {
             <tbody>
               {rows.map((o) => {
                 const t = stockOrderTotals(o.items.map((i) => ({ quantity: i.quantity, unit_cost: i.unit_cost === null ? null : Number(i.unit_cost) })));
-                const photos = o.items.slice(0, 4).map((i) => i.variant?.image_path ?? [...(i.variant?.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null);
+                const photos = o.items.slice(0, 4).map((i) => i.variant?.image_path ?? i.new_image ?? [...(i.variant?.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null);
                 return (
                   <tr key={o.id} className="border-b border-line last:border-0 hover:bg-soft/60">
                     <td className="px-3 py-2.5"><Link href={`/admin/inventory/stock-orders/${o.id}`} className="font-mono font-bold text-ink hover:text-brand">{o.ref}</Link></td>

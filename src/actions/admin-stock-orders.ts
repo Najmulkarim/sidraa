@@ -16,13 +16,19 @@ const stockOrderSchema = z.object({
   expectedOn: z.string().trim().refine((v) => v === '' || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Use a date').transform((v) => v || null),
   items: z
     .array(z.object({
-      variantId: z.uuid(),
+      // A listed variation, or a new product written on the line (variantId null).
+      variantId: z.uuid().nullable(),
+      newName: z.string().trim().max(160).nullable().optional(),
+      newColor: z.string().trim().max(30).nullable().optional(),
+      newSize: z.string().trim().max(20).nullable().optional(),
+      newImage: z.string().trim().max(300).nullable().optional(),
+      newPrice: z.number().min(0).max(10_000_000).nullable().optional(),
       quantity: z.number().int('Whole numbers only').min(1, 'Quantity must be at least 1').max(100000),
       unitCost: z.number().min(0).max(10_000_000).nullable(),
-    }))
+    }).refine((i) => i.variantId || i.newName, 'Write the name of the new product'))
     .min(1, 'Add at least one product')
     .max(300, 'At most 300 lines')
-    .refine((xs) => new Set(xs.map((x) => x.variantId)).size === xs.length, 'The same item is added twice'),
+    .refine((xs) => { const keys = xs.map((x) => x.variantId ?? `new:${x.newName?.toLowerCase()}|${(x.newColor ?? '').toLowerCase()}|${(x.newSize ?? '').toLowerCase()}`); return new Set(keys).size === keys.length; }, 'The same item is added twice'),
 });
 export type StockOrderInput = z.input<typeof stockOrderSchema>;
 
@@ -52,7 +58,10 @@ export async function saveStockOrder(input: StockOrderInput): Promise<ActionStat
     if (error || !data) return fail(error);
     id = data.id as string;
   }
-  const { error: itemsErr } = await supabase.from('stock_order_items').insert(o.items.map((i) => ({ stock_order_id: id, variant_id: i.variantId, quantity: i.quantity, unit_cost: i.unitCost })));
+  const { error: itemsErr } = await supabase.from('stock_order_items').insert(o.items.map((i) => ({
+    stock_order_id: id, variant_id: i.variantId, quantity: i.quantity, unit_cost: i.unitCost,
+    ...(i.variantId ? {} : { new_name: i.newName || null, new_color: i.newColor || null, new_size: i.newSize || null, new_image: i.newImage || null, new_price: i.newPrice ?? null }),
+  })));
   if (itemsErr) return fail(itemsErr);
 
   refresh(id);
@@ -67,7 +76,8 @@ export async function receiveStockOrder(id: string, saveCosts: boolean): Promise
   const { data, error } = await supabase.rpc('receive_stock_order', { p_order_id: id, p_save_costs: saveCosts === true });
   if (error) return fail(error);
   refresh(id);
-  // The shop shows stock too.
+  // New products were made as drafts; the shop shows stock too.
+  revalidatePath('/admin/products');
   revalidatePath('/', 'layout');
   updateTag(CATALOG_TAG);
   return { ok: true, message: `Received: ${Number(data ?? 0)} units added to stock.` };

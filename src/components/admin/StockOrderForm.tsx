@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { cancelStockOrder, deleteStockOrder, receiveStockOrder, saveStockOrder } from '@/actions/admin-stock-orders';
 import { formatTaka } from '@/lib/format';
 import { stockOrderTotals, type InventoryRow } from '@/lib/inventory';
@@ -10,6 +10,7 @@ import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { notify } from './Toaster';
+import { PHOTO_ACCEPT, uploadHomeImage } from '@/lib/upload-photo';
 
 export type StockOrderView = {
   id: string;
@@ -21,10 +22,13 @@ export type StockOrderView = {
   expected_on: string | null;
   created_at: string;
   received_at: string | null;
-  items: { variant_id: string; quantity: number; unit_cost: number | null }[];
+  items: { variant_id: string | null; quantity: number; unit_cost: number | null; new_name: string | null; new_color: string | null; new_size: string | null; new_image: string | null; new_price: number | null; product_id: string | null }[];
 };
 
-type Line = { variantId: string; quantity: string; unitCost: string };
+/** variantId null: a product that is not listed yet (made as a Draft product when received). */
+type Line = { key: string; variantId: string | null; quantity: string; unitCost: string; newName: string; newColor: string; newSize: string; newImage: string | null; newPrice: string; productId: string | null };
+let seq = 0;
+const newKey = () => `l${++seq}`;
 
 /**
  * A stock-in order: supplier, expected date, note and the items (search by
@@ -38,7 +42,10 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
   const [phone, setPhone] = useState(order?.supplier_phone ?? '');
   const [note, setNote] = useState(order?.note ?? '');
   const [expected, setExpected] = useState(order?.expected_on ?? '');
-  const [lines, setLines] = useState<Line[]>(order?.items.map((i) => ({ variantId: i.variant_id, quantity: String(i.quantity), unitCost: i.unit_cost === null ? '' : String(i.unit_cost) })) ?? []);
+  const [lines, setLines] = useState<Line[]>(order?.items.map((i) => ({
+    key: newKey(), variantId: i.variant_id, quantity: String(i.quantity), unitCost: i.unit_cost === null ? '' : String(i.unit_cost),
+    newName: i.new_name ?? '', newColor: i.new_color ?? '', newSize: i.new_size ?? '', newImage: i.new_image, newPrice: i.new_price === null ? '' : String(i.new_price), productId: i.product_id,
+  })) ?? []);
   const [q, setQ] = useState('');
   const [saving, startSave] = useTransition();
   const [acting, startAct] = useTransition();
@@ -55,14 +62,21 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
   const num = (s: string) => (s.trim() === '' ? null : Number(s));
   const sum = stockOrderTotals(lines.map((l) => ({ quantity: Number(l.quantity) || 0, unit_cost: num(l.unitCost) })));
   const edit = (i: number, patch: Partial<Line>) => { setLines((cur) => cur.map((l, n) => (n === i ? { ...l, ...patch } : l))); setDirty(true); };
-  const add = (v: InventoryRow) => { setLines((cur) => [...cur, { variantId: v.id, quantity: '1', unitCost: v.cost === null ? '' : String(v.cost) }]); setQ(''); setDirty(true); };
+  const blank = { newName: '', newColor: '', newSize: '', newImage: null, newPrice: '', productId: null };
+  const add = (v: InventoryRow) => { setLines((cur) => [...cur, { key: newKey(), variantId: v.id, quantity: '1', unitCost: v.cost === null ? '' : String(v.cost), ...blank }]); setQ(''); setDirty(true); };
+  // Another colour / size of the new product above keeps its name and price.
+  const addNew = (like?: Line) => { setLines((cur) => [...cur, { key: newKey(), variantId: null, quantity: '1', unitCost: like?.unitCost ?? '', ...blank, newName: like?.newName ?? '', newPrice: like?.newPrice ?? '', newImage: like?.newImage ?? null }]); setDirty(true); };
 
   const save = () => startSave(async () => {
     const bad = lines.find((l) => !(Number(l.quantity) >= 1) || !Number.isInteger(Number(l.quantity)));
     if (bad) return notify(false, 'Each line needs a whole quantity of at least 1.');
+    if (lines.some((l) => !l.variantId && !l.newName.trim())) return notify(false, 'Write the name of each new product.');
     const r = await saveStockOrder({
       id: order?.id, supplier, supplierPhone: phone, note, expectedOn: expected,
-      items: lines.map((l) => ({ variantId: l.variantId, quantity: Number(l.quantity), unitCost: num(l.unitCost) })),
+      items: lines.map((l) => ({
+        variantId: l.variantId, quantity: Number(l.quantity), unitCost: num(l.unitCost),
+        ...(l.variantId ? {} : { newName: l.newName, newColor: l.newColor, newSize: l.newSize, newImage: l.newImage, newPrice: num(l.newPrice) }),
+      })),
     });
     if (r) { notify(r.ok, r.message); if (r.ok) { setDirty(false); router.refresh(); } }
   });
@@ -110,7 +124,12 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
             </div>
           )}
 
-          {lines.length === 0 ? <p className="rounded-lg bg-soft p-4 text-center text-[13px] text-muted">No items yet. Search above to add products.</p> : (
+          {draft && (
+            <button type="button" onClick={() => addNew()} className="flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline">
+              <Icon name="plus" size={14} /> Add a new product (not listed yet)
+            </button>
+          )}
+          {lines.length === 0 ? <p className="rounded-lg bg-soft p-4 text-center text-[13px] text-muted">No items yet. Search above to add listed products, or add a new one.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] text-[13px]">
                 <thead>
@@ -125,20 +144,25 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
                 </thead>
                 <tbody>
                   {lines.map((l, i) => {
-                    const v = byId.get(l.variantId);
+                    const v = l.variantId ? byId.get(l.variantId) : undefined;
                     const cost = num(l.unitCost);
                     return (
-                      <tr key={l.variantId} className="border-b border-line last:border-0">
+                      <tr key={l.key} className="border-b border-line last:border-0">
                         <td className="py-2 pr-2">
+                          {!l.variantId || (l.productId && !v) ? (
+                            <NewProductCell line={l} draft={draft} onChange={(patch) => edit(i, patch)} onAnother={() => addNew(l)} />
+                          ) : (
                           <span className="flex items-center gap-2.5">
                             <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-tint"><ProductImage path={v?.image} alt="" sizes="40px" /></span>
                             <span className="min-w-0">
                               <span className="block max-w-[240px] truncate font-medium">{v?.name ?? 'Removed item'}</span>
                               <span className="font-mono text-[11px] text-muted">{v?.sku}{v?.variant ? ` · ${v.variant}` : ''}</span>
+                              {l.productId && <a href={`/admin/products/${l.productId}`} className="block text-[11.5px] font-semibold text-brand hover:underline">New draft product: add price & photos, then publish →</a>}
                             </span>
                           </span>
+                          )}
                         </td>
-                        <td className="px-2 py-2 text-right font-mono text-muted">{v?.stock ?? '—'}</td>
+                        <td className="px-2 py-2 text-right font-mono text-muted">{l.variantId ? v?.stock ?? '—' : <span className="rounded bg-tint px-1.5 text-[10.5px] font-bold text-brand">NEW</span>}</td>
                         <td className="px-2 py-2 text-right">
                           {draft ? <input type="number" min={1} step={1} value={l.quantity} onChange={(e) => edit(i, { quantity: e.target.value })} aria-label="Quantity" className="input h-9 w-20 text-right font-mono" /> : <span className="font-mono font-semibold">{l.quantity}</span>}
                         </td>
@@ -210,6 +234,46 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
           </span>
         ) : asking === 'cancel' ? 'Stock does not change. You can delete it after.' : 'It is removed from the list. Stock does not change.'}
       </ConfirmDialog>
+    </div>
+  );
+}
+
+/** A product not listed yet: name, colour, size, photo and selling price, written on the line. */
+function NewProductCell({ line, draft, onChange, onAnother }: { line: Line; draft: boolean; onChange: (patch: Partial<Line>) => void; onAnother: () => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    const r = await uploadHomeImage(file);
+    setBusy(false);
+    if ('error' in r) notify(false, r.error);
+    else onChange({ newImage: r.path });
+  }
+  const box = 'input h-8 px-2 text-[12.5px]';
+  return (
+    <div className="flex items-start gap-2.5">
+      <button type="button" disabled={!draft} onClick={() => input.current?.click()} title={draft ? 'Add a photo' : undefined} className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-dashed border-brand/40 bg-tint text-brand">
+        {line.newImage ? <ProductImage path={line.newImage} alt="" sizes="56px" /> : <span className="text-center text-[10px] font-semibold leading-tight">{busy ? '…' : '+ Photo'}</span>}
+      </button>
+      <input ref={input} type="file" accept={PHOTO_ACCEPT} className="hidden" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
+      {draft ? (
+        <div className="grid min-w-0 flex-1 gap-1.5">
+          <input value={line.newName} onChange={(e) => onChange({ newName: e.target.value })} maxLength={160} placeholder="New product name" className={`${box} font-semibold`} />
+          <div className="grid grid-cols-3 gap-1.5">
+            <input value={line.newColor} onChange={(e) => onChange({ newColor: e.target.value })} maxLength={30} placeholder="Colour" className={box} />
+            <input value={line.newSize} onChange={(e) => onChange({ newSize: e.target.value })} maxLength={20} placeholder="Size" className={box} />
+            <input type="number" min={0} step="0.01" value={line.newPrice} onChange={(e) => onChange({ newPrice: e.target.value })} placeholder="Sell price" title="Selling price (can be set later)" className={`${box} font-mono`} />
+          </div>
+          <button type="button" onClick={onAnother} className="w-fit text-[11.5px] font-semibold text-brand hover:underline">+ Another colour / size of this product</button>
+        </div>
+      ) : (
+        <span className="min-w-0">
+          <span className="block max-w-[240px] truncate font-medium">{line.newName}</span>
+          <span className="block text-[11px] text-muted">{[line.newColor, line.newSize].filter(Boolean).join(' / ') || 'New product'}</span>
+          {line.productId && <a href={`/admin/products/${line.productId}`} className="block text-[11.5px] font-semibold text-brand hover:underline">Draft product made: add details, then publish →</a>}
+        </span>
+      )}
     </div>
   );
 }

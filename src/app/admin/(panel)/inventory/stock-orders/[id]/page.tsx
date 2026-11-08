@@ -13,12 +13,12 @@ export default async function StockOrderPage({ params, searchParams }: { params:
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const withCost = can.has('catalog') || can.has('revenue');
   const [{ data }, variants] = await Promise.all([
-    supabase.from('stock_orders').select('id, ref, status, supplier, supplier_phone, note, expected_on, created_at, received_at, updated_at, items:stock_order_items(variant_id, quantity, unit_cost)').eq('id', id).maybeSingle(),
+    supabase.from('stock_orders').select('id, ref, status, supplier, supplier_phone, note, expected_on, created_at, received_at, updated_at, items:stock_order_items(variant_id, quantity, unit_cost, new_name, new_color, new_size, new_image, new_price, product_id)').eq('id', id).maybeSingle(),
     loadInventoryRows(supabase, withCost),
   ]);
   if (!data) notFound();
-  const raw = data as unknown as Omit<StockOrderView, 'items'> & { updated_at: string; items: { variant_id: string; quantity: number; unit_cost: number | string | null }[] };
-  const order: StockOrderView = { ...raw, items: raw.items.map((i) => ({ ...i, unit_cost: i.unit_cost === null ? null : Number(i.unit_cost) })) };
+  const raw = data as unknown as Omit<StockOrderView, 'items'> & { updated_at: string; items: (Omit<StockOrderView['items'][number], 'unit_cost' | 'new_price'> & { unit_cost: number | string | null; new_price: number | string | null })[] };
+  const order: StockOrderView = { ...raw, items: raw.items.map((i) => ({ ...i, unit_cost: i.unit_cost === null ? null : Number(i.unit_cost), new_price: i.new_price === null ? null : Number(i.new_price) })) };
   const chip = order.status === 'draft' ? 'bg-[#fef3c7] text-[#92400e]' : order.status === 'received' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-soft text-muted';
   return (
     <div className="space-y-5">
