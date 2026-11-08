@@ -13,7 +13,7 @@ export default async function StockOrderPage({ params, searchParams }: { params:
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const withCost = can.has('catalog') || can.has('revenue');
   const [{ data }, variants] = await Promise.all([
-    supabase.from('stock_orders').select('id, ref, status, supplier, supplier_phone, note, expected_on, created_at, received_at, updated_at, items:stock_order_items(variant_id, quantity, unit_cost, new_name, new_color, new_size, new_image, new_price, product_id)').eq('id', id).maybeSingle(),
+    supabase.from('stock_orders').select('id, ref, status, supplier, supplier_phone, note, expected_on, created_at, received_at, updated_at, items:stock_order_items(variant_id, quantity, unit_cost, new_name, new_color, new_size, new_image, new_price, product_id, received_at)').eq('id', id).maybeSingle(),
     loadInventoryRows(supabase, withCost),
   ]);
   if (!data) notFound();

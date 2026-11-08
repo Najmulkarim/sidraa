@@ -22,14 +22,15 @@ export type StockOrderView = {
   expected_on: string | null;
   created_at: string;
   received_at: string | null;
-  items: { variant_id: string | null; quantity: number; unit_cost: number | null; new_name: string | null; new_color: string | null; new_size: string | null; new_image: string | null; new_price: number | null; product_id: string | null }[];
+  items: { variant_id: string | null; quantity: number; unit_cost: number | null; new_name: string | null; new_color: string | null; new_size: string | null; new_image: string | null; new_price: number | null; product_id: string | null; received_at: string | null }[];
 };
 
 /** variantId null: a product that is not listed yet (made as a Draft product when received). */
 /** One batch (lot) from a confirmed line: its serial number and what happened to its units. */
 export type BatchInfo = { lotNo: string; variantId: string; received: number; remaining: number; sold: number; back: number };
 
-type Line = { key: string; variantId: string | null; quantity: string; unitCost: string; newName: string; newColor: string; newSize: string; newImage: string | null; newPrice: string; productId: string | null };
+/** received: confirmed into stock (locked); otherwise pending. */
+type Line = { key: string; received: boolean; variantId: string | null; quantity: string; unitCost: string; newName: string; newColor: string; newSize: string; newImage: string | null; newPrice: string; productId: string | null };
 let seq = 0;
 const newKey = () => `l${++seq}`;
 
@@ -41,12 +42,14 @@ const newKey = () => `l${++seq}`;
 export function StockOrderForm({ order, variants, withCost, canSaveCost, batches = [] }: { order?: StockOrderView; variants: InventoryRow[]; withCost: boolean; canSaveCost: boolean; batches?: BatchInfo[] }) {
   const router = useRouter();
   const draft = !order || order.status === 'draft';
+  // A draft or a confirmed PO can still be edited (new lines); a cancelled one cannot.
+  const editable = !order || order.status !== 'cancelled';
   const [supplier, setSupplier] = useState(order?.supplier ?? '');
   const [phone, setPhone] = useState(order?.supplier_phone ?? '');
   const [note, setNote] = useState(order?.note ?? '');
   const [expected, setExpected] = useState(order?.expected_on ?? '');
   const [lines, setLines] = useState<Line[]>(order?.items.map((i) => ({
-    key: newKey(), variantId: i.variant_id, quantity: String(i.quantity), unitCost: i.unit_cost === null ? '' : String(i.unit_cost),
+    key: newKey(), received: !!i.received_at, variantId: i.variant_id, quantity: String(i.quantity), unitCost: i.unit_cost === null ? '' : String(i.unit_cost),
     newName: i.new_name ?? '', newColor: i.new_color ?? '', newSize: i.new_size ?? '', newImage: i.new_image, newPrice: i.new_price === null ? '' : String(i.new_price), productId: i.product_id,
   })) ?? []);
   const [q, setQ] = useState('');
@@ -60,24 +63,27 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
   const found = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return [];
-    return variants.filter((v) => !lines.some((l) => l.variantId === v.id) && `${v.name} ${v.sku} ${v.variant}`.toLowerCase().includes(t)).slice(0, 12);
+    return variants.filter((v) => !lines.some((l) => !l.received && l.variantId === v.id) && `${v.name} ${v.sku} ${v.variant}`.toLowerCase().includes(t)).slice(0, 12);
   }, [q, variants, lines]);
   const num = (s: string) => (s.trim() === '' ? null : Number(s));
   const sum = stockOrderTotals(lines.map((l) => ({ quantity: Number(l.quantity) || 0, unit_cost: num(l.unitCost) })));
+  const pendingLines = lines.filter((l) => !l.received);
+  const pendingUnits = pendingLines.reduce((n, l) => n + (Number(l.quantity) || 0), 0);
+  const hasConfirmed = lines.some((l) => l.received);
   const edit = (i: number, patch: Partial<Line>) => { setLines((cur) => cur.map((l, n) => (n === i ? { ...l, ...patch } : l))); setDirty(true); };
   const blank = { newName: '', newColor: '', newSize: '', newImage: null, newPrice: '', productId: null };
-  const add = (v: InventoryRow) => { setLines((cur) => [...cur, { key: newKey(), variantId: v.id, quantity: '1', unitCost: v.cost === null ? '' : String(v.cost), ...blank }]); setQ(''); setDirty(true); };
+  const add = (v: InventoryRow) => { setLines((cur) => [...cur, { key: newKey(), received: false, variantId: v.id, quantity: '1', unitCost: v.cost === null ? '' : String(v.cost), ...blank }]); setQ(''); setDirty(true); };
   // Another colour / size of the new product above keeps its name and price.
-  const addNew = (like?: Line) => { setLines((cur) => [...cur, { key: newKey(), variantId: null, quantity: '1', unitCost: like?.unitCost ?? '', ...blank, newName: like?.newName ?? '', newPrice: like?.newPrice ?? '', newImage: like?.newImage ?? null }]); setDirty(true); };
+  const addNew = (like?: Line) => { setLines((cur) => [...cur, { key: newKey(), received: false, variantId: null, quantity: '1', unitCost: like?.unitCost ?? '', ...blank, newName: like?.newName ?? '', newPrice: like?.newPrice ?? '', newImage: like?.newImage ?? null }]); setDirty(true); };
 
   const save = () => startSave(async () => {
-    const bad = lines.find((l) => !(Number(l.quantity) >= 1) || !Number.isInteger(Number(l.quantity)));
+    const bad = pendingLines.find((l) => !(Number(l.quantity) >= 1) || !Number.isInteger(Number(l.quantity)));
     if (bad) return notify(false, 'Each line needs a whole quantity of at least 1.');
     if (lines.some((l) => !l.variantId && !l.newName.trim())) return notify(false, 'Write the name of each new product.');
     const r = await saveStockOrder({
       id: order?.id, supplier, supplierPhone: phone, note, expectedOn: expected,
       items: lines.map((l) => ({
-        variantId: l.variantId, quantity: Number(l.quantity), unitCost: num(l.unitCost),
+        variantId: l.variantId, received: l.received, quantity: Number(l.quantity), unitCost: num(l.unitCost),
         ...(l.variantId ? {} : { newName: l.newName, newColor: l.newColor, newSize: l.newSize, newImage: l.newImage, newPrice: num(l.newPrice) }),
       })),
     });
@@ -96,15 +102,16 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="space-y-5">
         <section className="card grid gap-3 p-5 sm:grid-cols-2">
-          <label className="field"><span className="label">Supplier</span><input value={supplier} disabled={!draft} onChange={(e) => { setSupplier(e.target.value); setDirty(true); }} maxLength={120} placeholder="e.g. China Source" className={input} /></label>
-          <label className="field"><span className="label">Supplier phone</span><input value={phone} disabled={!draft} onChange={(e) => { setPhone(e.target.value); setDirty(true); }} maxLength={30} placeholder="Optional" className={input} /></label>
-          <label className="field"><span className="label">Expected on</span><input type="date" value={expected} disabled={!draft} onChange={(e) => { setExpected(e.target.value); setDirty(true); }} className={input} /></label>
-          <label className="field"><span className="label">Note</span><input value={note} disabled={!draft} onChange={(e) => { setNote(e.target.value); setDirty(true); }} maxLength={1000} placeholder="e.g. Invoice CS23403" className={input} /></label>
+          <label className="field"><span className="label">Supplier</span><input value={supplier} disabled={!editable} onChange={(e) => { setSupplier(e.target.value); setDirty(true); }} maxLength={120} placeholder="e.g. China Source" className={input} /></label>
+          <label className="field"><span className="label">Supplier phone</span><input value={phone} disabled={!editable} onChange={(e) => { setPhone(e.target.value); setDirty(true); }} maxLength={30} placeholder="Optional" className={input} /></label>
+          <label className="field"><span className="label">Expected on</span><input type="date" value={expected} disabled={!editable} onChange={(e) => { setExpected(e.target.value); setDirty(true); }} className={input} /></label>
+          <label className="field"><span className="label">Note</span><input value={note} disabled={!editable} onChange={(e) => { setNote(e.target.value); setDirty(true); }} maxLength={1000} placeholder="e.g. Invoice CS23403" className={input} /></label>
         </section>
 
         <section className="card space-y-3 p-5">
           <h2 className="font-semibold">Items</h2>
-          {draft && (
+          {hasConfirmed && editable && <p className="rounded-lg bg-tint/70 px-3 py-2 text-[12.5px] text-ink/80">Confirmed lines are locked. Add more products below: they wait as <b>Pending</b> until you press Confirm again.</p>}
+          {editable && (
             <div className="relative">
               <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a product by name, SKU or colour / size to add it" className={`${input} pl-9`} />
@@ -137,25 +144,27 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
                     <th className="px-2 py-2 text-right">Quantity</th>
                     <th className="px-2 py-2 text-right">Unit cost</th>
                     <th className="px-2 py-2 text-right">Line total</th>
-                    {draft && <th />}
+                    {editable && <th />}
                   </tr>
                 </thead>
                 <tbody>
                   {lines.map((l, i) => {
                     const v = l.variantId ? byId.get(l.variantId) : undefined;
                     const cost = num(l.unitCost);
+                    const open = editable && !l.received;
                     return (
                       <tr key={l.key} className="border-b border-line last:border-0">
                         <td className="py-2 pr-2">
                           {!l.variantId || (l.productId && !v) ? (
-                            <NewProductCell line={l} draft={draft} onChange={(patch) => edit(i, patch)} onAnother={() => addNew(l)} />
+                            <NewProductCell line={l} draft={open} onChange={(patch) => edit(i, patch)} onAnother={() => addNew(l)} />
                           ) : (
                           <span className="flex items-center gap-2.5">
                             <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-tint"><ProductImage path={v?.image} alt="" sizes="40px" /></span>
                             <span className="min-w-0">
                               <span className="block max-w-[240px] truncate font-medium">{v?.name ?? 'Removed item'}</span>
                               <span className="font-mono text-[11px] text-muted">{v?.sku}{v?.variant ? ` · ${v.variant}` : ''}</span>
-                              {l.variantId && batches.filter((b) => b.variantId === l.variantId).map((b) => (
+                              {hasConfirmed && <span className={`mt-0.5 inline-block rounded px-1.5 text-[10px] font-bold uppercase ${l.received ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef3c7] text-[#92400e]'}`}>{l.received ? 'Confirmed' : 'Pending'}</span>}
+                              {l.received && l.variantId && batches.filter((b) => b.variantId === l.variantId).map((b) => (
                                 <span key={b.lotNo} className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
                                   <span className="rounded bg-night px-1.5 py-0.5 font-mono font-bold text-white" title="Batch serial number">{b.lotNo}</span>
                                   <span className="text-muted">sold <b className="text-ink">{b.sold}</b></span>
@@ -170,15 +179,15 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
                         </td>
                         <td className="px-2 py-2 text-right font-mono text-muted">{l.variantId ? v?.stock ?? '—' : <span className="rounded bg-tint px-1.5 text-[10.5px] font-bold text-brand">NEW</span>}</td>
                         <td className="px-2 py-2 text-right">
-                          {draft ? <input type="number" min={1} step={1} value={l.quantity} onChange={(e) => edit(i, { quantity: e.target.value })} aria-label="Quantity" className="input h-9 w-20 text-right font-mono" /> : <span className="font-mono font-semibold">{l.quantity}</span>}
+                          {open ? <input type="number" min={1} step={1} value={l.quantity} onChange={(e) => edit(i, { quantity: e.target.value })} aria-label="Quantity" className="input h-9 w-20 text-right font-mono" /> : <span className="font-mono font-semibold">{l.quantity}</span>}
                         </td>
                         <td className="px-2 py-2 text-right">
-                          {draft ? <input type="number" min={0} step="0.01" value={l.unitCost} onChange={(e) => edit(i, { unitCost: e.target.value })} placeholder="—" aria-label="Unit cost" className="input h-9 w-24 text-right font-mono" /> : <span className="font-mono">{cost === null ? '—' : formatTaka(cost)}</span>}
+                          {open ? <input type="number" min={0} step="0.01" value={l.unitCost} onChange={(e) => edit(i, { unitCost: e.target.value })} placeholder="—" aria-label="Unit cost" className="input h-9 w-24 text-right font-mono" /> : <span className="font-mono">{cost === null ? '—' : formatTaka(cost)}</span>}
                         </td>
                         <td className="px-2 py-2 text-right font-mono font-semibold">{cost === null ? '—' : formatTaka(cost * (Number(l.quantity) || 0))}</td>
-                        {draft && (
+                        {editable && (
                           <td className="py-2 pl-1 text-right">
-                            <button type="button" aria-label="Remove" onClick={() => { setLines((cur) => cur.filter((_, n) => n !== i)); setDirty(true); }} className="grid h-8 w-8 place-items-center rounded-md border border-line text-muted hover:text-bad"><Icon name="x" size={14} /></button>
+                            {open && <button type="button" aria-label="Remove" onClick={() => { setLines((cur) => cur.filter((_, n) => n !== i)); setDirty(true); }} className="grid h-8 w-8 place-items-center rounded-md border border-line text-muted hover:text-bad"><Icon name="x" size={14} /></button>}
                           </td>
                         )}
                       </tr>
@@ -190,9 +199,9 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
           )}
         </section>
 
-        {draft && (
+        {editable && (
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={saving || lines.length === 0} className="btn btn-primary">{saving ? 'Saving…' : order ? 'Save changes' : 'Save as draft'}</button>
+            <button type="button" onClick={save} disabled={saving || lines.length === 0 || (!!order && !dirty)} className="btn btn-primary">{saving ? 'Saving…' : order ? 'Save changes' : 'Save as draft'}</button>
             <Link href="/admin/inventory/stock-orders" className="btn btn-outline">Back</Link>
           </div>
         )}
@@ -203,25 +212,26 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
         <dl className="space-y-1.5 text-[14px]">
           <div className="flex justify-between"><dt className="text-muted">Items</dt><dd className="font-mono">{sum.lines}</dd></div>
           <div className="flex justify-between"><dt className="text-muted">Units</dt><dd className="font-mono">{sum.units}</dd></div>
+          {hasConfirmed && <div className="flex justify-between"><dt className="text-muted">Pending</dt><dd className="font-mono font-semibold text-warn">{pendingUnits}</dd></div>}
           {withCost && <div className="flex justify-between border-t border-line pt-1.5 font-semibold"><dt>Total cost</dt><dd className="font-mono">{formatTaka(sum.cost)}</dd></div>}
         </dl>
-        {order && order.status === 'draft' && (
+        {order && editable && pendingLines.length > 0 && (
           <div className="space-y-2 border-t border-line pt-4">
             {dirty && <p className="rounded-lg bg-warn/10 p-2 text-[12.5px] text-warn">Save your changes before confirming.</p>}
-            <button type="button" disabled={dirty || acting || lines.length === 0} onClick={() => setAsking('receive')} className="btn w-full border-0 bg-ok text-white hover:brightness-105"><Icon name="check" size={16} /> Confirm</button>
-            <button type="button" disabled={acting} onClick={() => setAsking('cancel')} className="btn btn-outline btn-sm w-full">Cancel order</button>
+            <button type="button" disabled={dirty || acting || lines.length === 0} onClick={() => setAsking('receive')} className="btn w-full border-0 bg-ok text-white hover:brightness-105"><Icon name="check" size={16} /> Confirm{hasConfirmed ? ` ${pendingUnits} pending` : ''}</button>
+            {draft && <button type="button" disabled={acting} onClick={() => setAsking('cancel')} className="btn btn-outline btn-sm w-full">Cancel order</button>}
           </div>
         )}
         {order && order.status !== 'received' && (
           <button type="button" disabled={acting} onClick={() => setAsking('delete')} className="flex items-center gap-1.5 text-[13px] font-semibold text-bad hover:underline"><Icon name="trash" size={14} /> Delete</button>
         )}
-        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Confirmed: these units were added to stock. Each line has its batch number below, with how many were sold, returned and are left.</p>}
+        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Confirmed lines are in stock, each with its batch number, and how many were sold, returned and are left.{pendingLines.length ? '' : ' Add more products any time; confirm them when they arrive.'}</p>}
         {order?.status === 'cancelled' && <p className="rounded-lg bg-soft p-3 text-[13px] text-muted">Cancelled — stock was not changed.</p>}
       </aside>
 
       <ConfirmDialog
         open={asking !== null}
-        title={asking === 'receive' ? `Confirm and add ${sum.units} units to stock?` : asking === 'cancel' ? 'Cancel this purchase order?' : 'Delete this purchase order?'}
+        title={asking === 'receive' ? `Confirm and add ${pendingUnits} units to stock?` : asking === 'cancel' ? 'Cancel this purchase order?' : 'Delete this purchase order?'}
         confirmLabel={asking === 'receive' ? 'Yes, add to stock' : asking === 'cancel' ? 'Yes, cancel order' : 'Yes, delete'}
         cancelLabel="Not now"
         icon={asking === 'receive' ? 'check' : asking === 'cancel' ? 'ban' : 'trash'}

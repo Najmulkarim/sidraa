@@ -18,6 +18,8 @@ const stockOrderSchema = z.object({
     .array(z.object({
       // A listed variation, or a new product written on the line (variantId null).
       variantId: z.uuid().nullable(),
+      /** Already confirmed: locked, never sent back to the database. */
+      received: z.boolean().optional(),
       newName: z.string().trim().max(160).nullable().optional(),
       newColor: z.string().trim().max(30).nullable().optional(),
       newSize: z.string().trim().max(20).nullable().optional(),
@@ -28,7 +30,7 @@ const stockOrderSchema = z.object({
     }).refine((i) => i.variantId || i.newName, 'Write the name of the new product'))
     .min(1, 'Add at least one product')
     .max(300, 'At most 300 lines')
-    .refine((xs) => { const keys = xs.map((x) => x.variantId ?? `new:${x.newName?.toLowerCase()}|${(x.newColor ?? '').toLowerCase()}|${(x.newSize ?? '').toLowerCase()}`); return new Set(keys).size === keys.length; }, 'The same item is added twice'),
+    .refine((xs) => { const keys = xs.filter((x) => !x.received).map((x) => x.variantId ?? `new:${x.newName?.toLowerCase()}|${(x.newColor ?? '').toLowerCase()}|${(x.newSize ?? '').toLowerCase()}`); return new Set(keys).size === keys.length; }, 'The same item is added twice'),
 });
 export type StockOrderInput = z.input<typeof stockOrderSchema>;
 
@@ -48,17 +50,19 @@ export async function saveStockOrder(input: StockOrderInput): Promise<ActionStat
 
   let id = o.id;
   if (id) {
-    const { data, error } = await supabase.from('stock_orders').update(head).eq('id', id).eq('status', 'draft').select('id');
+    const { data, error } = await supabase.from('stock_orders').update(head).eq('id', id).in('status', ['draft', 'received']).select('id');
     if (error) return fail(error);
-    if (!data?.length) return { ok: false, message: 'This order was already received or cancelled — it cannot be changed.' };
-    const { error: delErr } = await supabase.from('stock_order_items').delete().eq('stock_order_id', id);
+    if (!data?.length) return { ok: false, message: 'This purchase order was cancelled — it cannot be changed.' };
+    // Only pending lines are replaced; confirmed lines stay exactly as they are.
+    const { error: delErr } = await supabase.from('stock_order_items').delete().eq('stock_order_id', id).is('received_at', null);
     if (delErr) return fail(delErr);
   } else {
     const { data, error } = await supabase.from('stock_orders').insert({ ...head, created_by: user.id }).select('id').single();
     if (error || !data) return fail(error);
     id = data.id as string;
   }
-  const { error: itemsErr } = await supabase.from('stock_order_items').insert(o.items.map((i) => ({
+  const pending = o.items.filter((i) => !i.received);
+  const { error: itemsErr } = pending.length === 0 ? { error: null } : await supabase.from('stock_order_items').insert(pending.map((i) => ({
     stock_order_id: id, variant_id: i.variantId, quantity: i.quantity, unit_cost: i.unitCost,
     ...(i.variantId ? {} : { new_name: i.newName || null, new_color: i.newColor || null, new_size: i.newSize || null, new_image: i.newImage || null, new_price: i.newPrice ?? null }),
   })));
