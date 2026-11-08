@@ -4,7 +4,7 @@ import { StockOrderForm } from '@/components/admin/StockOrderForm';
 import { loadInventoryRows } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
 
-export const metadata: Metadata = { title: 'New stock-in order' };
+export const metadata: Metadata = { title: 'New purchase order' };
 
 export default async function NewStockOrderPage() {
   const { supabase, can } = await requirePermission('inventory');
@@ -13,8 +13,8 @@ export default async function NewStockOrderPage() {
   return (
     <div className="space-y-5">
       <header>
-        <Link href="/admin/inventory/stock-orders" className="text-sm text-muted hover:text-ink">← Stock-in orders</Link>
-        <h1 className="text-2xl font-bold tracking-tight">New stock-in order</h1>
+        <Link href="/admin/inventory/stock-orders" className="text-sm text-muted hover:text-ink">← Purchase orders</Link>
+        <h1 className="text-2xl font-bold tracking-tight">New purchase order</h1>
       </header>
       <StockOrderForm variants={variants} withCost={withCost} canSaveCost={can.has('catalog')} />
     </div>

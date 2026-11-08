@@ -6,14 +6,14 @@ import { requirePermission } from '@/lib/auth';
 import { formatDate, formatTaka } from '@/lib/format';
 import { stockOrderTotals } from '@/lib/inventory';
 
-export const metadata: Metadata = { title: 'Stock-in orders' };
+export const metadata: Metadata = { title: 'Purchase orders' };
 
 type Row = {
   id: string; ref: string; status: 'draft' | 'received' | 'cancelled'; supplier: string | null; expected_on: string | null; created_at: string; received_at: string | null;
   items: { quantity: number; unit_cost: number | string | null; new_image: string | null; variant: { image_path: string | null; product: { images: { storage_path: string; sort_order: number }[] } | null } | null }[];
 };
 const CHIP = { draft: 'bg-[#fef3c7] text-[#92400e]', received: 'bg-[#dcfce7] text-[#15803d]', cancelled: 'bg-soft text-muted' } as const;
-const LABEL = { draft: 'Draft', received: 'Received', cancelled: 'Cancelled' } as const;
+const LABEL = { draft: 'Draft', received: 'Confirmed', cancelled: 'Cancelled' } as const;
 
 /** What the shop ordered from suppliers; receiving one adds it to stock. */
 export default async function StockOrdersPage() {
@@ -31,16 +31,16 @@ export default async function StockOrdersPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/admin/inventory" className="text-sm text-muted hover:text-ink">← Inventory</Link>
-          <h1 className="text-2xl font-bold tracking-tight">Stock-in orders</h1>
-          <p className="text-sm text-muted">Orders to your suppliers. Make one as a draft, then press “Receive stock” when the parcel arrives: everything is added to stock at once.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Purchase orders</h1>
+          <p className="text-sm text-muted">Orders to your suppliers. Make one as a draft (only listed products), then press “Confirm” when the goods arrive: everything is added to stock at once.</p>
         </div>
-        <Link href="/admin/inventory/stock-orders/new" className="btn btn-primary"><Icon name="plus" size={16} /> New stock-in order</Link>
+        <Link href="/admin/inventory/stock-orders/new" className="btn btn-primary"><Icon name="plus" size={16} /> New purchase order</Link>
       </header>
 
-      {error && <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">Run the latest database update (0054) in Supabase to use stock-in orders.</p>}
+      {error && <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">Run the latest database update (0056) in Supabase to use purchase orders.</p>}
       {!error && rows.length === 0 && (
         <div className="card p-10 text-center">
-          <p className="font-semibold">No stock-in orders yet</p>
+          <p className="font-semibold">No purchase orders yet</p>
           <p className="mt-1 text-sm text-muted">For example: 20 scarves and 10 slippers from your supplier, with what each cost.</p>
           <Link href="/admin/inventory/stock-orders/new" className="btn btn-primary mt-4">Make the first one</Link>
         </div>
@@ -78,7 +78,7 @@ export default async function StockOrdersPage() {
                     {withCost && <td className="px-3 py-2.5 text-right font-mono">{formatTaka(t.cost)}</td>}
                     <td className="px-3 py-2.5"><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CHIP[o.status]}`}>{LABEL[o.status]}</span></td>
                     <td className="px-3 py-2.5 text-[12px] text-muted">
-                      {o.status === 'received' && o.received_at ? `Received ${formatDate(o.received_at)}` : o.expected_on ? `Expected ${formatDate(o.expected_on)}` : `Made ${formatDate(o.created_at)}`}
+                      {o.status === 'received' && o.received_at ? `Confirmed ${formatDate(o.received_at)}` : o.expected_on ? `Expected ${formatDate(o.expected_on)}` : `Made ${formatDate(o.created_at)}`}
                     </td>
                   </tr>
                 );

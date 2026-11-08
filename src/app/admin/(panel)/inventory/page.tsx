@@ -70,12 +70,9 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
           <p className="text-sm text-muted">Stock of every product and variation. Every unit in or out is logged.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/inventory/stock-orders" className="btn btn-outline btn-sm min-h-10">
-            <Icon name="note" size={15} /> Stock-in orders{drafts ? <span className="rounded-full bg-warn px-1.5 text-[11px] text-white">{drafts}</span> : null}
-          </Link>
-          <Link href="/admin/inventory/stock-orders/new" className="btn btn-primary btn-sm min-h-10"><Icon name="plus" size={15} /> New stock-in order</Link>
-        </div>
+        <Link href="/admin/inventory/stock-orders" className="btn btn-primary btn-sm min-h-10">
+          <Icon name="note" size={15} /> Purchase order{drafts ? <span className="rounded-full bg-warn px-1.5 text-[11px] text-white" title="Drafts waiting to be confirmed">{drafts}</span> : null}
+        </Link>
       </header>
 
       <nav aria-label="Inventory views" className="flex gap-1 overflow-x-auto print:hidden">

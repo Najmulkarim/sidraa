@@ -31,9 +31,9 @@ let seq = 0;
 const newKey = () => `l${++seq}`;
 
 /**
- * A stock-in order: supplier, expected date, note and the items (search by
+ * A purchase order: supplier, expected date, note and the items (search by
  * name or SKU, with photos) with quantity and unit cost. Saved as a draft;
- * "Receive stock" adds it all to stock at once.
+ * "Confirm" adds it all to stock at once.
  */
 export function StockOrderForm({ order, variants, withCost, canSaveCost }: { order?: StockOrderView; variants: InventoryRow[]; withCost: boolean; canSaveCost: boolean }) {
   const router = useRouter();
@@ -124,12 +124,7 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
             </div>
           )}
 
-          {draft && (
-            <button type="button" onClick={() => addNew()} className="flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline">
-              <Icon name="plus" size={14} /> Add a new product (not listed yet)
-            </button>
-          )}
-          {lines.length === 0 ? <p className="rounded-lg bg-soft p-4 text-center text-[13px] text-muted">No items yet. Search above to add listed products, or add a new one.</p> : (
+          {lines.length === 0 ? <p className="rounded-lg bg-soft p-4 text-center text-[13px] text-muted">No items yet. Search above to add your listed products.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] text-[13px]">
                 <thead>
@@ -201,22 +196,22 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
         </dl>
         {order && order.status === 'draft' && (
           <div className="space-y-2 border-t border-line pt-4">
-            {dirty && <p className="rounded-lg bg-warn/10 p-2 text-[12.5px] text-warn">Save your changes before receiving.</p>}
-            <button type="button" disabled={dirty || acting || lines.length === 0} onClick={() => setAsking('receive')} className="btn w-full border-0 bg-ok text-white hover:brightness-105"><Icon name="check" size={16} /> Receive stock</button>
+            {dirty && <p className="rounded-lg bg-warn/10 p-2 text-[12.5px] text-warn">Save your changes before confirming.</p>}
+            <button type="button" disabled={dirty || acting || lines.length === 0} onClick={() => setAsking('receive')} className="btn w-full border-0 bg-ok text-white hover:brightness-105"><Icon name="check" size={16} /> Confirm</button>
             <button type="button" disabled={acting} onClick={() => setAsking('cancel')} className="btn btn-outline btn-sm w-full">Cancel order</button>
           </div>
         )}
         {order && order.status !== 'received' && (
           <button type="button" disabled={acting} onClick={() => setAsking('delete')} className="flex items-center gap-1.5 text-[13px] font-semibold text-bad hover:underline"><Icon name="trash" size={14} /> Delete</button>
         )}
-        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Received — these units were added to stock. Each line is in Inventory → Stock in.</p>}
+        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Confirmed: these units were added to stock. Each line is in Inventory → Stock in.</p>}
         {order?.status === 'cancelled' && <p className="rounded-lg bg-soft p-3 text-[13px] text-muted">Cancelled — stock was not changed.</p>}
       </aside>
 
       <ConfirmDialog
         open={asking !== null}
-        title={asking === 'receive' ? `Receive ${sum.units} units into stock?` : asking === 'cancel' ? 'Cancel this stock-in order?' : 'Delete this stock-in order?'}
-        confirmLabel={asking === 'receive' ? 'Yes, add to stock' : asking === 'cancel' ? 'Yes, cancel' : 'Yes, delete'}
+        title={asking === 'receive' ? `Confirm and add ${sum.units} units to stock?` : asking === 'cancel' ? 'Cancel this purchase order?' : 'Delete this purchase order?'}
+        confirmLabel={asking === 'receive' ? 'Yes, confirm and add to stock' : asking === 'cancel' ? 'Yes, cancel' : 'Yes, delete'}
         pendingLabel="Working…"
         pending={acting}
         onClose={() => setAsking(null)}

@@ -38,7 +38,7 @@ function refresh(id?: string) {
   if (id) revalidatePath(`/admin/inventory/stock-orders/${id}`);
 }
 
-/** Save a draft stock-in order (the lines are replaced as a whole). */
+/** Save a draft purchase order (the lines are replaced as a whole). */
 export async function saveStockOrder(input: StockOrderInput): Promise<ActionState> {
   const { supabase, user } = await requirePermission('inventory');
   const parsed = stockOrderSchema.safeParse(input);
@@ -66,7 +66,7 @@ export async function saveStockOrder(input: StockOrderInput): Promise<ActionStat
 
   refresh(id);
   if (!o.id) redirect(`/admin/inventory/stock-orders/${id}?created=1`);
-  return { ok: true, message: 'Stock-in order saved.' };
+  return { ok: true, message: 'Purchase order saved.' };
 }
 
 /** Receive: every line goes into stock now. */
@@ -80,7 +80,7 @@ export async function receiveStockOrder(id: string, saveCosts: boolean): Promise
   revalidatePath('/admin/products');
   revalidatePath('/', 'layout');
   updateTag(CATALOG_TAG);
-  return { ok: true, message: `Received: ${Number(data ?? 0)} units added to stock.` };
+  return { ok: true, message: `Confirmed: ${Number(data ?? 0)} units added to stock.` };
 }
 
 export async function cancelStockOrder(id: string): Promise<ActionState> {
@@ -90,7 +90,7 @@ export async function cancelStockOrder(id: string): Promise<ActionState> {
   if (error) return fail(error);
   if (!data?.length) return { ok: false, message: 'Only a draft can be cancelled.' };
   refresh(id);
-  return { ok: true, message: 'Stock-in order cancelled. Stock was not changed.' };
+  return { ok: true, message: 'Purchase order cancelled. Stock was not changed.' };
 }
 
 export async function deleteStockOrder(id: string): Promise<ActionState> {
@@ -100,7 +100,7 @@ export async function deleteStockOrder(id: string): Promise<ActionState> {
   if (error) return fail(error);
   if (!data?.length) return { ok: false, message: 'A received order stays in the records.' };
   refresh();
-  return { ok: true, message: 'Stock-in order deleted.' };
+  return { ok: true, message: 'Purchase order deleted.' };
 }
 
 function fail(error: Parameters<typeof mapDbError>[0]): ActionState {
