@@ -18,19 +18,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Small counts shown next to menu links: orders waiting for a call, variants running low. */
+/** Small counts shown next to menu links: orders waiting for a call, units in stock. */
 async function navBadges(supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'], can: Set<Capability>): Promise<Record<string, number>> {
-  const [pending, low, reviews, incomplete] = await Promise.all([
+  const [pending, units, reviews, incomplete] = await Promise.all([
     can.has('orders') ? supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('deleted_at', null) : null,
     can.has('inventory')
-      ? supabase.from('store_settings').select('low_stock_threshold').eq('id', 1).maybeSingle<{ low_stock_threshold: number }>().then(({ data }) =>
-          supabase.from('product_variants').select('id, product:products!inner(status)', { count: 'exact', head: true })
-            .eq('is_active', true).lte('stock', data?.low_stock_threshold ?? 3).neq('product.status', 'archived'))
+      // Every unit in stock (below-zero counts as none), products not archived.
+      ? supabase.from('product_variants').select('stock, product:products!inner(status)').neq('product.status', 'archived').gt('stock', 0).limit(10000)
+          .then(({ data }) => ((data ?? []) as { stock: number }[]).reduce((n, v) => n + v.stock, 0))
       : null,
     can.has('catalog') ? supabase.from('product_reviews').select('id', { count: 'exact', head: true }).eq('status', 'pending') : null,
     can.has('orders') ? supabase.from('incomplete_orders').select('id', { count: 'exact', head: true }).eq('status', 'open') : null,
   ]);
-  return { '/admin/orders': pending?.count ?? 0, '/admin/inventory': low?.count ?? 0, '/admin/reviews': reviews?.count ?? 0, '/admin/incomplete': incomplete?.count ?? 0 };
+  return { '/admin/orders': pending?.count ?? 0, '/admin/inventory': units ?? 0, '/admin/reviews': reviews?.count ?? 0, '/admin/incomplete': incomplete?.count ?? 0 };
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

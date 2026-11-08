@@ -7,7 +7,7 @@ import type { Capability } from '@/lib/permissions';
 import { Icon, type IconName } from '../icons';
 
 /** need: any one of these capabilities shows the link. tone: badge colour. */
-type Item = { href: string; label: string; icon: IconName; exact?: boolean; need?: Capability[]; tone?: 'brand' | 'warn' };
+type Item = { href: string; label: string; icon: IconName; exact?: boolean; need?: Capability[]; tone?: 'brand' | 'warn' | 'ok' };
 
 const GROUPS: { title: string; items: Item[] }[] = [
   { title: 'Overview', items: [{ href: '/admin', label: 'Dashboard', icon: 'grid', exact: true }] },
@@ -30,7 +30,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: '/admin/collections', label: 'Collections', icon: 'grid', need: ['catalog'] },
       { href: '/admin/landing-pages', label: 'Landing pages', icon: 'external', need: ['catalog'] },
       { href: '/admin/reviews', label: 'Reviews', icon: 'star', need: ['catalog'], tone: 'brand' },
-      { href: '/admin/inventory', label: 'Inventory', icon: 'layers', need: ['inventory'], tone: 'warn' },
+      { href: '/admin/inventory', label: 'Inventory', icon: 'layers', need: ['inventory'], tone: 'ok' },
     ],
   },
 ];
@@ -43,7 +43,7 @@ const STORE: Item[] = [
   { href: '/admin/account', label: 'My account', icon: 'user' },
 ];
 
-const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/incomplete': 'checkouts left without ordering', '/admin/inventory': 'variants running low', '/admin/reviews': 'reviews waiting for approval' };
+const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/incomplete': 'checkouts left without ordering', '/admin/inventory': 'units in stock', '/admin/reviews': 'reviews waiting for approval' };
 
 export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges?: Record<string, number>; user: { name: string; role: string } }) {
   const path = usePathname();
@@ -75,10 +75,10 @@ export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges
           <span
             title={`${count} ${BADGE_TITLE[l.href] ?? ''}`}
             className={`ml-auto grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums lg:group-data-[nav=mini]/shell:absolute lg:group-data-[nav=mini]/shell:-right-1 lg:group-data-[nav=mini]/shell:-top-1 lg:group-data-[nav=mini]/shell:min-w-4 lg:group-data-[nav=mini]/shell:px-1 lg:group-data-[nav=mini]/shell:text-[9.5px] lg:group-data-[nav=mini]/shell:leading-4 ${
-              active ? 'bg-white text-brand-ink' : l.tone === 'warn' ? 'bg-warn text-white' : 'bg-brand text-white'
+              active ? 'bg-white text-brand-ink' : l.tone === 'warn' ? 'bg-warn text-white' : l.tone === 'ok' ? 'bg-ok text-white' : 'bg-brand text-white'
             }`}
           >
-            {count > 99 ? '99+' : count}
+            {count > 99 && l.href !== '/admin/inventory' ? '99+' : count.toLocaleString('en-IN')}
           </span>
         )}
       </Link>
