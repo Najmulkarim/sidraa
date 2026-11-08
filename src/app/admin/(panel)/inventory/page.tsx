@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Icon } from '@/components/icons';
 import { InventoryTable } from '@/components/admin/InventoryTable';
+import { InventoryTabs } from '@/components/admin/InventoryTabs';
 import { PurchaseOrderList } from '@/components/admin/PurchaseOrderList';
 import { ProductImage } from '@/components/shop/ProductImage';
 import { loadInventoryRows } from '@/lib/admin-data';
@@ -12,12 +13,12 @@ import { MOVEMENT_REASONS, type MovementKind } from '@/lib/inventory';
 export const metadata: Metadata = { title: 'Inventory' };
 
 const TABS = [
-  { key: 'summary', label: 'Inventory summary' },
-  { key: 'low', label: 'Low stock' },
-  { key: 'history', label: 'Movement history' },
-  { key: 'in', label: 'Stock in' },
-  { key: 'out', label: 'Stock out' },
-  { key: 'adjust', label: 'Adjustments' },
+  { key: 'summary', label: 'Inventory summary', hint: 'All products', icon: 'layers' },
+  { key: 'low', label: 'Low stock', hint: 'Needs reorder', icon: 'bolt' },
+  { key: 'history', label: 'Movement history', hint: 'Every change', icon: 'clock' },
+  { key: 'in', label: 'Stock in', hint: 'Purchase orders', icon: 'download' },
+  { key: 'out', label: 'Stock out', hint: 'Sold in orders', icon: 'send' },
+  { key: 'adjust', label: 'Adjustments', hint: 'Counts & damage', icon: 'pencil' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
@@ -44,11 +45,14 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   const { data: settings } = await supabase.from('store_settings').select('low_stock_threshold').eq('id', 1).single<{ low_stock_threshold: number }>();
   const threshold = settings?.low_stock_threshold ?? 3;
 
-  const [rows, { data: cats }, { count: drafts }] = await Promise.all([
+  const [rows, { data: cats }, { count: drafts }, { count: needCount }] = await Promise.all([
     isList ? loadInventoryRows(supabase, withCost) : Promise.resolve([]),
     isList ? supabase.from('categories').select('id, name').order('name') : Promise.resolve({ data: [] }),
     supabase.from('stock_orders').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+    // For the Low stock tab: variations at or below the reorder level (out of stock included).
+    supabase.from('product_variants').select('id, product:products!inner(status)', { count: 'exact', head: true }).eq('is_active', true).neq('product.status', 'archived').lte('stock', threshold),
   ]);
+  const tabCount: Partial<Record<Tab, number>> = { low: needCount ?? 0, in: drafts ?? 0 };
 
   let movements: Movement[] = [];
   const lots = new Map<number, { no: string; qty: number; po: string | null }[]>();
@@ -86,14 +90,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         </Link>
       </header>
 
-      <nav aria-label="Inventory views" className="flex gap-1 overflow-x-auto print:hidden">
-        {TABS.map((t) => (
-          <Link key={t.key} href={t.key === 'summary' ? '/admin/inventory' : `/admin/inventory?tab=${t.key}`} aria-current={t.key === tab ? 'page' : undefined}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold ${t.key === tab ? 'bg-night text-white' : 'bg-white text-ink ring-1 ring-line hover:ring-brand'}`}>
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <InventoryTabs tabs={TABS} active={tab} counts={tabCount} />
 
       {isList ? (
         <InventoryTable key={tab} rows={rows} threshold={threshold} categories={(cats ?? []) as { id: string; name: string }[]} withCost={withCost} lowOnly={tab === 'low'} />
