@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
-import { Cormorant_Garamond, Dancing_Script, Inter, Jost, Playfair_Display, Plus_Jakarta_Sans, Poppins } from 'next/font/google';
+import localFont from 'next/font/local';
 import { getSettings } from '@/lib/catalog';
 import { SITE_URL } from '@/lib/env';
 import { isTheme } from '@/lib/home-sections';
@@ -10,15 +10,29 @@ import './globals.css';
 
 // One pair per home theme (globals.css maps [data-theme] to them). Not preloaded:
 // the browser only downloads the faces the live theme actually uses.
-const cormorant = Cormorant_Garamond({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600', '700'], variable: '--f-cormorant' });
-const jost = Jost({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-jost' });
-const poppins = Poppins({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-poppins' });
-const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', preload: false, weight: ['500', '600', '700'], variable: '--f-playfair' });
-const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700'], variable: '--f-inter' });
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '600', '700', '800'], variable: '--f-jakarta' });
+// The font files live in src/fonts (Google Fonts, latin, OFL licence): a build never
+// has to download them, so a slow or failed Google download cannot stop an update.
+// (next/font needs every value written out here, not computed.)
+const cormorant = localFont({ src: '../fonts/cormorant-500-700.woff2', weight: '500 700', display: 'swap', preload: false, adjustFontFallback: 'Times New Roman', variable: '--f-cormorant' });
+const jost = localFont({ src: '../fonts/jost-400-700.woff2', weight: '400 700', display: 'swap', preload: false, adjustFontFallback: 'Arial', variable: '--f-jost' });
+const poppins = localFont({
+  src: [
+    { path: '../fonts/poppins-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/poppins-500.woff2', weight: '500', style: 'normal' },
+    { path: '../fonts/poppins-600.woff2', weight: '600', style: 'normal' },
+    { path: '../fonts/poppins-700.woff2', weight: '700', style: 'normal' },
+    { path: '../fonts/poppins-800.woff2', weight: '800', style: 'normal' },
+  ],
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: 'Arial',
+  variable: '--f-poppins',
+});
+const playfair = localFont({ src: '../fonts/playfair-500-700.woff2', weight: '500 700', display: 'swap', preload: false, adjustFontFallback: 'Times New Roman', variable: '--f-playfair' });
+const inter = localFont({ src: '../fonts/inter-400-700.woff2', weight: '400 700', display: 'swap', preload: false, adjustFontFallback: 'Arial', variable: '--f-inter' });
+const jakarta = localFont({ src: '../fonts/jakarta-400-800.woff2', weight: '400 800', display: 'swap', preload: false, adjustFontFallback: 'Arial', variable: '--f-jakarta' });
 // Handwritten accent lines (Nova).
-// No weight list: Google now gives fixed weights of this font in a form next/font cannot read, and a fresh build fails.
-const script = Dancing_Script({ subsets: ['latin'], display: 'swap', preload: false, variable: '--f-script' });
+const script = localFont({ src: '../fonts/script-400-700.woff2', weight: '400 700', display: 'swap', preload: false, adjustFontFallback: 'Arial', variable: '--f-script' });
 const fontVars = [cormorant, jost, poppins, playfair, inter, jakarta, script].map((f) => f.variable).join(' ');
 
 export async function generateMetadata(): Promise<Metadata> {
