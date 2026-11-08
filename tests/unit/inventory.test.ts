@@ -36,3 +36,17 @@ describe('inventory', () => {
     expect(stockOrderTotals([{ quantity: 5, unit_cost: 200 }, { quantity: 3, unit_cost: null }])).toEqual({ lines: 2, units: 8, cost: 1000 });
   });
 });
+
+import { DEFAULT_SORT, sortRows } from '@/lib/inventory';
+describe('inventory sorting', () => {
+  const r = (id: string, stock: number, cost: number | null, name = id) => ({ id, productId: id, name, variant: '', sku: id, category: null, categoryId: null, image: null, stock, active: true, cost });
+  const rows = [r('a', 5, 10), r('b', 50, 2), r('c', -1, null), r('d', 50, 1)];
+  it('opens with the most stock first (ties by name)', () => {
+    expect(sortRows(rows, DEFAULT_SORT).map((x) => x.id)).toEqual(['b', 'd', 'a', 'c']);
+  });
+  it('sorts by stock value; no cost goes last either way', () => {
+    expect(sortRows(rows, { key: 'value', dir: 'desc' }).map((x) => x.id)).toEqual(['b', 'a', 'd', 'c']);
+    expect(sortRows(rows, { key: 'value', dir: 'asc' }).map((x) => x.id)).toEqual(['a', 'd', 'b', 'c']);
+    expect(sortRows(rows, { key: 'cost', dir: 'asc' }).map((x) => x.id)).toEqual(['d', 'b', 'a', 'c']);
+  });
+});

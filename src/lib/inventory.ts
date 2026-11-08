@@ -88,3 +88,27 @@ export const MOVEMENT_REASONS: Record<Exclude<MovementKind, 'all'>, string[]> = 
 export function stockOrderTotals(items: { quantity: number; unit_cost: number | null }[]): { lines: number; units: number; cost: number } {
   return items.reduce((t, i) => ({ lines: t.lines + 1, units: t.units + i.quantity, cost: t.cost + (i.unit_cost ?? 0) * i.quantity }), { lines: 0, units: 0, cost: 0 });
 }
+
+export type SortKey = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'value';
+export type Sort = { key: SortKey; dir: 'asc' | 'desc' };
+/** The list opens with the most stock first. */
+export const DEFAULT_SORT: Sort = { key: 'stock', dir: 'desc' };
+
+/** Sort rows by a column; ties (and rows without a cost) fall back to name, then SKU. */
+export function sortRows(rows: InventoryRow[], s: Sort): InventoryRow[] {
+  const value = (r: InventoryRow) => (r.cost === null ? null : Math.max(0, r.stock) * r.cost);
+  const pick = (r: InventoryRow): number | string | null =>
+    s.key === 'name' ? r.name.toLowerCase() : s.key === 'sku' ? r.sku : s.key === 'category' ? (r.category ?? '').toLowerCase() : s.key === 'stock' ? r.stock : s.key === 'cost' ? r.cost : value(r);
+  const sign = s.dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const x = pick(a);
+    const y = pick(b);
+    if (x !== y) {
+      // Missing values (no cost) always go last.
+      if (x === null || x === '') return 1;
+      if (y === null || y === '') return -1;
+      return (x < y ? -1 : 1) * sign;
+    }
+    return a.name.localeCompare(b.name) || a.sku.localeCompare(b.sku);
+  });
+}

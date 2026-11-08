@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatTaka } from '@/lib/format';
-import { filterRows, inventoryCsv, STATUS_LABEL, stockStatus, totals, type InventoryFilter, type InventoryRow, type StockStatus } from '@/lib/inventory';
+import { DEFAULT_SORT, filterRows, inventoryCsv, sortRows, STATUS_LABEL, stockStatus, totals, type InventoryFilter, type InventoryRow, type Sort, type SortKey, type StockStatus } from '@/lib/inventory';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { AdjustStockForm } from './AdjustStockForm';
@@ -24,11 +24,22 @@ export function InventoryTable({ rows, threshold, categories, withCost, lowOnly 
   const [f, setF] = useState<InventoryFilter>({ q: '', category: '', status: lowOnly ? 'need' : '' });
   const [page, setPage] = useState(1);
   const [adjust, setAdjust] = useState<InventoryRow | null>(null);
-  const shown = useMemo(() => filterRows(rows, f, threshold), [rows, f, threshold]);
+  const [sort, setSort] = useState<Sort>(DEFAULT_SORT);
+  const shown = useMemo(() => sortRows(filterRows(rows, f, threshold), sort), [rows, f, threshold, sort]);
   const t = useMemo(() => totals(shown, threshold), [shown, threshold]);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const list = shown.slice((page - 1) * PAGE, page * PAGE);
-  useEffect(() => setPage(1), [f]);
+  useEffect(() => setPage(1), [f, sort]);
+  // Click a heading: sort by it (numbers start high, words start at A); click again to flip.
+  const sortBy = (key: SortKey) => setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' || key === 'sku' || key === 'category' ? 'asc' : 'desc' }));
+  const th = (key: SortKey, label: string, right = false) => (
+    <th className={`px-3 py-2.5 ${right ? 'text-right' : ''}`} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <button type="button" onClick={() => sortBy(key)} title={`Sort by ${label.toLowerCase()}`} className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink ${sort.key === key ? 'text-brand' : ''} ${right ? 'flex-row-reverse' : ''}`}>
+        {label}
+        <span aria-hidden="true" className={`text-[10px] ${sort.key === key ? '' : 'opacity-30'}`}>{sort.key === key && sort.dir === 'asc' ? '▲' : '▼'}</span>
+      </button>
+    </th>
+  );
   const set = (patch: Partial<InventoryFilter>) => setF((cur) => ({ ...cur, ...patch }));
 
   function excel() {
@@ -80,14 +91,14 @@ export function InventoryTable({ rows, threshold, categories, withCost, lowOnly 
         <table className="w-full min-w-[900px] border-collapse text-[12.5px]">
           <thead>
             <tr className="border-b border-line bg-soft text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted">
-              <th className="px-3 py-2.5">Product</th>
-              <th className="px-3 py-2.5">SKU</th>
-              <th className="px-3 py-2.5">Category</th>
-              <th className="px-3 py-2.5 text-right">Current stock</th>
+              {th('name', 'Product')}
+              {th('sku', 'SKU')}
+              {th('category', 'Category')}
+              {th('stock', 'Current stock', true)}
               <th className="px-3 py-2.5 text-right">Reorder level</th>
               <th className="px-3 py-2.5">Status</th>
-              {withCost && <th className="px-3 py-2.5 text-right">Cost price</th>}
-              {withCost && <th className="px-3 py-2.5 text-right">Stock value</th>}
+              {withCost && th('cost', 'Cost price', true)}
+              {withCost && th('value', 'Stock value', true)}
               <th className="px-3 py-2.5 text-right print:hidden">Action</th>
             </tr>
           </thead>
