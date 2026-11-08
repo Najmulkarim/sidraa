@@ -340,16 +340,16 @@ export const getProductBySlug = cache(async (slug: string): Promise<ProductWithR
   return data ? sortRelations(data as unknown as ProductWithRelations) : null;
 });
 
+/** Same category first; a small category is topped up with the newest other products, so the row is never near-empty. */
 export const getRelatedProducts = cache(async (productId: string, categoryId: string | null, limit = 4) => {
-  if (!categoryId) return [];
-  const { data } = await createPublicClient()
-    .from('products')
-    .select(PRODUCT_SELECT)
-    .eq('category_id', categoryId)
-    .neq('id', productId)
-    .order('published_at', { ascending: false })
-    .limit(limit);
-  return ((data as unknown as ProductWithRelations[] | null) ?? []).map(sortRelations);
+  const db = createPublicClient();
+  const same = categoryId
+    ? (((await db.from('products').select(PRODUCT_SELECT).eq('category_id', categoryId).neq('id', productId).order('published_at', { ascending: false }).limit(limit)).data as unknown as ProductWithRelations[] | null) ?? [])
+    : [];
+  if (same.length >= limit) return same.map(sortRelations);
+  const skip = [productId, ...same.map((p) => p.id)];
+  const { data } = await db.from('products').select(PRODUCT_SELECT).not('id', 'in', `(${skip.join(',')})`).order('published_at', { ascending: false }).limit(limit - same.length);
+  return [...same, ...((data as unknown as ProductWithRelations[] | null) ?? [])].map(sortRelations);
 });
 
 export type ListParams = {

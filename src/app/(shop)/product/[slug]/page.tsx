@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { AddToCart } from '@/components/shop/AddToCart';
 import { Gallery } from '@/components/shop/Gallery';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
-import { ProductGrid } from '@/components/shop/ProductCard';
+import { MarketCard } from '@/components/shop/home/MarketSections';
 import { getProductBySlug, getProductReviews, getRelatedProducts, getSettings, getZones, priceRange, totalStock, variantPrice, visibleImages } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
 import { imageUrl, SITE_URL } from '@/lib/env';
@@ -50,7 +50,7 @@ export default async function ProductPage({ params }: Props) {
   const [product, settings, zones] = await Promise.all([getProductBySlug(slug), getSettings(), getZones()]);
   if (!product) notFound();
 
-  const [related, reviews] = await Promise.all([getRelatedProducts(product.id, product.category_id, 6), getProductReviews(product.id)]);
+  const [related, reviews] = await Promise.all([getRelatedProducts(product.id, product.category_id, 10), getProductReviews(product.id)]);
   const variants = product.variants
     .filter((v) => v.is_active)
     .map((v) => ({ id: v.id, color: v.color, size: v.size, option3: v.option3 ?? '', image_path: v.image_path ?? null, price: variantPrice(product, v), stock: v.stock, sku: v.sku }));
@@ -232,7 +232,10 @@ export default async function ProductPage({ params }: Props) {
       {related.length > 0 && (
         <section className="mt-14 border-t border-line pt-8">
           <h2 className="section-title mb-5">Products related to this item</h2>
-          <ProductGrid products={related} />
+          {/* Same cards as the home page and listings: 5 per row on wide screens. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
+            {(related.length > 5 ? related.slice(0, Math.floor(related.length / 5) * 5) : related).map((p) => <MarketCard key={p.id} product={p} />)}
+          </div>
         </section>
       )}
     </div>
