@@ -64,7 +64,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
                   </span>
                 </Link>
                 <span className="whitespace-nowrap rounded-full bg-tint px-3 py-1 text-[12px] font-bold text-brand" title="Orders placed from this page">{counts[i]} order{counts[i] === 1 ? "" : "s"}</span>
-                <LandingRowActions id={r.id} slug={r.slug} />
+                <LandingRowActions id={r.id} slug={r.slug} active={r.is_active} />
               </li>
             );
           })}

@@ -49,3 +49,14 @@ export async function deleteLanding(id: string): Promise<ActionState> {
   revalidatePath('/admin/landing-pages');
   return { ok: true, message: 'Landing page deleted.' };
 }
+
+/** The on/off switch in the list: off = the link shows "not found". */
+export async function setLandingActive(id: string, on: boolean): Promise<ActionState> {
+  const { supabase } = await requirePermission('catalog');
+  if (!z.uuid().safeParse(id).success) return { ok: false, message: 'Not found.' };
+  const { data, error } = await supabase.from('landing_pages').update({ is_active: on === true }).eq('id', id).select('slug');
+  if (error || !data?.length) return { ok: false, message: 'Could not change it. Please try again.' };
+  revalidatePath(`/offer/${(data[0] as { slug: string }).slug}`);
+  revalidatePath('/admin/landing-pages');
+  return { ok: true, message: on ? 'Landing page is ON — the link works.' : 'Landing page is OFF — the link is closed.' };
+}
