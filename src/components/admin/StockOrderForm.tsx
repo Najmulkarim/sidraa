@@ -222,7 +222,10 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost, batches
       <ConfirmDialog
         open={asking !== null}
         title={asking === 'receive' ? `Confirm and add ${sum.units} units to stock?` : asking === 'cancel' ? 'Cancel this purchase order?' : 'Delete this purchase order?'}
-        confirmLabel={asking === 'receive' ? 'Yes, confirm and add to stock' : asking === 'cancel' ? 'Yes, cancel' : 'Yes, delete'}
+        confirmLabel={asking === 'receive' ? 'Yes, add to stock' : asking === 'cancel' ? 'Yes, cancel order' : 'Yes, delete'}
+        cancelLabel="Not now"
+        icon={asking === 'receive' ? 'check' : asking === 'cancel' ? 'ban' : 'trash'}
+        danger={asking !== 'receive'}
         pendingLabel="Working…"
         pending={acting}
         onClose={() => setAsking(null)}

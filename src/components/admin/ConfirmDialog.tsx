@@ -5,11 +5,12 @@ import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '../icons';
 
 /** The site's own "are you sure?" popup (not the browser's), for deleting and similar steps. */
-export function ConfirmDialog({ open, title, children, confirmLabel, pendingLabel = 'Working…', icon = 'trash', danger = true, pending = false, onConfirm, onClose }: {
+export function ConfirmDialog({ open, title, children, confirmLabel, cancelLabel = 'Cancel', pendingLabel = 'Working…', icon = 'trash', danger = true, pending = false, onConfirm, onClose }: {
   open: boolean;
   title: string;
   children?: ReactNode;
   confirmLabel: string;
+  cancelLabel?: string;
   pendingLabel?: string;
   icon?: IconName;
   danger?: boolean;
@@ -33,9 +34,10 @@ export function ConfirmDialog({ open, title, children, confirmLabel, pendingLabe
           <h2 className="text-lg font-bold">{title}</h2>
           {children && <div className="mt-1 text-sm text-muted">{children}</div>}
         </div>
-        <div className="flex gap-2">
-          <button type="button" disabled={pending} onClick={onClose} autoFocus className="btn btn-outline flex-1">Cancel</button>
-          <button type="button" disabled={pending} onClick={onConfirm} className={`btn flex-1 ${danger ? 'bg-bad text-white hover:opacity-90' : 'btn-primary'}`}>{pending ? pendingLabel : confirmLabel}</button>
+        {/* Long labels wrap inside the box instead of running out of it. */}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={pending} onClick={onClose} autoFocus className="btn btn-outline h-auto min-h-11 flex-1 whitespace-normal py-2 leading-tight">{cancelLabel}</button>
+          <button type="button" disabled={pending} onClick={onConfirm} className={`btn h-auto min-h-11 flex-[2] whitespace-normal py-2 leading-tight ${danger ? 'bg-bad text-white hover:opacity-90' : 'btn-primary'}`}>{pending ? pendingLabel : confirmLabel}</button>
         </div>
       </div>
     </div>,
