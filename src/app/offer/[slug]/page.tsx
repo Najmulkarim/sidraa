@@ -10,6 +10,7 @@ import { OfferCountdown } from '@/components/shop/OfferCountdown';
 import { Stars } from '@/components/shop/Stars';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { DescriptionFlow } from '@/components/shop/DescriptionParts';
+import { ShowcaseView } from '@/components/shop/landing/ShowcaseView';
 import { getProductReviews, getSettings, getZones, priceRange, variantPrice, visibleImages } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
 import { imageUrl } from '@/lib/env';
@@ -68,21 +69,79 @@ export default async function LandingPage({ params }: Props) {
   const content = page.show_description ? parseDescription(product.description) : null;
   const cta = page.button_text || 'Order now';
   const ctaClass = 'btn btn-primary min-h-13 w-full text-base shadow-lg sm:w-auto sm:px-10';
+  const orderBox = variants.length === 0 || activeZones.length === 0 ? (
+              <p className="card p-6 text-center text-muted">This product cannot be ordered right now. Please call us.</p>
+            ) : (
+              <LandingOrder
+                slug={page.slug}
+                productId={product.id}
+                productName={product.name}
+                productSlug={product.slug}
+                imagePath={images[0]?.storage_path ?? null}
+                variants={variants}
+                labels={{ color_label: product.color_label, size_label: product.size_label, option3_label: product.option3_label }}
+                imageOrder={images.map((i) => i.storage_path)}
+                keepOrder={product.variants.some((v) => v.sort_order > 0)}
+                preorder={product.stock_out_mode === 'preorder'}
+                coupon={coupon?.code ?? null}
+                buttonText={page.button_text}
+                zones={activeZones}
+                codTerms={settings.cod_terms}
+                returnDays={settings.return_policy_days}
+                payments={paymentOptions(pay)}
+              />
+  );
+  const pixel = settings.fb_pixel_id ? <FacebookPixel pixelId={settings.fb_pixel_id} /> : null;
+  const topBar = (
+    <header className="border-b border-line bg-white">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+        <Link href="/" aria-label={`${settings.store_name} home`}><Logo settings={settings} className="h-9" /></Link>
+        {settings.phone && (
+          <a href={`tel:${settings.phone}`} className="flex items-center gap-1.5 rounded-full bg-tint px-3 py-1.5 text-[13px] font-semibold text-brand">
+            <Icon name="phone" size={15} /> {settings.phone}
+          </a>
+        )}
+      </div>
+    </header>
+  );
+  const stickyBar = (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur md:hidden">
+      <a href="#order" className="btn btn-primary min-h-12 w-full text-base">{cta} · {formatTaka(offerPrice)}</a>
+    </div>
+  );
+
+  if (page.template === 'showcase') {
+    return (
+      <div className="min-h-dvh bg-[#faf9fb] pb-24 md:pb-10">
+        {pixel}
+        {topBar}
+        <VariantImageProvider>
+          <main className="mx-auto max-w-5xl px-4 py-5 md:py-8">
+            <ShowcaseView
+              s={page.sections}
+              name={product.name}
+              photo={images[0]?.storage_path ?? null}
+              offer={{ price: offerPrice, from: min !== max, was, pct, countdown: coupon?.ends_at ? <OfferCountdown endsAt={coupon.ends_at} /> : null }}
+              cta={cta}
+              offerText={page.offer_text}
+              video={video}
+              reviews={reviews}
+              rating={{ avg: product.rating_avg, count: product.rating_count }}
+              faqs={page.faqs}
+              phone={settings.phone}
+              order={orderBox}
+            />
+          </main>
+        </VariantImageProvider>
+        {stickyBar}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-soft/40 pb-24 md:pb-10">
-      {settings.fb_pixel_id && <FacebookPixel pixelId={settings.fb_pixel_id} />}
-
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-          <Link href="/" aria-label={`${settings.store_name} home`}><Logo settings={settings} className="h-9" /></Link>
-          {settings.phone && (
-            <a href={`tel:${settings.phone}`} className="flex items-center gap-1.5 rounded-full bg-tint px-3 py-1.5 text-[13px] font-semibold text-brand">
-              <Icon name="phone" size={15} /> {settings.phone}
-            </a>
-          )}
-        </div>
-      </header>
+      {pixel}
+      {topBar}
 
       <VariantImageProvider>
         <main className="mx-auto max-w-5xl space-y-6 px-4 py-5 md:space-y-10 md:py-8">
@@ -199,28 +258,7 @@ export default async function LandingPage({ params }: Props) {
           <section id="order" className="mx-auto max-w-2xl scroll-mt-4 space-y-4">
             <h2 className="text-center font-display text-3xl font-semibold">Order now</h2>
             <p className="text-center text-[14px] text-muted">Fill in your details. You pay when the parcel reaches you.</p>
-            {variants.length === 0 || activeZones.length === 0 ? (
-              <p className="card p-6 text-center text-muted">This product cannot be ordered right now. Please call us.</p>
-            ) : (
-              <LandingOrder
-                slug={page.slug}
-                productId={product.id}
-                productName={product.name}
-                productSlug={product.slug}
-                imagePath={images[0]?.storage_path ?? null}
-                variants={variants}
-                labels={{ color_label: product.color_label, size_label: product.size_label, option3_label: product.option3_label }}
-                imageOrder={images.map((i) => i.storage_path)}
-                keepOrder={product.variants.some((v) => v.sort_order > 0)}
-                preorder={product.stock_out_mode === 'preorder'}
-                coupon={coupon?.code ?? null}
-                buttonText={page.button_text}
-                zones={activeZones}
-                codTerms={settings.cod_terms}
-                returnDays={settings.return_policy_days}
-                payments={paymentOptions(pay)}
-              />
-            )}
+            {orderBox}
           </section>
         </main>
       </VariantImageProvider>
@@ -232,9 +270,7 @@ export default async function LandingPage({ params }: Props) {
       </footer>
 
       {/* Phones: the order button stays at the bottom of the screen. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 backdrop-blur md:hidden">
-        <a href="#order" className="btn btn-primary min-h-12 w-full text-base">{cta} · {formatTaka(offerPrice)}</a>
-      </div>
+      {stickyBar}
     </div>
   );
 }

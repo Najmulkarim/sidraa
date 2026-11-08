@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { SLUG_RE } from './slug';
+import { LANDING_TEMPLATES, parseShowcase, type LandingTemplate, type Showcase } from './showcase';
 
 export type Faq = { q: string; a: string };
 
@@ -23,10 +24,12 @@ export type LandingPage = {
   button_text: string | null;
   show_description: boolean;
   show_reviews: boolean;
+  template: LandingTemplate;
+  sections: Showcase;
   updated_at?: string;
 };
 
-export const LANDING_SELECT = 'id, slug, product_id, is_active, headline, subheadline, offer_text, coupon_code, video_url, benefits, faqs, button_text, show_description, show_reviews, updated_at';
+export const LANDING_SELECT = 'id, slug, product_id, is_active, headline, subheadline, offer_text, coupon_code, video_url, benefits, faqs, button_text, show_description, show_reviews, template, sections, updated_at';
 
 const text = (max: number) => z.string().trim().max(max).transform((v) => v || null);
 
@@ -45,6 +48,8 @@ export const landingSchema = z.object({
   buttonText: text(40),
   showDescription: z.boolean(),
   showReviews: z.boolean(),
+  template: z.enum(LANDING_TEMPLATES).catch('classic'),
+  sections: z.unknown().optional().transform((v) => parseShowcase(v)),
 });
 export type LandingInput = z.input<typeof landingSchema>;
 
@@ -98,4 +103,16 @@ export function couponSaving(price: number, c: CouponOffer | null): number {
 /** Short words for the coupon, e.g. "10% off" or "৳100 off". */
 export function couponWords(c: CouponOffer): string {
   return c.kind === 'percent' ? `${c.value}% off` : `৳${c.value.toLocaleString('en-IN')} off`;
+}
+
+/** A stored row → a LandingPage with safe lists and sections. */
+export function toLandingPage(raw: Record<string, unknown>): LandingPage {
+  const r = raw as unknown as LandingPage & { faqs: unknown; sections: unknown; template: unknown };
+  return {
+    ...r,
+    benefits: Array.isArray(r.benefits) ? r.benefits : [],
+    faqs: parseFaqs(r.faqs),
+    template: r.template === 'showcase' ? 'showcase' : 'classic',
+    sections: parseShowcase(r.sections),
+  };
 }

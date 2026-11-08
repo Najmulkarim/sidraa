@@ -4,7 +4,7 @@ import { createAdminClient } from './supabase/admin';
 import { createPublicClient } from './supabase/public';
 import { getProductBySlug } from './catalog';
 import { toNumber } from './format';
-import { LANDING_SELECT, parseFaqs, type CouponOffer, type LandingPage } from './landing';
+import { LANDING_SELECT, toLandingPage, type CouponOffer } from './landing';
 
 /** An active landing page and its (published) product, or null. */
 export const getLandingPage = cache(async (slug: string) => {
@@ -13,7 +13,7 @@ export const getLandingPage = cache(async (slug: string) => {
   const { data, error } = await db.from('landing_pages').select(LANDING_SELECT).eq('slug', slug).eq('is_active', true).maybeSingle();
   if (error) console.error('[landing]', error.message);
   if (!data) return null;
-  const page = { ...(data as unknown as LandingPage), faqs: parseFaqs((data as { faqs: unknown }).faqs), benefits: (data as { benefits: string[] | null }).benefits ?? [] };
+  const page = toLandingPage(data as Record<string, unknown>);
   const { data: p } = await db.from('products').select('slug').eq('id', page.product_id).maybeSingle<{ slug: string }>();
   const product = p ? await getProductBySlug(p.slug) : null;
   if (!product) return null;

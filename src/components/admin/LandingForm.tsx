@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
-import { deleteLanding, saveLanding } from '@/actions/admin-landing';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { deleteLanding, productStarter, saveLanding } from '@/actions/admin-landing';
+import { parseShowcase, showcaseFromProduct, type LandingTemplate, type Showcase } from '@/lib/showcase';
+import { ShowcaseEditor } from './ShowcaseEditor';
 import { videoEmbed, type Faq, type LandingPage } from '@/lib/landing';
 import { slugify } from '@/lib/slug';
 import { Icon } from '../icons';
@@ -35,6 +37,11 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
   const [showDescription, setShowDescription] = useState(page?.show_description ?? true);
   const [showReviews, setShowReviews] = useState(page?.show_reviews ?? true);
   const [q, setQ] = useState('');
+  const [template, setTemplate] = useState<LandingTemplate>(page?.template ?? 'showcase');
+  const [sections, setSections] = useState<Showcase>(page?.sections ?? parseShowcase({}));
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [filling, startFill] = useTransition();
+  const [asked, setAsked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -48,17 +55,31 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
     return products.filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(t)).slice(0, 8);
   }, [q, products]);
 
+  // The product's photos for the photo pickers; a new Showcase is filled from the product.
+  const loadProduct = (id: string, fill: boolean) => startFill(async () => {
+    const r = await productStarter(id);
+    if (!r.ok) return notify(false, r.message);
+    setPhotos(r.photos);
+    if (fill) setSections(showcaseFromProduct(r));
+  });
+  useEffect(() => {
+    if (page?.product_id) loadProduct(page.product_id, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const isEmpty = !sections.hero.title && sections.features.items.length === 0;
+
   const choose = (p: LandingProduct) => {
     setProductId(p.id);
     setQ('');
     if (!slugTouched) setSlug(slugify(p.name).slice(0, 60).replace(/-+$/, ''));
+    loadProduct(p.id, isEmpty || !page);
   };
 
   const save = () => startSave(async () => {
     setErrors({});
     const r = await saveLanding({
       id: page?.id, slug, productId, isActive, headline, subheadline, offerText, couponCode, videoUrl,
-      benefits, faqs, buttonText, showDescription, showReviews,
+      benefits, faqs, buttonText, showDescription, showReviews, template, sections,
     });
     if (r) {
       notify(r.ok, r.message);
@@ -78,6 +99,28 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
 
   return (
     <div className="max-w-3xl space-y-6">
+      <section className="card space-y-3 p-5">
+        <h2 className="font-semibold">Design</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {([
+            ['showcase', 'Showcase', 'Big dark top, features with icons, wide photos, photo cards, order box, reviews and contact. Every part editable.'],
+            ['classic', 'Simple', 'Photos and offer at the top, ✓ points, description, questions and the order form.'],
+          ] as const).map(([key, title, text]) => (
+            <button key={key} type="button" onClick={() => { setTemplate(key); if (key === 'showcase' && productId && isEmpty) loadProduct(productId, true); }} className={`rounded-xl border-2 p-3 text-left transition ${template === key ? 'border-brand bg-tint' : 'border-line hover:border-ink/30'}`}>
+              <span className="mb-2 block overflow-hidden rounded-lg bg-white ring-1 ring-line">
+                {key === 'showcase' ? (
+                  <span className="block space-y-1 p-2"><span className="block h-7 rounded bg-night" /><span className="flex gap-1"><span className="h-5 flex-1 rounded bg-soft" /><span className="h-5 w-6 rounded bg-tint" /></span><span className="block h-4 rounded bg-night/70" /><span className="grid grid-cols-3 gap-1"><span className="h-4 rounded bg-tint" /><span className="h-4 rounded bg-tint" /><span className="h-4 rounded bg-tint" /></span></span>
+                ) : (
+                  <span className="block space-y-1 p-2"><span className="flex gap-1"><span className="h-8 w-8 rounded bg-tint" /><span className="flex-1 space-y-1"><span className="block h-2 rounded bg-soft" /><span className="block h-2 w-2/3 rounded bg-soft" /><span className="block h-3 w-1/2 rounded bg-brand/60" /></span></span><span className="block h-4 rounded bg-soft" /><span className="block h-4 rounded bg-soft" /><span className="block h-5 rounded bg-tint" /></span>
+                )}
+              </span>
+              <span className="block font-semibold">{title}{template === key && <span className="ml-1.5 text-[12px] text-brand">✓ chosen</span>}</span>
+              <span className="block text-[12.5px] text-muted">{text}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="card space-y-4 p-5">
         <h2 className="font-semibold">1. Product</h2>
         {product ? (
@@ -139,12 +182,14 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
 
       <section className="card space-y-4 p-5">
         <h2 className="font-semibold">3. Words &amp; video</h2>
+        {template === 'classic' && <>
         <label className="field"><span className="label">Headline</span>
           <input value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={160} placeholder={product?.name ?? 'The product name is used if empty'} className={input} />
         </label>
         <label className="field"><span className="label">Short text under the headline</span>
           <textarea value={subheadline} onChange={(e) => setSub(e.target.value)} maxLength={400} rows={3} placeholder="Why this product, in two lines" className="input text-[14px]" />
         </label>
+        </>}
         <label className="field"><span className="label">Video link (YouTube or Facebook, optional)</span>
           <input value={videoUrl} onChange={(e) => setVideo(e.target.value)} maxLength={300} placeholder="https://youtu.be/…" className={input} />
           {!videoOk && <p className="error">This is not a YouTube or Facebook video link.</p>}
@@ -155,6 +200,26 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
         </label>
       </section>
 
+      {template === 'showcase' && (
+        <section className="card space-y-3 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">4. Page parts</h2>
+            {productId && (asked ? (
+              <span className="flex flex-wrap items-center gap-2 text-[12.5px]">
+                Replace all parts with the product’s name, photos and points?
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAsked(false); loadProduct(productId, true); }}>Yes</button>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setAsked(false)}>No</button>
+              </span>
+            ) : (
+              <button type="button" disabled={filling} onClick={() => setAsked(true)} className="btn btn-outline btn-sm"><Icon name="refresh" size={14} /> {filling ? 'Filling…' : 'Fill again from product'}</button>
+            ))}
+          </div>
+          <p className="text-[13px] text-muted">Choosing the product fills these with its name, photos and description points. Change any word or photo; untick “Show” to hide a part. Empty parts are left out.</p>
+          <ShowcaseEditor value={sections} onChange={setSections} photos={photos} />
+        </section>
+      )}
+
+      {template === 'classic' && <>
       <section className="card space-y-3 p-5">
         <h2 className="font-semibold">4. Why buy it (points with a ✓)</h2>
         {benefits.map((b, i) => (
@@ -182,9 +247,11 @@ export function LandingForm({ page, products, coupons }: { page?: LandingPage; p
         {err('faqs')}
       </section>
 
+      </>}
+
       <section className="card space-y-2 p-5">
         <h2 className="font-semibold">6. Also show</h2>
-        <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={showDescription} onChange={(e) => setShowDescription(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" /> The product description and details</label>
+        {template === 'classic' && <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={showDescription} onChange={(e) => setShowDescription(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" /> The product description and details</label>}
         <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={showReviews} onChange={(e) => setShowReviews(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" /> Customer reviews of this product (only real, approved ones)</label>
       </section>
 

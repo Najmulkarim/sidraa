@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { LandingForm } from '@/components/admin/LandingForm';
 import { loadLandingFormData } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
-import { LANDING_SELECT, parseFaqs, type LandingPage } from '@/lib/landing';
+import { LANDING_SELECT, toLandingPage } from '@/lib/landing';
 
 export const metadata: Metadata = { title: 'Edit landing page' };
 
@@ -16,8 +16,7 @@ export default async function EditLandingPage({ params }: { params: Promise<{ id
     loadLandingFormData(supabase),
   ]);
   if (!data) notFound();
-  const raw = data as unknown as LandingPage & { faqs: unknown };
-  const page: LandingPage = { ...raw, benefits: raw.benefits ?? [], faqs: parseFaqs(raw.faqs) };
+  const page = toLandingPage(data as Record<string, unknown>);
   return (
     <div className="space-y-6">
       <header>
