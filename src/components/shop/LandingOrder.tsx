@@ -58,8 +58,21 @@ export function LandingOrder({
   function pick(key: OptionKey, value: string) {
     setSel((cur) => {
       const next: Selection = { ...cur, [key]: value };
-      if (variants.some((v) => groups.every((g) => next[g.key] === undefined || v[g.key] === next[g.key]))) return next;
-      return { [key]: value };
+      const fits = (s: Selection) => variants.some((v) => groups.every((g) => s[g.key] === undefined || v[g.key] === s[g.key]));
+      if (fits(next)) return next;
+      // That combination is not made: keep this choice and every earlier one that still fits it.
+      const kept: Selection = { [key]: value };
+      for (const g of groups) {
+        const prev = cur[g.key];
+        if (g.key !== key && prev !== undefined && fits({ ...kept, [g.key]: prev })) kept[g.key] = prev;
+      }
+      // An option left with only one possible value (e.g. size 36-37 comes only in Pink) is picked too.
+      for (const g of groups) {
+        if (kept[g.key] !== undefined) continue;
+        const ok = g.values.filter((o) => fits({ ...kept, [g.key]: o.value }));
+        if (ok.length === 1) kept[g.key] = ok[0]!.value;
+      }
+      return kept;
     });
   }
 
