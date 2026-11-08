@@ -63,16 +63,17 @@ export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges
         key={l.href}
         href={l.href}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition lg:py-[5px] ${
+        title={l.label}
+        className={`group relative flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition lg:py-[5px] lg:group-data-[nav=mini]/shell:justify-center lg:group-data-[nav=mini]/shell:px-0 lg:group-data-[nav=mini]/shell:py-2 ${
           active ? 'bg-[linear-gradient(105deg,var(--brand),var(--plum))] text-white shadow-[0_8px_20px_-10px_var(--brand)]' : 'text-white/75 hover:bg-white/8 hover:text-white'
         }`}
       >
-        <Icon name={l.icon} size={18} className={active ? '' : 'transition group-hover:scale-110'} />
-        {l.label}
+        <Icon name={l.icon} size={18} className={active ? 'shrink-0' : 'shrink-0 transition group-hover:scale-110'} />
+        <span className="lg:group-data-[nav=mini]/shell:hidden">{l.label}</span>
         {count > 0 && (
           <span
             title={`${count} ${BADGE_TITLE[l.href] ?? ''}`}
-            className={`ml-auto grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums ${
+            className={`ml-auto grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums lg:group-data-[nav=mini]/shell:absolute lg:group-data-[nav=mini]/shell:-right-1 lg:group-data-[nav=mini]/shell:-top-1 lg:group-data-[nav=mini]/shell:min-w-4 lg:group-data-[nav=mini]/shell:px-1 lg:group-data-[nav=mini]/shell:text-[9.5px] lg:group-data-[nav=mini]/shell:leading-4 ${
               active ? 'bg-white text-brand-ink' : l.tone === 'warn' ? 'bg-warn text-white' : 'bg-brand text-white'
             }`}
           >
@@ -86,13 +87,13 @@ export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges
   const store = STORE.filter(visible);
 
   return (
-    <nav ref={nav} aria-label="Admin" className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:gap-3 lg:overflow-visible lg:pb-3">
+    <nav ref={nav} aria-label="Admin" className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:gap-3 lg:overflow-visible lg:pb-3 lg:group-data-[nav=mini]/shell:px-2">
       {GROUPS.map((g) => {
         const items = g.items.filter(visible);
         if (items.length === 0) return null;
         return (
           <div key={g.title} className="flex gap-1 lg:flex-col lg:gap-px">
-            <p className="hidden px-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/40 lg:block">{g.title}</p>
+            <p className="hidden px-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/40 lg:block lg:group-data-[nav=mini]/shell:hidden">{g.title}</p>
             {items.map(link)}
           </div>
         );
@@ -100,13 +101,13 @@ export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges
 
       {/* Store set-up sits at the bottom, under the signed-in person. */}
       <div className="flex gap-1 lg:mt-auto lg:flex-col lg:gap-px lg:border-t lg:border-white/10 lg:pt-3">
-        <p className="hidden px-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/40 lg:block">Store</p>
+        <p className="hidden px-3 pb-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/40 lg:block lg:group-data-[nav=mini]/shell:hidden">Store</p>
         {store.map(link)}
-        <div className="mt-2 hidden items-center gap-3 rounded-xl bg-white/5 px-3 py-2 lg:flex">
+        <div className="mt-2 hidden items-center gap-3 rounded-xl bg-white/5 px-3 py-2 lg:flex lg:group-data-[nav=mini]/shell:justify-center lg:group-data-[nav=mini]/shell:bg-transparent lg:group-data-[nav=mini]/shell:px-0" title={`${user.name} · ${user.role}`}>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--brand),var(--plum))] text-[13px] font-bold text-white">
             {user.name.trim().charAt(0).toUpperCase() || '?'}
           </span>
-          <span className="min-w-0 leading-tight">
+          <span className="min-w-0 leading-tight lg:group-data-[nav=mini]/shell:hidden">
             <span className="block truncate text-[13px] font-semibold text-white">{user.name}</span>
             <span className="block truncate text-[11.5px] text-white/50">{user.role}</span>
           </span>
