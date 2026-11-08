@@ -18,14 +18,27 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Small counts shown next to menu links: orders waiting for a call, units in stock. */
+/** Units in stock (below zero counts as none), or their value at cost price in taka. */
+async function stockBadge(supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'], value: boolean): Promise<number> {
+  const [{ data }, pc, vc] = await Promise.all([
+    supabase.from('product_variants').select('id, stock, product_id, product:products!inner(status)').neq('product.status', 'archived').gt('stock', 0).limit(10000),
+    value ? supabase.from('product_costs').select('product_id, cost').limit(5000) : Promise.resolve({ data: [] }),
+    value ? supabase.from('variant_costs').select('variant_id, cost').limit(10000) : Promise.resolve({ data: [] }),
+  ]);
+  const rows = (data ?? []) as { id: string; stock: number; product_id: string }[];
+  if (!value) return rows.reduce((n, v) => n + v.stock, 0);
+  const pCost = new Map(((pc.data ?? []) as { product_id: string; cost: number | string }[]).map((c) => [c.product_id, Number(c.cost)]));
+  const vCost = new Map(((vc.data ?? []) as { variant_id: string; cost: number | string }[]).map((c) => [c.variant_id, Number(c.cost)]));
+  return Math.round(rows.reduce((n, v) => n + v.stock * (vCost.get(v.id) ?? pCost.get(v.product_id) ?? 0), 0));
+}
+
+/** Small counts shown next to menu links: orders waiting for a call, stock value. */
 async function navBadges(supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'], can: Set<Capability>): Promise<Record<string, number>> {
   const [pending, units, reviews, incomplete] = await Promise.all([
     can.has('orders') ? supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('deleted_at', null) : null,
     can.has('inventory')
-      // Every unit in stock (below-zero counts as none), products not archived.
-      ? supabase.from('product_variants').select('stock, product:products!inner(status)').neq('product.status', 'archived').gt('stock', 0).limit(10000)
-          .then(({ data }) => ((data ?? []) as { stock: number }[]).reduce((n, v) => n + v.stock, 0))
+      // Stock value at cost (units × cost price); staff who may not see costs get the units instead.
+      ? stockBadge(supabase, can.has('catalog') || can.has('revenue'))
       : null,
     can.has('catalog') ? supabase.from('product_reviews').select('id', { count: 'exact', head: true }).eq('status', 'pending') : null,
     can.has('orders') ? supabase.from('incomplete_orders').select('id', { count: 'exact', head: true }).eq('status', 'open') : null,

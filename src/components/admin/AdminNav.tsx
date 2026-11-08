@@ -43,11 +43,13 @@ const STORE: Item[] = [
   { href: '/admin/account', label: 'My account', icon: 'user' },
 ];
 
-const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/incomplete': 'checkouts left without ordering', '/admin/inventory': 'units in stock', '/admin/reviews': 'reviews waiting for approval' };
+const BADGE_TITLE: Record<string, string> = { '/admin/orders': 'new orders waiting', '/admin/incomplete': 'checkouts left without ordering', '/admin/inventory': 'in stock', '/admin/reviews': 'reviews waiting for approval' };
 
 export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges?: Record<string, number>; user: { name: string; role: string } }) {
   const path = usePathname();
   const has = new Set(can);
+  // The Inventory badge is money (stock value at cost) for staff who may see costs.
+  const money = has.has('catalog') || has.has('revenue');
   const nav = useRef<HTMLElement>(null);
   const visible = (i: Item) => !i.need || i.need.some((n) => has.has(n));
 
@@ -73,12 +75,12 @@ export function AdminNav({ can, badges = {}, user }: { can: Capability[]; badges
         <span className="lg:group-data-[nav=mini]/shell:hidden">{l.label}</span>
         {count > 0 && (
           <span
-            title={`${count} ${BADGE_TITLE[l.href] ?? ''}`}
-            className={`ml-auto grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums lg:group-data-[nav=mini]/shell:absolute lg:group-data-[nav=mini]/shell:-right-1 lg:group-data-[nav=mini]/shell:-top-1 lg:group-data-[nav=mini]/shell:min-w-4 lg:group-data-[nav=mini]/shell:px-1 lg:group-data-[nav=mini]/shell:text-[9.5px] lg:group-data-[nav=mini]/shell:leading-4 ${
+            title={l.href === '/admin/inventory' && money ? `Stock value at cost: ৳${count.toLocaleString('en-IN')}` : `${count} ${BADGE_TITLE[l.href] ?? ''}`}
+            className={`ml-auto grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums lg:group-data-[nav=mini]/shell:absolute lg:group-data-[nav=mini]/shell:-right-1 lg:group-data-[nav=mini]/shell:-top-1 lg:group-data-[nav=mini]/shell:min-w-4 lg:group-data-[nav=mini]/shell:px-1 lg:group-data-[nav=mini]/shell:text-[9.5px] lg:group-data-[nav=mini]/shell:leading-4 ${l.href === '/admin/inventory' ? 'lg:group-data-[nav=mini]/shell:hidden ' : ''}${
               active ? 'bg-white text-brand-ink' : l.tone === 'warn' ? 'bg-warn text-white' : l.tone === 'ok' ? 'bg-ok text-white' : 'bg-brand text-white'
             }`}
           >
-            {count > 99 && l.href !== '/admin/inventory' ? '99+' : count.toLocaleString('en-IN')}
+            {l.href === '/admin/inventory' ? `${money ? '৳' : ''}${count.toLocaleString('en-IN')}` : count > 99 ? '99+' : count}
           </span>
         )}
       </Link>
