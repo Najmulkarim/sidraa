@@ -9,6 +9,7 @@ type PoState = 'draft' | 'pending' | 'confirmed' | 'cancelled';
 type Row = {
   id: string; ref: string; status: 'draft' | 'received' | 'cancelled'; supplier: string | null; expected_on: string | null; created_at: string; received_at: string | null;
   items: { quantity: number; unit_cost: number | string | null; received_at: string | null }[];
+  lots: { received: number; remaining: number }[];
 };
 
 const CHIP: Record<PoState, string> = {
@@ -34,7 +35,7 @@ function stateOf(o: Row): PoState {
 export async function PurchaseOrderList({ supabase, withCost, base, state }: { supabase: Db; withCost: boolean; base: string; state?: string }) {
   const { data, error } = await supabase
     .from('stock_orders')
-    .select('id, ref, status, supplier, expected_on, created_at, received_at, items:stock_order_items(quantity, unit_cost, received_at)')
+    .select('id, ref, status, supplier, expected_on, created_at, received_at, items:stock_order_items(quantity, unit_cost, received_at), lots:stock_lots(received, remaining)')
     .order('ref', { ascending: false })
     .limit(300);
   if (error) return <p className="rounded-xl bg-warn/10 px-4 py-3 text-sm text-warn">Run the latest database update in Supabase to use purchase orders.</p>;
@@ -62,13 +63,16 @@ export async function PurchaseOrderList({ supabase, withCost, base, state }: { s
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-white">
-          <table className="w-full min-w-[720px] border-collapse text-[13px]">
+          <table className="w-full min-w-[960px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-line bg-soft text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted">
                 <th className="px-3 py-2.5">PO number</th>
                 <th className="px-3 py-2.5">Supplier</th>
                 <th className="px-3 py-2.5 text-right">Products</th>
-                <th className="px-3 py-2.5 text-right">Units</th>
+                <th className="px-3 py-2.5 text-right">Ordered</th>
+                <th className="px-3 py-2.5 text-right" title="Units that went into stock">Came in</th>
+                <th className="px-3 py-2.5 text-right" title="Sold from this PO (returns and cancels put back)">Sold</th>
+                <th className="px-3 py-2.5 text-right" title="Still left from this PO">Left</th>
                 {withCost && <th className="px-3 py-2.5 text-right">Total cost</th>}
                 <th className="px-3 py-2.5">Status</th>
                 <th className="px-3 py-2.5">Date</th>
@@ -78,6 +82,10 @@ export async function PurchaseOrderList({ supabase, withCost, base, state }: { s
             <tbody>
               {rows.map(({ o, s }) => {
                 const t = stockOrderTotals(o.items.map((i) => ({ quantity: i.quantity, unit_cost: i.unit_cost === null ? null : Number(i.unit_cost) })));
+                // From the PO's batches: what came in, what was sold (net of returns), what is left.
+                const came = o.lots.reduce((n, l) => n + l.received, 0);
+                const left = o.lots.reduce((n, l) => n + l.remaining, 0);
+                const sold = came - left;
                 const waiting = o.items.filter((i) => !i.received_at).reduce((n, i) => n + i.quantity, 0);
                 return (
                   <tr key={o.id} className="border-b border-line last:border-0 hover:bg-soft/60">
@@ -85,6 +93,9 @@ export async function PurchaseOrderList({ supabase, withCost, base, state }: { s
                     <td className="px-3 py-2.5">{o.supplier ?? <span className="text-muted">—</span>}</td>
                     <td className="px-3 py-2.5 text-right font-mono">{t.lines}</td>
                     <td className="px-3 py-2.5 text-right font-mono font-semibold">{t.units}{s === 'pending' && <span className="block text-[11px] font-normal text-warn">{waiting} pending</span>}</td>
+                    <td className="px-3 py-2.5 text-right font-mono font-semibold text-[#0369a1]">{came || '—'}</td>
+                    <td className="px-3 py-2.5 text-right font-mono font-semibold text-brand">{came ? sold : '—'}</td>
+                    <td className={`px-3 py-2.5 text-right font-mono font-bold ${!came ? 'text-muted' : left > 0 ? 'text-ok' : 'text-bad'}`}>{came ? left : '—'}</td>
                     {withCost && <td className="px-3 py-2.5 text-right font-mono">{formatTaka(t.cost)}</td>}
                     <td className="px-3 py-2.5"><span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${CHIP[s]}`}>{LABEL[s]}</span></td>
                     <td className="px-3 py-2.5 text-[12px] text-muted">
