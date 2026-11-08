@@ -245,7 +245,7 @@ export function AddToCart({
               const base = `rounded-xl border-[1.5px] text-sm font-semibold transition ${active ? 'border-brand ring-2 ring-brand/25' : 'border-line hover:border-ink'} ${!anyStock ? 'cursor-not-allowed opacity-50' : ''}`;
               return o.image ? (
                 <button key={o.value} type="button" role="radio" aria-checked={active} aria-label={`${o.value}${struck ? ' (not available)' : ''}`} title={o.value} disabled={!anyStock} onClick={() => (struck && !active && g.key !== groups[0]?.key ? explain(g.key, o.value) : pick(g.key, o.value))} className={`${base} w-[4.5rem] overflow-hidden bg-card p-1 text-center`}>
-                  <span className="relative block aspect-[4/5] overflow-hidden rounded-lg bg-tint"><ProductImage path={o.image} alt="" sizes="72px" /></span>
+                  <span className="relative block aspect-square overflow-hidden rounded-lg bg-tint"><ProductImage path={o.image} alt="" sizes="72px" /></span>
                   <span className={`mt-1 block truncate text-[12px] ${struck ? 'text-muted line-through' : ''}`}>{o.value}</span>
                 </button>
               ) : (
