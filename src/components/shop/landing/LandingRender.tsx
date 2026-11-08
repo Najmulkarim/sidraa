@@ -9,6 +9,7 @@ import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { DescriptionFlow } from '@/components/shop/DescriptionParts';
 import { ShowcaseView } from '@/components/shop/landing/ShowcaseView';
 import { StoryView } from '@/components/shop/landing/StoryView';
+import { STORY_DEFAULTS } from '@/lib/story';
 import { getProductReviews, getSettings, getZones, priceRange, variantPrice, visibleImages } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
 import { formatDate, formatTaka, toNumber } from '@/lib/format';
@@ -39,7 +40,8 @@ export async function LandingRender({ page, product, coupon, demo = false }: { p
   const free = freeDelivery(activeZones);
   const video = page.video_url ? videoEmbed(page.video_url) : null;
   const content = page.show_description ? parseDescription(product.description) : null;
-  const cta = page.button_text || 'Order now';
+  // Story pages speak Bangla: the order buttons follow the top button's words.
+  const cta = page.button_text || (page.template === 'story' ? page.story.top.order || STORY_DEFAULTS.order : 'Order now');
   const ctaClass = 'btn btn-primary min-h-13 w-full text-base shadow-lg sm:w-auto sm:px-10';
   const orderBox = demo ? (
     <p className="card border-2 border-dashed border-brand/40 p-6 text-center text-[14px] text-muted">Colour / size choice and the order form show here on your real page.</p>
@@ -58,7 +60,7 @@ export async function LandingRender({ page, product, coupon, demo = false }: { p
                 keepOrder={product.variants.some((v) => v.sort_order > 0)}
                 preorder={product.stock_out_mode === 'preorder'}
                 coupon={coupon?.code ?? null}
-                buttonText={page.button_text}
+                buttonText={page.button_text || (page.template === 'story' ? cta : null)}
                 zones={activeZones}
                 codTerms={settings.cod_terms}
                 returnDays={settings.return_policy_days}
