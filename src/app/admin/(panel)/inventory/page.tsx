@@ -1,22 +1,27 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { AdjustStockForm } from '@/components/admin/AdjustStockForm';
+import { Icon } from '@/components/icons';
+import { InventoryTable } from '@/components/admin/InventoryTable';
+import { ProductImage } from '@/components/shop/ProductImage';
+import { loadInventoryRows } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
-import { escapeLike, variantLabel } from '@/lib/catalog';
 import { formatDateTime } from '@/lib/format';
+import { MOVEMENT_REASONS, type MovementKind } from '@/lib/inventory';
 
 export const metadata: Metadata = { title: 'Inventory' };
 
-type VariantRow = {
-  id: string;
-  sku: string;
-  size: string;
-  color: string;
-  option3: string;
-  stock: number;
-  is_active: boolean;
-  product: { id: string; name: string; status: string } | null;
-};
+const TABS = [
+  { key: 'summary', label: 'Inventory summary' },
+  { key: 'low', label: 'Low stock' },
+  { key: 'history', label: 'Movement history' },
+  { key: 'in', label: 'Stock in' },
+  { key: 'out', label: 'Stock out' },
+  { key: 'adjust', label: 'Adjustments' },
+] as const;
+type Tab = (typeof TABS)[number]['key'];
+
+const REASON: Record<string, string> = { order: 'Order', cancel: 'Cancelled', return: 'Returned', restock: 'Restock', adjust: 'Adjust', edit: 'Order edit' };
+
 type Movement = {
   id: number;
   change: number;
@@ -24,122 +29,111 @@ type Movement = {
   note: string | null;
   created_at: string;
   order: { id: string; public_ref: string } | null;
-  variant: { sku: string; product: { name: string } | null } | null;
+  stock_order: { id: string; ref: string } | null;
+  variant: { sku: string; color: string; size: string; image_path: string | null; product: { name: string; images: { storage_path: string; sort_order: number }[] } | null } | null;
 };
 
-const REASON: Record<string, string> = { order: 'Order', cancel: 'Cancelled', return: 'Returned', restock: 'Restock', adjust: 'Adjust' };
-
+/** Stock of every product and variation, with photos, totals and the history of every unit in or out. */
 export default async function InventoryPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ supabase }, sp] = await Promise.all([requirePermission('inventory'), searchParams]);
-  const q = (sp.q ?? '').trim().slice(0, 64);
-  const low = sp.low === '1';
-  const selectedId = sp.variant && /^[0-9a-f-]{36}$/i.test(sp.variant) ? sp.variant : null;
+  const [{ supabase, can }, sp] = await Promise.all([requirePermission('inventory'), searchParams]);
+  const tab: Tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as Tab) : 'summary';
+  const withCost = can.has('catalog') || can.has('revenue');
+  const isList = tab === 'summary' || tab === 'low';
 
   const { data: settings } = await supabase.from('store_settings').select('low_stock_threshold').eq('id', 1).single<{ low_stock_threshold: number }>();
   const threshold = settings?.low_stock_threshold ?? 3;
 
-  let query = supabase
-    .from('product_variants')
-    .select('id, sku, size, color, option3, stock, is_active, product:products!inner(id, name, status)')
-    .neq('product.status', 'archived');
-  if (q) query = query.ilike('sku', `%${escapeLike(q)}%`);
-  if (low) query = query.lte('stock', threshold).eq('is_active', true);
-  const { data: vData } = await query.order('stock').order('sku').limit(200);
-  const variants = (vData ?? []) as unknown as VariantRow[];
+  const [rows, { data: cats }, { count: drafts }] = await Promise.all([
+    isList ? loadInventoryRows(supabase, withCost) : Promise.resolve([]),
+    isList ? supabase.from('categories').select('id, name').order('name') : Promise.resolve({ data: [] }),
+    supabase.from('stock_orders').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+  ]);
 
-  let selected: VariantRow | null = null;
-  if (selectedId) {
-    const { data } = await supabase
-      .from('product_variants')
-      .select('id, sku, size, color, option3, stock, is_active, product:products(id, name, status)')
-      .eq('id', selectedId)
-      .maybeSingle();
-    selected = (data as unknown as VariantRow | null) ?? null;
+  let movements: Movement[] = [];
+  if (!isList) {
+    let mq = supabase
+      .from('inventory_movements')
+      .select('id, change, reason, note, created_at, order:orders(id, public_ref), stock_order:stock_orders(id, ref), variant:product_variants(sku, color, size, image_path, product:products(name, images:product_images(storage_path, sort_order)))')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (tab !== 'history') mq = mq.in('reason', MOVEMENT_REASONS[tab as Exclude<MovementKind, 'all'>]);
+    if (tab === 'in') mq = mq.gt('change', 0);
+    const { data } = await mq;
+    movements = (data ?? []) as unknown as Movement[];
   }
 
-  let mq = supabase
-    .from('inventory_movements')
-    .select('id, change, reason, note, created_at, order:orders(id, public_ref), variant:product_variants(sku, product:products(name))')
-    .order('created_at', { ascending: false })
-    .limit(50);
-  if (selectedId) mq = mq.eq('variant_id', selectedId);
-  const { data: mData } = await mq;
-  const movements = (mData ?? []) as unknown as Movement[];
-
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-        <p className="text-sm text-muted">Every unit in or out is logged: orders, cancellations, returns, restocks and manual adjustments.</p>
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3 print:hidden">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Warehouse</p>
+          <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
+          <p className="text-sm text-muted">Stock of every product and variation. Every unit in or out is logged.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/inventory/stock-orders" className="btn btn-outline btn-sm min-h-10">
+            <Icon name="note" size={15} /> Stock-in orders{drafts ? <span className="rounded-full bg-warn px-1.5 text-[11px] text-white">{drafts}</span> : null}
+          </Link>
+          <Link href="/admin/inventory/stock-orders/new" className="btn btn-primary btn-sm min-h-10"><Icon name="plus" size={15} /> New stock-in order</Link>
+        </div>
       </header>
 
-      {selected && (
-        <section className="card space-y-3 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-semibold">
-              {selected.product?.name} <span className="font-normal text-muted">· {variantLabel(selected) || 'Default'} · <span className="font-mono">{selected.sku}</span></span>
-            </h2>
-            <Link href="/admin/inventory" className="text-sm text-muted underline">Close</Link>
-          </div>
-          <AdjustStockForm key={selected.id} variantId={selected.id} current={selected.stock} />
-        </section>
-      )}
+      <nav aria-label="Inventory views" className="flex gap-1 overflow-x-auto print:hidden">
+        {TABS.map((t) => (
+          <Link key={t.key} href={t.key === 'summary' ? '/admin/inventory' : `/admin/inventory?tab=${t.key}`} aria-current={t.key === tab ? 'page' : undefined}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold ${t.key === tab ? 'bg-night text-white' : 'bg-white text-ink ring-1 ring-line hover:ring-brand'}`}>
+            {t.label}
+          </Link>
+        ))}
+      </nav>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <section className="card overflow-hidden">
-          <form key={`${q}|${low}`} className="flex flex-wrap items-end gap-3 border-b border-line p-4">
-            <div className="field flex-1">
-              <label htmlFor="q" className="label">SKU</label>
-              <input id="q" name="q" defaultValue={q} placeholder="Search SKU" className="input" />
-            </div>
-            <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input type="checkbox" name="low" value="1" defaultChecked={low} className="h-4 w-4 accent-[var(--brand)]" />
-              Low stock only (≤ {threshold})
-            </label>
-            <button className="btn btn-primary btn-sm">Filter</button>
-          </form>
-          <div className="max-h-[70dvh] overflow-auto">
-            <table className="table">
-              <thead><tr><th>Product</th><th>SKU</th><th className="text-right">Stock</th><th></th></tr></thead>
-              <tbody>
-                {variants.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-muted">Nothing found.</td></tr>}
-                {variants.map((v) => (
-                  <tr key={v.id} className={v.id === selectedId ? 'bg-brand/5' : ''}>
-                    <td>
-                      <div className="font-medium">{v.product?.name}</div>
-                      <div className="text-xs text-muted">{variantLabel(v) || 'Default'}{!v.is_active ? ' · hidden' : ''}</div>
+      {isList ? (
+        <InventoryTable key={tab} rows={rows} threshold={threshold} categories={(cats ?? []) as { id: string; name: string }[]} withCost={withCost} lowOnly={tab === 'low'} />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-line bg-white">
+          <table className="w-full min-w-[820px] border-collapse text-[12.5px]">
+            <thead>
+              <tr className="border-b border-line bg-soft text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted">
+                <th className="px-3 py-2.5">Date</th>
+                <th className="px-3 py-2.5">Product</th>
+                <th className="px-3 py-2.5">Type</th>
+                <th className="px-3 py-2.5 text-right">Change</th>
+                <th className="px-3 py-2.5">Reference</th>
+                <th className="px-3 py-2.5">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movements.length === 0 && <tr><td colSpan={6} className="py-14 text-center text-muted">Nothing here yet.</td></tr>}
+              {movements.map((m) => {
+                const img = m.variant?.image_path ?? [...(m.variant?.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
+                return (
+                  <tr key={m.id} className="border-b border-line last:border-0">
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-[11.5px] text-muted">{formatDateTime(m.created_at)}</td>
+                    <td className="px-3 py-2">
+                      <span className="flex items-center gap-2.5">
+                        <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md bg-tint"><ProductImage path={img} alt="" sizes="36px" /></span>
+                        <span className="min-w-0">
+                          <span className="block max-w-[240px] truncate font-semibold">{m.variant?.product?.name ?? 'Deleted product'}</span>
+                          <span className="block font-mono text-[11px] text-muted">{m.variant?.sku}{m.variant && [m.variant.color, m.variant.size].filter(Boolean).length ? ` · ${[m.variant.color, m.variant.size].filter(Boolean).join(' / ')}` : ''}</span>
+                        </span>
+                      </span>
                     </td>
-                    <td className="font-mono text-xs">{v.sku}</td>
-                    <td className={`text-right font-semibold ${v.stock === 0 ? 'text-bad' : v.stock <= threshold ? 'text-warn' : ''}`}>{v.stock}</td>
-                    <td className="text-right"><Link href={`/admin/inventory?variant=${v.id}${q ? `&q=${encodeURIComponent(q)}` : ''}${low ? '&low=1' : ''}`} className="btn btn-ghost btn-sm">Adjust</Link></td>
+                    <td className="px-3 py-2">{REASON[m.reason] ?? m.reason}</td>
+                    <td className={`px-3 py-2 text-right font-mono text-[13px] font-bold ${m.change > 0 ? 'text-ok' : 'text-bad'}`}>{m.change > 0 ? `+${m.change}` : m.change}</td>
+                    <td className="px-3 py-2">
+                      {m.order && <Link href={`/admin/orders/${m.order.id}`} className="font-mono text-brand hover:underline">{m.order.public_ref}</Link>}
+                      {m.stock_order && <Link href={`/admin/inventory/stock-orders/${m.stock_order.id}`} className="font-mono text-brand hover:underline">{m.stock_order.ref}</Link>}
+                      {!m.order && !m.stock_order && <span className="text-muted">—</span>}
+                    </td>
+                    <td className="max-w-[260px] px-3 py-2 text-muted">{m.note}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="card overflow-hidden">
-          <h2 className="border-b border-line p-4 font-semibold">{selected ? 'History for this variant' : 'Latest stock movements'}</h2>
-          <ul className="max-h-[70dvh] divide-y divide-line overflow-auto text-sm">
-            {movements.length === 0 && <li className="p-4 text-muted">No movements yet.</li>}
-            {movements.map((m) => (
-              <li key={m.id} className="flex items-start justify-between gap-3 px-4 py-2.5">
-                <div>
-                  <p>
-                    <span className="font-medium">{REASON[m.reason] ?? m.reason}</span>
-                    {!selected && m.variant && <span className="text-muted"> · {m.variant.product?.name} ({m.variant.sku})</span>}
-                    {m.order && <> · <Link href={`/admin/orders/${m.order.id}`} className="font-mono text-brand">{m.order.public_ref}</Link></>}
-                  </p>
-                  {m.note && <p className="text-muted">{m.note}</p>}
-                  <p className="text-xs text-muted">{formatDateTime(m.created_at)}</p>
-                </div>
-                <span className={`font-mono font-semibold ${m.change > 0 ? 'text-ok' : 'text-bad'}`}>{m.change > 0 ? `+${m.change}` : m.change}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+                );
+              })}
+            </tbody>
+          </table>
+          {movements.length === 200 && <p className="border-t border-line px-4 py-2 text-[12px] text-muted">The latest 200 are shown.</p>}
+        </div>
+      )}
     </div>
   );
 }
