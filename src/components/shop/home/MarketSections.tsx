@@ -96,14 +96,14 @@ export function MarketHero({ title, subtitle, settings, store, products }: {
 }
 
 /** Product card: white box, square photo, Sale/Hot tag, price with % off, optional stock bar. */
-export function MarketCard({ product, stockBar }: { product: ProductWithRelations; stockBar?: boolean }) {
+export function MarketCard({ product, stockBar, priority = false }: { product: ProductWithRelations; stockBar?: boolean; priority?: boolean }) {
   const d = info(product);
   const pct = d.off;
   const left = Math.max(0, d.stock);
   return (
     <div className="group flex h-full flex-col rounded-xl border border-line bg-white p-2.5 transition hover:border-brand/50 hover:shadow-[var(--shadow)]">
       <Link href={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden rounded-lg bg-soft">
-        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" />
+        <HoverPhoto first={d.image} second={d.second} alt={product.name} sizes="(min-width: 1024px) 18vw, 45vw" priority={priority} />
         <span className="absolute left-2 top-2 flex flex-col gap-1">
           {d.badge && <span className="rounded bg-[#16a34a] px-2 py-0.5 text-[11px] font-bold uppercase text-white">{d.preorder ? 'Pre-order' : 'Sale'}</span>}
           {product.is_featured && <span className="w-fit rounded bg-brand px-2 py-0.5 text-[11px] font-bold uppercase text-white">Hot</span>}

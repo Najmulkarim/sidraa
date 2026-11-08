@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getShopCategories, listProducts, SORTS, type ListParams } from '@/lib/catalog';
 import type { Category } from '@/lib/types';
 import { ListingFilters } from './ListingFilters';
-import { ProductGrid } from './ProductCard';
+import { MarketCard } from './home/MarketSections';
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -92,7 +92,10 @@ export async function Listing({
       {products.length > 0 ? (
         <section aria-labelledby="listing-heading">
           <h2 id="listing-heading" className="sr-only">Products</h2>
-          <ProductGrid products={products} priorityCount={4} />
+          {/* Same cards as the home page: 2 on phones, 3 on tablets, 5 on wide screens. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
+            {products.map((p, i) => <MarketCard key={p.id} product={p} priority={i < 5} />)}
+          </div>
         </section>
       ) : (
         <div className="card p-10 text-center">

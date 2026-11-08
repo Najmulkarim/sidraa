@@ -22,7 +22,8 @@ export const PRODUCT_SELECT =
   ' category:categories(id, name, slug), images:product_images(id, storage_path, alt, sort_order),' +
   ' variants:product_variants(id, product_id, sku, size, color, option3, image_path, price, stock, is_active, sort_order)';
 
-export const PAGE_SIZE = 24;
+// 30: full rows of 2 (phones), 3 (tablets) and 5 (wide screens).
+export const PAGE_SIZE = 30;
 
 const FALLBACK_SETTINGS: StoreSettings = {
   store_name: 'Your Store',
