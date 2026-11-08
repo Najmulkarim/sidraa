@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from '@/components/icons';
 import { Gallery } from '@/components/shop/Gallery';
 import { imageUrl } from '@/lib/env';
+import { responsiveImage } from '@/lib/responsive-image';
 import { formatTaka } from '@/lib/format';
 import type { Faq } from '@/lib/landing';
 import { whatsappOrderLink } from '@/lib/product-content';
@@ -102,7 +103,7 @@ export function StoryView({
           {s.images.map((path, i) => {
             const src = imageUrl(path);
             // eslint-disable-next-line @next/next/no-img-element -- posters keep their own height
-            return src ? <img key={i} src={src} alt={i === 0 ? name : ''} loading="lazy" decoding="async" className="block h-auto w-full" /> : null;
+            return src ? <img key={i} {...responsiveImage(src)} sizes="(min-width: 768px) 768px, 100vw" alt={i === 0 ? name : ''} loading="lazy" decoding="async" className="block h-auto w-full" /> : null;
           })}
         </section>
       )}

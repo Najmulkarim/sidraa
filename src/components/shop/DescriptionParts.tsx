@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { boldRuns, splitBullet, type FlowItem, type ListGroup, type TextBlock } from '@/lib/product-content';
 import { Icon } from '../icons';
+import { responsiveImage } from '@/lib/responsive-image';
 
 /** Text with **bold** parts. */
 export function Rich({ text }: { text: string }) {
@@ -47,7 +48,8 @@ export function ListGroups({ groups }: { groups: ListGroup[] }) {
 function Block({ b }: { b: TextBlock }) {
   if (b.type === 'img') {
     // eslint-disable-next-line @next/next/no-img-element -- a picture placed in the description, at its own size
-    return <img src={b.src} alt={b.text} loading="lazy" decoding="async" className="h-auto max-w-full rounded-xl" />;
+    // A resized copy of our own photos (phones get ~640 px, not the original upload).
+    return <img {...responsiveImage(b.src)} sizes="(min-width: 768px) 720px, 100vw" alt={b.text} loading="lazy" decoding="async" className="h-auto max-w-full rounded-xl" />;
   }
   if (b.type === 'h1') return <h3 className="text-xl font-bold text-ink"><Rich text={b.text} /></h3>;
   if (b.type === 'h2') return <h4 className="text-[16px] font-semibold text-ink"><Rich text={b.text} /></h4>;
