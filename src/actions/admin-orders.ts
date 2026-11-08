@@ -290,3 +290,17 @@ export async function saveOrderFull(_prev: ActionState, formData: FormData): Pro
     values: { orderId: data.order_id, publicRef: data.public_ref },
   };
 }
+
+/** "Shipped done": the parcels left the house (or undo). Only In courier orders change. */
+export async function setShippedDone(ids: string[], done: boolean): Promise<ActionState> {
+  const { supabase } = await requirePermission('orders');
+  const parsed = z.array(uuid).min(1).max(200).safeParse(ids);
+  if (!parsed.success) return { ok: false, message: 'Choose up to 200 orders.' };
+  const { data, error } = await supabase.rpc('set_orders_dispatched', { p_order_ids: parsed.data, p_done: done === true });
+  if (error) return fail(error, 'shipped done');
+  const n = Number(data ?? 0);
+  refresh(parsed.data.length === 1 ? parsed.data[0] : undefined);
+  if (n === 0) return { ok: false, message: done ? 'Nothing changed: only In courier orders can be marked Shipped done.' : 'Nothing changed.' };
+  const skipped = parsed.data.length - n;
+  return { ok: true, message: `${n} order${n === 1 ? '' : 's'} ${done ? 'marked Shipped done' : 'moved back to In courier'}.${skipped ? ` ${skipped} skipped.` : ''}` };
+}

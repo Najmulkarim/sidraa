@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { bulkSendToCourier, refreshCourierStatus } from '@/actions/admin-courier';
-import { addNote, assignOrder, bulkStatus, deleteOrder, getOrderLogs, quickStatus, restoreOrder, type OrderLog } from '@/actions/admin-orders';
+import { addNote, assignOrder, bulkStatus, deleteOrder, getOrderLogs, quickStatus, restoreOrder, setShippedDone, type OrderLog } from '@/actions/admin-orders';
 import { COURIER_LABEL, courierStatusLabel, type CourierName } from '@/lib/courier/types';
 import { formatDateTime, formatTaka, toNumber } from '@/lib/format';
 import { isPickupCancelled, nextStatusesFor, STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
@@ -42,6 +42,8 @@ export type OrderRow = {
   courier_tracking_code: string | null;
   courier_status: string | null;
   courier_error: string | null;
+  /** When the parcel left the house ("Shipped done"). */
+  dispatched_at?: string | null;
   items: OrderItemInfo[];
 };
 
@@ -105,6 +107,7 @@ export function OrdersTable({
   stats,
   staff,
   deletedTab,
+  tab = 'all',
   perms,
   couriers,
   blocked = [],
@@ -113,6 +116,7 @@ export function OrdersTable({
   stats: Record<string, Stat>;
   staff: Staff[];
   deletedTab: boolean;
+  tab?: string;
   perms: TablePerms;
   couriers: CourierOptions | null;
   blocked?: string[];
@@ -122,6 +126,9 @@ export function OrdersTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Only Ready to deliver orders can go to a courier.
   const sendable = orders.filter((o) => selected.has(o.id) && o.status === 'processing' && !o.courier_consignment_id).map((o) => o.id);
+  // In courier orders still in the house / already gone out.
+  const leaving = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && !o.dispatched_at).map((o) => o.id);
+  const gone = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && o.dispatched_at).map((o) => o.id);
   const [busy, startTransition] = useTransition();
   const [editing, setEditing] = useState<OrderRow | null>(null);
   const [sending, setSending] = useState<OrderRow | null>(null);
@@ -194,6 +201,16 @@ export function OrdersTable({
                 <Icon name="send" size={14} /> Send {sendable.length}
               </button>
             </span>
+          )}
+          {!deletedTab && leaving.length > 0 && (
+            <button type="button" className="btn btn-sm border-0 bg-ok text-white hover:opacity-90" disabled={busy} title="The parcels have left the house" onClick={() => run(() => setShippedDone(leaving, true))}>
+              <Icon name="check" size={15} /> Shipped done {leaving.length}
+            </button>
+          )}
+          {!deletedTab && tab === 'shipped_done' && gone.length > 0 && (
+            <button type="button" className="btn btn-outline btn-sm" disabled={busy} title="Move back to In courier" onClick={() => run(() => setShippedDone(gone, false))}>
+              Undo shipped done {gone.length}
+            </button>
           )}
           <Link href={`/admin/orders/slips?ids=${[...selected].join(',')}`} target="_blank" className="btn btn-outline btn-sm"><Icon name="printer" size={15} /> Print slips</Link>
           <button type="button" className="ml-auto text-muted underline" onClick={() => setSelected(new Set())}>Clear</button>
@@ -311,6 +328,13 @@ export function OrdersTable({
                         <p className="font-mono text-[11px] text-muted" title="Consignment ID">#{o.courier_consignment_id}</p>
                         {o.courier_tracking_code && <p className="font-mono text-[11px] text-muted" title="Tracking code">{o.courier_tracking_code}</p>}
                         {o.courier_status && <p className="text-[11px] font-semibold text-[#0369a1]">{courierStatusLabel(o.courier_status)}</p>}
+                        {o.status === 'shipped' && !o.deleted_at && (o.dispatched_at ? (
+                          <p className="w-fit rounded bg-[#dcfce7] px-1.5 text-[10.5px] font-bold text-[#15803d]" title={`Left the house ${formatDateTime(o.dispatched_at)}`}>✓ Shipped done</p>
+                        ) : (
+                          <button type="button" className="mt-0.5 flex items-center gap-1 whitespace-nowrap rounded-md bg-ok px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90" disabled={busy} title="The parcel has left the house" onClick={() => run(() => setShippedDone([o.id], true))}>
+                            <Icon name="check" size={12} /> Shipped done
+                          </button>
+                        ))}
                         {perms.courier && o.status === 'shipped' && (
                           <button type="button" className="flex items-center gap-1 text-[11px] text-brand hover:underline" disabled={busy} onClick={() => run(() => refreshCourierStatus(o.id))}>
                             <Icon name="refresh" size={12} /> Check now
