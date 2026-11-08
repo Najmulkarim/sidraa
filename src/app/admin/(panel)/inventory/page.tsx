@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Icon } from '@/components/icons';
 import { InventoryTable } from '@/components/admin/InventoryTable';
+import { PurchaseOrderList } from '@/components/admin/PurchaseOrderList';
 import { ProductImage } from '@/components/shop/ProductImage';
 import { loadInventoryRows } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
@@ -51,14 +52,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
   let movements: Movement[] = [];
   const lots = new Map<number, { no: string; qty: number; po: string | null }[]>();
-  if (!isList) {
+  if (!isList && tab !== 'in') {
     let mq = supabase
       .from('inventory_movements')
       .select('id, change, reason, note, created_at, order:orders(id, public_ref), stock_order:stock_orders(id, ref, supplier), variant:product_variants(sku, color, size, image_path, product:products(name, images:product_images(storage_path, sort_order)))')
       .order('created_at', { ascending: false })
       .limit(200);
     if (tab !== 'history') mq = mq.in('reason', MOVEMENT_REASONS[tab as Exclude<MovementKind, 'all'>]);
-    if (tab === 'in') mq = mq.gt('change', 0);
     const { data } = await mq;
     movements = (data ?? []) as unknown as Movement[];
     // Which batch (purchase-order line) each movement took units from or put back into.
@@ -98,7 +98,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       {isList ? (
         <InventoryTable key={tab} rows={rows} threshold={threshold} categories={(cats ?? []) as { id: string; name: string }[]} withCost={withCost} lowOnly={tab === 'low'} />
       ) : tab === 'in' ? (
-        <StockInByPo movements={movements} lots={lots} />
+        <PurchaseOrderList supabase={supabase} withCost={withCost} base="/admin/inventory?tab=in" state={sp.po} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-white">
           <table className="w-full min-w-[820px] border-collapse text-[12.5px]">
@@ -153,55 +153,3 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   );
 }
 
-type Lots = Map<number, { no: string; qty: number; po: string | null }[]>;
-
-/** Stock in, one block per purchase order (with every product it brought in); other restocks below. */
-function StockInByPo({ movements, lots }: { movements: Movement[]; lots: Lots }) {
-  const groups = new Map<string, { po: Movement['stock_order']; at: string; items: Movement[] }>();
-  for (const m of movements) {
-    const key = m.stock_order ? `po:${m.stock_order.id}` : `m:${m.id}`;
-    const g = groups.get(key) ?? { po: m.stock_order, at: m.created_at, items: [] };
-    g.items.push(m);
-    groups.set(key, g);
-  }
-  if (groups.size === 0) return <p className="card p-10 text-center text-muted">Nothing has come into stock yet. Make a Purchase order and press Confirm when the goods arrive.</p>;
-  return (
-    <div className="space-y-3">
-      {[...groups.values()].map((g) => {
-        const units = g.items.reduce((n, m) => n + m.change, 0);
-        return (
-          <section key={g.po?.id ?? g.items[0]!.id} className="overflow-hidden rounded-xl border border-line bg-white">
-            <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-soft px-4 py-2.5">
-              {g.po ? (
-                <Link href={`/admin/inventory/stock-orders/${g.po.id}`} className="rounded-md bg-night px-2 py-0.5 font-mono text-[13px] font-bold text-white hover:bg-brand">{g.po.ref}</Link>
-              ) : (
-                <span className="rounded-md bg-line px-2 py-0.5 text-[12px] font-bold text-ink">Manual restock</span>
-              )}
-              {g.po?.supplier && <span className="text-[13px] font-semibold">{g.po.supplier}</span>}
-              <span className="font-mono text-[11.5px] text-muted">{formatDateTime(g.at)}</span>
-              <span className="ml-auto text-[12.5px] text-muted">{g.items.length} product{g.items.length === 1 ? '' : 's'} · <b className="font-mono text-ok">+{units}</b> units</span>
-            </header>
-            <ul className="divide-y divide-line">
-              {g.items.map((m) => {
-                const img = m.variant?.image_path ?? [...(m.variant?.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
-                const batch = lots.get(m.id)?.[0];
-                return (
-                  <li key={m.id} className="flex items-center gap-3 px-4 py-2 text-[12.5px]">
-                    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md bg-tint"><ProductImage path={img} alt="" sizes="36px" /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{m.variant?.product?.name ?? 'Deleted product'}</span>
-                      <span className="block font-mono text-[11px] text-muted">{m.variant?.sku}{m.variant && [m.variant.color, m.variant.size].filter(Boolean).length ? ` · ${[m.variant.color, m.variant.size].filter(Boolean).join(' / ')}` : ''}</span>
-                    </span>
-                    {batch && <span className="rounded bg-tint px-1.5 py-0.5 font-mono text-[11px] font-bold text-brand" title="Batch serial number">{batch.no}</span>}
-                    {!g.po && m.note && <span className="hidden max-w-[220px] truncate text-muted sm:block">{m.note}</span>}
-                    <span className="w-14 text-right font-mono text-[13px] font-bold text-ok">+{m.change}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
