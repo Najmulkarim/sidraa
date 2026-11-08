@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { StockOrderForm, type StockOrderView } from '@/components/admin/StockOrderForm';
+import { StockOrderForm, type BatchInfo, type StockOrderView } from '@/components/admin/StockOrderForm';
 import { loadInventoryRows } from '@/lib/admin-data';
 import { requirePermission } from '@/lib/auth';
 import { formatDateTime } from '@/lib/format';
@@ -17,6 +17,13 @@ export default async function StockOrderPage({ params, searchParams }: { params:
     loadInventoryRows(supabase, withCost),
   ]);
   if (!data) notFound();
+  // Batches made when this order was confirmed, with what was sold from each and returned.
+  const { data: lotData } = await supabase.from('stock_lots').select('id, lot_no, variant_id, received, remaining, moves:lot_movements(qty)').eq('stock_order_id', id).order('lot_no');
+  const lots: BatchInfo[] = ((lotData ?? []) as { lot_no: string; variant_id: string; received: number; remaining: number; moves: { qty: number }[] }[]).map((l) => ({
+    lotNo: l.lot_no, variantId: l.variant_id, received: l.received, remaining: l.remaining,
+    sold: -l.moves.filter((m) => m.qty < 0).reduce((n, m) => n + m.qty, 0),
+    back: l.moves.filter((m) => m.qty > 0).reduce((n, m) => n + m.qty, 0),
+  }));
   const raw = data as unknown as Omit<StockOrderView, 'items'> & { updated_at: string; items: (Omit<StockOrderView['items'][number], 'unit_cost' | 'new_price'> & { unit_cost: number | string | null; new_price: number | string | null })[] };
   const order: StockOrderView = { ...raw, items: raw.items.map((i) => ({ ...i, unit_cost: i.unit_cost === null ? null : Number(i.unit_cost), new_price: i.new_price === null ? null : Number(i.new_price) })) };
   const chip = order.status === 'draft' ? 'bg-[#fef3c7] text-[#92400e]' : order.status === 'received' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-soft text-muted';
@@ -31,7 +38,7 @@ export default async function StockOrderPage({ params, searchParams }: { params:
         <p className="text-sm text-muted">Made {formatDateTime(order.created_at)}{order.received_at ? ` · confirmed ${formatDateTime(order.received_at)}` : ''}</p>
       </header>
       {sp.created && <p className="rounded-xl bg-ok/10 px-4 py-3 text-sm font-medium text-ok">Saved as a draft. When the goods arrive, press “Confirm”.</p>}
-      <StockOrderForm key={raw.updated_at} order={order} variants={variants} withCost={withCost} canSaveCost={can.has('catalog')} />
+      <StockOrderForm key={raw.updated_at} order={order} batches={lots} variants={variants} withCost={withCost} canSaveCost={can.has('catalog')} />
     </div>
   );
 }

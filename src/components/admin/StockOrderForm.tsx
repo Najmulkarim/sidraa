@@ -26,6 +26,9 @@ export type StockOrderView = {
 };
 
 /** variantId null: a product that is not listed yet (made as a Draft product when received). */
+/** One batch (lot) from a confirmed line: its serial number and what happened to its units. */
+export type BatchInfo = { lotNo: string; variantId: string; received: number; remaining: number; sold: number; back: number };
+
 type Line = { key: string; variantId: string | null; quantity: string; unitCost: string; newName: string; newColor: string; newSize: string; newImage: string | null; newPrice: string; productId: string | null };
 let seq = 0;
 const newKey = () => `l${++seq}`;
@@ -35,7 +38,7 @@ const newKey = () => `l${++seq}`;
  * name or SKU, with photos) with quantity and unit cost. Saved as a draft;
  * "Confirm" adds it all to stock at once.
  */
-export function StockOrderForm({ order, variants, withCost, canSaveCost }: { order?: StockOrderView; variants: InventoryRow[]; withCost: boolean; canSaveCost: boolean }) {
+export function StockOrderForm({ order, variants, withCost, canSaveCost, batches = [] }: { order?: StockOrderView; variants: InventoryRow[]; withCost: boolean; canSaveCost: boolean; batches?: BatchInfo[] }) {
   const router = useRouter();
   const draft = !order || order.status === 'draft';
   const [supplier, setSupplier] = useState(order?.supplier ?? '');
@@ -152,6 +155,14 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
                             <span className="min-w-0">
                               <span className="block max-w-[240px] truncate font-medium">{v?.name ?? 'Removed item'}</span>
                               <span className="font-mono text-[11px] text-muted">{v?.sku}{v?.variant ? ` · ${v.variant}` : ''}</span>
+                              {l.variantId && batches.filter((b) => b.variantId === l.variantId).map((b) => (
+                                <span key={b.lotNo} className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                                  <span className="rounded bg-night px-1.5 py-0.5 font-mono font-bold text-white" title="Batch serial number">{b.lotNo}</span>
+                                  <span className="text-muted">sold <b className="text-ink">{b.sold}</b></span>
+                                  {b.back > 0 && <span className="text-muted">returned <b className="text-ink">{b.back}</b></span>}
+                                  <span className="text-muted">left <b className={b.remaining > 0 ? 'text-ok' : 'text-bad'}>{b.remaining}</b> of {b.received}</span>
+                                </span>
+                              ))}
                               {l.productId && <a href={`/admin/products/${l.productId}`} className="block text-[11.5px] font-semibold text-brand hover:underline">New draft product: add price & photos, then publish →</a>}
                             </span>
                           </span>
@@ -204,7 +215,7 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
         {order && order.status !== 'received' && (
           <button type="button" disabled={acting} onClick={() => setAsking('delete')} className="flex items-center gap-1.5 text-[13px] font-semibold text-bad hover:underline"><Icon name="trash" size={14} /> Delete</button>
         )}
-        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Confirmed: these units were added to stock. Each line is in Inventory → Stock in.</p>}
+        {order?.status === 'received' && <p className="rounded-lg bg-ok/10 p-3 text-[13px] text-ok">Confirmed: these units were added to stock. Each line has its batch number below, with how many were sold, returned and are left.</p>}
         {order?.status === 'cancelled' && <p className="rounded-lg bg-soft p-3 text-[13px] text-muted">Cancelled — stock was not changed.</p>}
       </aside>
 
@@ -219,7 +230,7 @@ export function StockOrderForm({ order, variants, withCost, canSaveCost }: { ord
       >
         {asking === 'receive' ? (
           <span className="block space-y-2">
-            <span className="block">Every line is added to stock now and logged as Restock. This cannot be undone here (use Adjust if a count was wrong).</span>
+            <span className="block">Every line is added to stock now and gets its own batch number (e.g. PO-0001-01). Sales take from the oldest batch first; cancels and returns go back to the same batch. This cannot be undone here (use Adjust if a count was wrong).</span>
             {canSaveCost && (
               <label className="flex items-center gap-2 font-medium text-ink">
                 <input type="checkbox" checked={saveCosts} onChange={(e) => setSaveCosts(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" />

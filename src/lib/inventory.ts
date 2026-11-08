@@ -78,7 +78,8 @@ export function inventoryCsv(rows: InventoryRow[], threshold: number, withCost: 
 export type MovementKind = 'all' | 'in' | 'out' | 'adjust';
 /** Which movement reasons each history tab shows. */
 export const MOVEMENT_REASONS: Record<Exclude<MovementKind, 'all'>, string[]> = {
-  in: ['restock', 'return', 'cancel'],
+  // Real stock coming in only (purchase orders, restocks); cancels and returns go back to their batch.
+  in: ['restock'],
   out: ['order'],
   adjust: ['adjust', 'edit'],
 };

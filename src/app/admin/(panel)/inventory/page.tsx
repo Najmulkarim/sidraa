@@ -50,6 +50,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   ]);
 
   let movements: Movement[] = [];
+  const lots = new Map<number, { no: string; qty: number; po: string | null }[]>();
   if (!isList) {
     let mq = supabase
       .from('inventory_movements')
@@ -60,6 +61,16 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     if (tab === 'in') mq = mq.gt('change', 0);
     const { data } = await mq;
     movements = (data ?? []) as unknown as Movement[];
+    // Which batch (purchase-order line) each movement took units from or put back into.
+    if (movements.length) {
+      const { data: lm } = await supabase.from('lot_movements').select('movement_id, qty, lot:stock_lots(lot_no, stock_order_id)').in('movement_id', movements.map((m) => m.id));
+      for (const r of (lm ?? []) as unknown as { movement_id: number; qty: number; lot: { lot_no: string; stock_order_id: string | null } | null }[]) {
+        if (!r.lot) continue;
+        const list = lots.get(r.movement_id) ?? [];
+        list.push({ no: r.lot.lot_no, qty: r.qty, po: r.lot.stock_order_id });
+        lots.set(r.movement_id, list);
+      }
+    }
   }
 
   return (
@@ -120,7 +131,12 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                     <td className="px-3 py-2">
                       {m.order && <Link href={`/admin/orders/${m.order.id}`} className="font-mono text-brand hover:underline">{m.order.public_ref}</Link>}
                       {m.stock_order && <Link href={`/admin/inventory/stock-orders/${m.stock_order.id}`} className="font-mono text-brand hover:underline">{m.stock_order.ref}</Link>}
-                      {!m.order && !m.stock_order && <span className="text-muted">—</span>}
+                      {!m.order && !m.stock_order && !lots.get(m.id) && <span className="text-muted">—</span>}
+                      {lots.get(m.id)?.map((l) => (
+                        <span key={l.no} className="mt-0.5 block text-[11px] text-muted" title={l.qty < 0 ? 'Taken from this batch' : 'Put back into this batch'}>
+                          {l.qty < 0 ? 'from' : 'back to'} {l.po ? <Link href={`/admin/inventory/stock-orders/${l.po}`} className="font-mono font-semibold text-ink hover:text-brand">{l.no}</Link> : <span className="font-mono">{l.no}</span>} ({Math.abs(l.qty)})
+                        </span>
+                      ))}
                     </td>
                     <td className="max-w-[260px] px-3 py-2 text-muted">{m.note}</td>
                   </tr>
