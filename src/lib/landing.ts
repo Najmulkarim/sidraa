@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { SLUG_RE } from './slug';
 import { LANDING_TEMPLATES, parseShowcase, type LandingTemplate, type Showcase } from './showcase';
+import { parseStory, type Story } from './story';
 
 export type Faq = { q: string; a: string };
 
@@ -26,6 +27,8 @@ export type LandingPage = {
   show_reviews: boolean;
   template: LandingTemplate;
   sections: Showcase;
+  /** The Story template's words and photos (kept in the same `sections` column). */
+  story: Story;
   updated_at?: string;
 };
 
@@ -49,7 +52,8 @@ export const landingSchema = z.object({
   showDescription: z.boolean(),
   showReviews: z.boolean(),
   template: z.enum(LANDING_TEMPLATES).catch('classic'),
-  sections: z.unknown().optional().transform((v) => parseShowcase(v)),
+  // Checked by the template when saving (parseShowcase / parseStory).
+  sections: z.unknown().optional(),
 });
 export type LandingInput = z.input<typeof landingSchema>;
 
@@ -112,7 +116,8 @@ export function toLandingPage(raw: Record<string, unknown>): LandingPage {
     ...r,
     benefits: Array.isArray(r.benefits) ? r.benefits : [],
     faqs: parseFaqs(r.faqs),
-    template: r.template === 'showcase' ? 'showcase' : 'classic',
+    template: r.template === 'showcase' || r.template === 'story' ? r.template : 'classic',
     sections: parseShowcase(r.sections),
+    story: parseStory(r.sections),
   };
 }

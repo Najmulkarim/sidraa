@@ -9,7 +9,7 @@ import { z } from 'zod';
 import type { IconName } from '@/components/icons';
 import { splitBullet } from './product-content';
 
-export const LANDING_TEMPLATES = ['classic', 'showcase'] as const;
+export const LANDING_TEMPLATES = ['classic', 'showcase', 'story'] as const;
 export type LandingTemplate = (typeof LANDING_TEMPLATES)[number];
 
 export const FEATURE_ICONS = ['check', 'star', 'heart', 'bolt', 'shield', 'drop', 'leaf', 'sun', 'snow', 'feather', 'gift', 'ruler', 'sparkle', 'hand', 'truck', 'clock', 'phone', 'cash', 'return'] as const satisfies readonly IconName[];

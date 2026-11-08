@@ -7,6 +7,8 @@ import { requirePermission } from '@/lib/auth';
 import { mapDbError } from '@/lib/db-errors';
 import { landingSchema, type LandingInput } from '@/lib/landing';
 import { parseDescription, plainDescription } from '@/lib/product-content';
+import { parseShowcase } from '@/lib/showcase';
+import { parseStory, storagePath } from '@/lib/story';
 import type { ActionState } from '@/lib/types';
 
 export async function saveLanding(input: LandingInput): Promise<ActionState> {
@@ -24,7 +26,7 @@ export async function saveLanding(input: LandingInput): Promise<ActionState> {
   const row = {
     slug: l.slug, product_id: l.productId, is_active: l.isActive, headline: l.headline, subheadline: l.subheadline, offer_text: l.offerText,
     coupon_code: l.couponCode, video_url: l.videoUrl, benefits: l.benefits, faqs: l.faqs, button_text: l.buttonText,
-    show_description: l.showDescription, show_reviews: l.showReviews, template: l.template, sections: l.sections,
+    show_description: l.showDescription, show_reviews: l.showReviews, template: l.template, sections: l.template === 'story' ? parseStory(l.sections) : parseShowcase(l.sections),
   };
   const { data, error } = l.id
     ? await supabase.from('landing_pages').update(row).eq('id', l.id).select('id, slug').single()
@@ -63,7 +65,7 @@ export async function setLandingActive(id: string, on: boolean): Promise<ActionS
 }
 
 /** The product's name, photos and description points, to fill a new Showcase page. */
-export async function productStarter(productId: string): Promise<{ ok: true; name: string; photos: string[]; bullets: string[]; intro: string } | { ok: false; message: string }> {
+export async function productStarter(productId: string): Promise<{ ok: true; name: string; photos: string[]; bullets: string[]; intro: string; posters: string[] } | { ok: false; message: string }> {
   const { supabase } = await requirePermission('catalog');
   if (!z.uuid().safeParse(productId).success) return { ok: false, message: 'Choose a product.' };
   const { data } = await supabase
@@ -81,5 +83,7 @@ export async function productStarter(productId: string): Promise<{ ok: true; nam
     photos: [...data.images].sort((a, b) => a.sort_order - b.sort_order).map((i) => i.storage_path),
     bullets: content.bullets.slice(0, 13),
     intro: plainDescription(intro, 300),
+    // The description's own pictures (our storage only), for the Story posters.
+    posters: content.blocks.flatMap((b) => (b.type === 'img' ? [storagePath(b.src)].filter((x): x is string => !!x) : [])).slice(0, 12),
   };
 }

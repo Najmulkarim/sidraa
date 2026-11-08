@@ -15,7 +15,7 @@ export default async function NewLandingPage({ searchParams }: { searchParams: P
         <Link href="/admin/landing-pages" className="text-sm text-muted hover:text-ink">← Landing pages</Link>
         <h1 className="text-2xl font-bold tracking-tight">New landing page</h1>
       </header>
-      <LandingForm {...data} startTemplate={sp.template === 'classic' ? 'classic' : 'showcase'} />
+      <LandingForm {...data} startTemplate={sp.template === 'classic' || sp.template === 'story' ? sp.template : 'showcase'} />
     </div>
   );
 }

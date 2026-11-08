@@ -8,10 +8,11 @@ import { parseDescription, plainDescription } from '@/lib/product-content';
 import { LANDING_TEMPLATES, parseShowcase, showcaseFromProduct, type LandingTemplate } from '@/lib/showcase';
 import { createPublicClient } from '@/lib/supabase/public';
 import type { LandingPage } from '@/lib/landing';
+import { parseStory, storagePath, storyFromProduct } from '@/lib/story';
 
 export const metadata: Metadata = { title: 'Design preview', robots: { index: false, follow: false } };
 
-const NAMES: Record<LandingTemplate, string> = { showcase: 'Showcase', classic: 'Simple' };
+const NAMES: Record<LandingTemplate, string> = { showcase: 'Showcase', classic: 'Simple', story: 'Story' };
 
 /**
  * Staff-only preview of a landing page design, filled with one of the shop's own
@@ -38,6 +39,7 @@ export default async function LandingDesignPreview({ params, searchParams }: { p
     offer_text: 'Your offer line here', coupon_code: null, video_url: null,
     benefits: content.bullets.slice(0, 6), faqs: [{ q: 'Your questions and answers show here', a: 'For example delivery time, sizes and how to pay.' }],
     button_text: null, show_description: true, show_reviews: true, template: t,
+    story: t === 'story' ? storyFromProduct({ name: product.name, intro: plainDescription(first && first.type === 'p' ? first.text : '', 600), bullets: content.bullets.slice(0, 13), posters: content.blocks.flatMap((b) => (b.type === 'img' ? [storagePath(b.src)].filter((x): x is string => !!x) : [])).slice(0, 12), photos }) : parseStory({}),
     sections: t === 'showcase' ? showcaseFromProduct({ name: product.name, photos, bullets: content.bullets.slice(0, 13), intro: plainDescription(first && first.type === 'p' ? first.text : '', 300) }) : parseShowcase({}),
   };
 

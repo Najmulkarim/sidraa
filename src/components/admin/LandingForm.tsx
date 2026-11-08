@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { deleteLanding, productStarter, saveLanding } from '@/actions/admin-landing';
 import { parseShowcase, showcaseFromProduct, type LandingTemplate, type Showcase } from '@/lib/showcase';
 import { ShowcaseEditor } from './ShowcaseEditor';
+import { StoryEditor } from './StoryEditor';
+import { parseStory, storyFromProduct, type Story } from '@/lib/story';
 import { videoEmbed, type Faq, type LandingPage } from '@/lib/landing';
 import { slugify } from '@/lib/slug';
 import { Icon } from '../icons';
@@ -39,6 +41,7 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
   const [q, setQ] = useState('');
   const [template, setTemplate] = useState<LandingTemplate>(page?.template ?? startTemplate ?? 'showcase');
   const [sections, setSections] = useState<Showcase>(page?.sections ?? parseShowcase({}));
+  const [story, setStory] = useState<Story>(page?.story ?? parseStory({}));
   const [photos, setPhotos] = useState<string[]>([]);
   const [filling, startFill] = useTransition();
   const [asked, setAsked] = useState(false);
@@ -56,30 +59,32 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
   }, [q, products]);
 
   // The product's photos for the photo pickers; a new Showcase is filled from the product.
-  const loadProduct = (id: string, fill: boolean) => startFill(async () => {
+  const loadProduct = (id: string, fill: false | LandingTemplate) => startFill(async () => {
     const r = await productStarter(id);
     if (!r.ok) return notify(false, r.message);
-    setPhotos(r.photos);
-    if (fill) setSections(showcaseFromProduct(r));
+    setPhotos([...new Set([...r.photos, ...r.posters])]);
+    if (fill === 'showcase') setSections(showcaseFromProduct(r));
+    if (fill === 'story') setStory(storyFromProduct(r));
   });
   useEffect(() => {
     if (page?.product_id) loadProduct(page.product_id, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const isEmpty = !sections.hero.title && sections.features.items.length === 0;
+  const emptyFor = (t: LandingTemplate) => (t === 'showcase' ? !sections.hero.title && sections.features.items.length === 0 : t === 'story' ? !story.title && story.blocks.length === 0 : false);
 
   const choose = (p: LandingProduct) => {
     setProductId(p.id);
     setQ('');
     if (!slugTouched) setSlug(slugify(p.name).slice(0, 60).replace(/-+$/, ''));
-    loadProduct(p.id, isEmpty || !page);
+    // A new page (or an empty design) is filled from the product.
+    loadProduct(p.id, !page || emptyFor(template) ? template : false);
   };
 
   const save = () => startSave(async () => {
     setErrors({});
     const r = await saveLanding({
       id: page?.id, slug, productId, isActive, headline, subheadline, offerText, couponCode, videoUrl,
-      benefits, faqs, buttonText, showDescription, showReviews, template, sections,
+      benefits, faqs, buttonText, showDescription, showReviews, template, sections: template === 'story' ? story : sections,
     });
     if (r) {
       notify(r.ok, r.message);
@@ -101,14 +106,17 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
     <div className="max-w-3xl space-y-6">
       <section className="card space-y-3 p-5">
         <h2 className="font-semibold">Design</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           {([
+            ['story', 'Story', 'Product-page top with Order / WhatsApp / Call buttons, the product’s story with lists, big poster photos, order form.'],
             ['showcase', 'Showcase', 'Big dark top, features with icons, wide photos, photo cards, order box, reviews and contact. Every part editable.'],
             ['classic', 'Simple', 'Photos and offer at the top, ✓ points, description, questions and the order form.'],
           ] as const).map(([key, title, text]) => (
-            <button key={key} type="button" onClick={() => { setTemplate(key); if (key === 'showcase' && productId && isEmpty) loadProduct(productId, true); }} className={`rounded-xl border-2 p-3 text-left transition ${template === key ? 'border-brand bg-tint' : 'border-line hover:border-ink/30'}`}>
+            <button key={key} type="button" onClick={() => { setTemplate(key); if (key !== 'classic' && productId && emptyFor(key)) loadProduct(productId, key); }} className={`rounded-xl border-2 p-3 text-left transition ${template === key ? 'border-brand bg-tint' : 'border-line hover:border-ink/30'}`}>
               <span className="mb-2 block overflow-hidden rounded-lg bg-white ring-1 ring-line">
-                {key === 'showcase' ? (
+                {key === 'story' ? (
+                  <span className="block space-y-1 p-2"><span className="flex gap-1"><span className="h-9 w-9 rounded bg-tint" /><span className="flex-1 space-y-1"><span className="block h-2 rounded bg-soft" /><span className="block h-2.5 w-1/2 rounded bg-bad/70" /><span className="block h-2.5 rounded bg-bad" /></span></span><span className="block h-2 rounded bg-soft" /><span className="block h-2 w-5/6 rounded bg-soft" /><span className="block h-6 rounded bg-[#e9dcc4]" /><span className="block h-3 rounded bg-night" /></span>
+                ) : key === 'showcase' ? (
                   <span className="block space-y-1 p-2"><span className="block h-7 rounded bg-night" /><span className="flex gap-1"><span className="h-5 flex-1 rounded bg-soft" /><span className="h-5 w-6 rounded bg-tint" /></span><span className="block h-4 rounded bg-night/70" /><span className="grid grid-cols-3 gap-1"><span className="h-4 rounded bg-tint" /><span className="h-4 rounded bg-tint" /><span className="h-4 rounded bg-tint" /></span></span>
                 ) : (
                   <span className="block space-y-1 p-2"><span className="flex gap-1"><span className="h-8 w-8 rounded bg-tint" /><span className="flex-1 space-y-1"><span className="block h-2 rounded bg-soft" /><span className="block h-2 w-2/3 rounded bg-soft" /><span className="block h-3 w-1/2 rounded bg-brand/60" /></span></span><span className="block h-4 rounded bg-soft" /><span className="block h-4 rounded bg-soft" /><span className="block h-5 rounded bg-tint" /></span>
@@ -207,7 +215,7 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
             {productId && (asked ? (
               <span className="flex flex-wrap items-center gap-2 text-[12.5px]">
                 Replace all parts with the product’s name, photos and points?
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAsked(false); loadProduct(productId, true); }}>Yes</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAsked(false); loadProduct(productId, 'showcase'); }}>Yes</button>
                 <button type="button" className="btn btn-outline btn-sm" onClick={() => setAsked(false)}>No</button>
               </span>
             ) : (
@@ -216,6 +224,17 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
           </div>
           <p className="text-[13px] text-muted">Choosing the product fills these with its name, photos and description points. Change any word or photo; untick “Show” to hide a part. Empty parts are left out.</p>
           <ShowcaseEditor value={sections} onChange={setSections} photos={photos} />
+        </section>
+      )}
+
+      {template === 'story' && (
+        <section className="card space-y-3 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">4. Page parts</h2>
+            {productId && <button type="button" disabled={filling} onClick={() => { if (window.confirm('Replace all parts with the product’s name, text, points and pictures?')) loadProduct(productId, 'story'); }} className="btn btn-outline btn-sm"><Icon name="refresh" size={14} /> {filling ? 'Filling…' : 'Fill again from product'}</button>}
+          </div>
+          <p className="text-[13px] text-muted">Choosing the product fills these with its name, description, points and the pictures in its description. Change any word; add, move or remove blocks, points and posters. Empty parts are left out.</p>
+          <StoryEditor value={story} onChange={setStory} photos={photos} />
         </section>
       )}
 

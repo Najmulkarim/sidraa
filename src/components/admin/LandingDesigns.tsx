@@ -3,6 +3,7 @@ import { Icon } from '../icons';
 
 const DESIGNS = [
   { key: 'showcase', name: 'Showcase', text: 'Big dark top, features with icons, wide photos, features around a photo, photo cards, order box, reviews and contact.' },
+  { key: 'story', name: 'Story', text: 'Like a product page at the top (photos, price, Order / WhatsApp / Call buttons), then the product’s story with lists, big poster photos, the order form and a call band.' },
   { key: 'classic', name: 'Simple', text: 'Photos and the offer at the top, ✓ points, the description, questions and the order form. Quick to make.' },
 ] as const;
 

@@ -8,6 +8,7 @@ import { Stars } from '@/components/shop/Stars';
 import { VariantImageProvider } from '@/components/shop/VariantImage';
 import { DescriptionFlow } from '@/components/shop/DescriptionParts';
 import { ShowcaseView } from '@/components/shop/landing/ShowcaseView';
+import { StoryView } from '@/components/shop/landing/StoryView';
 import { getProductReviews, getSettings, getZones, priceRange, variantPrice, visibleImages } from '@/lib/catalog';
 import { freeDelivery } from '@/lib/delivery';
 import { formatDate, formatTaka, toNumber } from '@/lib/format';
@@ -83,6 +84,31 @@ export async function LandingRender({ page, product, coupon, demo = false }: { p
       <a href="#order" className="btn btn-primary min-h-12 w-full text-base">{cta} · {formatTaka(offerPrice)}</a>
     </div>
   );
+
+  if (page.template === 'story') {
+    return (
+      <div className="min-h-dvh bg-[#fbfaf7] pb-24 md:pb-10">
+        {pixel}
+        {topBar}
+        <VariantImageProvider>
+          <main className="mx-auto max-w-5xl px-4 py-5 md:py-8">
+            <StoryView
+              s={page.story}
+              name={product.name}
+              images={images}
+              offer={{ price: offerPrice, from: min !== max, was, pct, countdown: coupon?.ends_at ? <OfferCountdown endsAt={coupon.ends_at} /> : null }}
+              offerText={page.offer_text}
+              video={video}
+              faqs={page.faqs}
+              phone={settings.phone}
+              order={orderBox}
+            />
+          </main>
+        </VariantImageProvider>
+        {stickyBar}
+      </div>
+    );
+  }
 
   if (page.template === 'showcase') {
     return (
