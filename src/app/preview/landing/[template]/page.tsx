@@ -38,7 +38,7 @@ export default async function LandingDesignPreview({ params, searchParams }: { p
     subheadline: plainDescription(first && first.type === 'p' ? first.text : '', 300) || null,
     offer_text: 'Your offer line here', coupon_code: null, video_url: null,
     benefits: content.bullets.slice(0, 6), faqs: [{ q: 'Your questions and answers show here', a: 'For example delivery time, sizes and how to pay.' }],
-    button_text: null, show_description: true, show_reviews: true, template: t,
+    button_text: null, show_description: true, show_reviews: true, template: t, source: 'design',
     story: t === 'story' ? storyFromProduct({ name: product.name, intro: plainDescription(first && first.type === 'p' ? first.text : '', 600), bullets: content.bullets.slice(0, 13), posters: content.blocks.flatMap((b) => (b.type === 'img' ? [storagePath(b.src)].filter((x): x is string => !!x) : [])).slice(0, 12), photos }) : parseStory({}),
     sections: t === 'showcase' ? showcaseFromProduct({ name: product.name, photos, bullets: content.bullets.slice(0, 13), intro: plainDescription(first && first.type === 'p' ? first.text : '', 300) }) : parseShowcase({}),
   };

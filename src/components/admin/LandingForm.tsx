@@ -22,7 +22,7 @@ export type LandingCoupon = { code: string; words: string; live: boolean };
  * Make or edit a landing page: the product, the link (/offer/…), the offer
  * (badge + coupon), headline, video, points and questions.
  */
-export function LandingForm({ page, products, coupons, startTemplate }: { page?: LandingPage; products: LandingProduct[]; coupons: LandingCoupon[]; startTemplate?: LandingTemplate }) {
+export function LandingForm({ page, products, coupons, startTemplate, source = 'manual' }: { page?: LandingPage; products: LandingProduct[]; coupons: LandingCoupon[]; startTemplate?: LandingTemplate; source?: 'manual' | 'design' }) {
   const router = useRouter();
   const [productId, setProductId] = useState(page?.product_id ?? '');
   const [slug, setSlug] = useState(page?.slug ?? '');
@@ -84,7 +84,7 @@ export function LandingForm({ page, products, coupons, startTemplate }: { page?:
     setErrors({});
     const r = await saveLanding({
       id: page?.id, slug, productId, isActive, headline, subheadline, offerText, couponCode, videoUrl,
-      benefits, faqs, buttonText, showDescription, showReviews, template, sections: template === 'story' ? story : sections,
+      benefits, faqs, buttonText, showDescription, showReviews, template, source: page?.source ?? source, sections: template === 'story' ? story : sections,
     });
     if (r) {
       notify(r.ok, r.message);

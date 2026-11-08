@@ -8,8 +8,10 @@ import { requirePermission } from '@/lib/auth';
 
 export const metadata: Metadata = { title: 'Landing pages' };
 
+const DESIGN_NAME: Record<string, string> = { showcase: 'Showcase', story: 'Story', classic: 'Simple' };
+
 type Row = {
-  id: string; slug: string; is_active: boolean; template: string; headline: string | null; offer_text: string | null; coupon_code: string | null;
+  id: string; slug: string; is_active: boolean; template: string; source: string | null; headline: string | null; offer_text: string | null; coupon_code: string | null;
   product: { name: string; status: string; images: { storage_path: string; sort_order: number }[] } | null;
 };
 
@@ -18,7 +20,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
   const [{ supabase }, sp] = await Promise.all([requirePermission('catalog'), searchParams]);
   const { data, error } = await supabase
     .from('landing_pages')
-    .select('id, slug, is_active, template, headline, offer_text, coupon_code, product:products(name, status, images:product_images(storage_path, sort_order))')
+    .select('id, slug, is_active, template, source, headline, offer_text, coupon_code, product:products(name, status, images:product_images(storage_path, sort_order))')
     .order('created_at', { ascending: false });
   const rows = (data ?? []) as unknown as Row[];
   const used: Record<string, number> = {};
@@ -61,6 +63,11 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-semibold hover:text-brand">{r.headline || r.product?.name || 'Product deleted'}</span>
+                      {r.source === 'design' ? (
+                        <span className="shrink-0 rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-bold text-[#4338ca]" title="Made from this design">{DESIGN_NAME[r.template] ?? r.template}</span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-soft px-2 py-0.5 text-[11px] font-bold text-muted" title={`Made by hand (${DESIGN_NAME[r.template] ?? r.template} layout)`}>Manual</span>
+                      )}
                       {!r.is_active && <span className="rounded bg-soft px-1.5 py-0.5 text-[11px] font-semibold text-muted">Off</span>}
                       {r.product && r.product.status !== 'published' && <span className="rounded bg-warn/15 px-1.5 py-0.5 text-[11px] font-semibold text-warn">Product {r.product.status}</span>}
                     </span>

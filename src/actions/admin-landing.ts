@@ -30,7 +30,7 @@ export async function saveLanding(input: LandingInput): Promise<ActionState> {
   };
   const { data, error } = l.id
     ? await supabase.from('landing_pages').update(row).eq('id', l.id).select('id, slug').single()
-    : await supabase.from('landing_pages').insert(row).select('id, slug').single();
+    : await supabase.from('landing_pages').insert({ ...row, source: l.source }).select('id, slug').single();
   if (error) {
     if (error.code === '23505') return { ok: false, message: 'Another landing page already uses this link.', fieldErrors: { slug: 'Already used' } };
     const mapped = mapDbError(error);

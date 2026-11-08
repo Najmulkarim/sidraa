@@ -26,13 +26,15 @@ export type LandingPage = {
   show_description: boolean;
   show_reviews: boolean;
   template: LandingTemplate;
+  /** Started from a design on the Designs list, or with the plain New button. */
+  source: 'manual' | 'design';
   sections: Showcase;
   /** The Story template's words and photos (kept in the same `sections` column). */
   story: Story;
   updated_at?: string;
 };
 
-export const LANDING_SELECT = 'id, slug, product_id, is_active, headline, subheadline, offer_text, coupon_code, video_url, benefits, faqs, button_text, show_description, show_reviews, template, sections, updated_at';
+export const LANDING_SELECT = 'id, slug, product_id, is_active, headline, subheadline, offer_text, coupon_code, video_url, benefits, faqs, button_text, show_description, show_reviews, template, source, sections, updated_at';
 
 const text = (max: number) => z.string().trim().max(max).transform((v) => v || null);
 
@@ -52,6 +54,7 @@ export const landingSchema = z.object({
   showDescription: z.boolean(),
   showReviews: z.boolean(),
   template: z.enum(LANDING_TEMPLATES).catch('classic'),
+  source: z.enum(['manual', 'design']).catch('manual'),
   // Checked by the template when saving (parseShowcase / parseStory).
   sections: z.unknown().optional(),
 });
@@ -119,5 +122,6 @@ export function toLandingPage(raw: Record<string, unknown>): LandingPage {
     template: r.template === 'showcase' || r.template === 'story' ? r.template : 'classic',
     sections: parseShowcase(r.sections),
     story: parseStory(r.sections),
+    source: (r as { source?: unknown }).source === 'design' ? 'design' : 'manual',
   };
 }
