@@ -20,11 +20,11 @@ const COLOR = { cogs: '#7c83f0', exp: '#c97c00', net: '#0ea371' };
  * expenses, and where each taka of income went. Right: the net profit, on its
  * own card.
  */
-export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '', brand, from, to }: {
+export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '', brand, logo = null, from, to }: {
   period: string; net: number; netMargin: number | null; income: number; gross: number; grossMargin: number | null;
   cogs: number; expenses: number; incomeSub: string; expenseSub: string; cogsSub?: string;
-  /** The shop's name, written where a bank card says VISA. */
-  brand: string;
+  /** The shop's name and logo, on the card. */
+  brand: string; logo?: string | null;
   /** The period as YYYY-MM-DD, for the card's "valid" dates. */
   from: string; to: string;
 }) {
@@ -84,7 +84,7 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
 
         {/* Right: the result, as a bank card. */}
         <div className="order-first flex items-center justify-center lg:order-none">
-          <ProfitCard net={net} netMargin={netMargin} brand={brand} from={from} to={to} />
+          <ProfitCard net={net} netMargin={netMargin} brand={brand} logo={logo} from={from} to={to} />
         </div>
       </div>
     </section>
@@ -103,78 +103,153 @@ function HeroStat({ label, value, sub, accent }: { label: string; value: string;
 }
 
 const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
+const INK = '#2f3e4e';
 
 /**
- * Net profit as a bank card (the real card shape, 85.6 × 54 mm): a gold chip,
- * the amount where the card number goes, the period as its "valid" dates, and
- * the shop's name where the card network's name sits.
+ * Net profit as a card in the spirit of a taka note (an original design, not
+ * a copy of one): mint-to-peach paper, an engraved side band, a magpie-robin
+ * on a branch, a watermark window holding the shop's logo, a fine engraved
+ * strip along the bottom, and the gold chip of a bank card.
  */
-function ProfitCard({ net, netMargin, brand, from, to }: { net: number; netMargin: number | null; brand: string; from: string; to: string }) {
+function ProfitCard({ net, netMargin, brand, logo, from, to }: { net: number; netMargin: number | null; brand: string; logo: string | null; from: string; to: string }) {
   const loss = net < 0;
   return (
     <div
-      className={`relative aspect-[85.6/54] w-full max-w-[24rem] select-none overflow-hidden rounded-[11px] p-[6%] text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/15 ${loss
-        ? 'bg-[linear-gradient(135deg,#5b0f22_0%,#2a0912_55%,#140509_100%)]'
-        : 'bg-[linear-gradient(135deg,#0b3d33_0%,#08241f_50%,#05110f_100%)]'}`}
+      className={`relative aspect-[85.6/54] w-full max-w-[25rem] select-none overflow-hidden rounded-[11px] shadow-[0_18px_40px_-14px_rgba(0,0,0,0.75)] ring-1 ring-black/10 ${loss
+        ? 'bg-[linear-gradient(100deg,#f6dde2_0%,#fbeee6_45%,#fbd9c6_75%,#f1b8a8_100%)]'
+        : 'bg-[linear-gradient(100deg,#c9ece1_0%,#e4f4ec_42%,#fbe5d3_74%,#f5c8a6_100%)]'}`}
+      style={{ color: INK }}
       role="img"
-      aria-label={`${loss ? 'Net loss' : 'Net profit'} ${money(net)}${netMargin !== null ? `, ${netMargin}% of income` : ''}, ${ddmm(from)} to ${ddmm(to)}`}
+      aria-label={`${loss ? 'Net loss' : 'Net profit'} ${money(net)}${netMargin !== null ? `, ${netMargin}% of income` : ''}, ${ddmm(from)} to ${ddmm(to)}, ${brand}`}
     >
-      {/* Card art: soft waves, a sheen and a glow. */}
-      <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.16]" viewBox="0 0 400 252" preserveAspectRatio="none">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <path key={i} d={`M-20 ${150 + i * 18} C 90 ${90 + i * 18}, 220 ${230 + i * 14}, 420 ${120 + i * 16}`} fill="none" stroke={loss ? '#fda4af' : '#6ee7b7'} strokeWidth="1" />
+      {/* Fine engraved lines across the paper. */}
+      <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 252" preserveAspectRatio="none">
+        {Array.from({ length: 14 }, (_, i) => (
+          <path key={i} d={`M0 ${30 + i * 15} C 110 ${10 + i * 15}, 260 ${60 + i * 15}, 400 ${25 + i * 15}`} fill="none" stroke={INK} strokeOpacity="0.06" strokeWidth="0.8" />
         ))}
       </svg>
-      <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_35%,rgba(255,255,255,0.08)_45%,transparent_55%)]" />
 
-      <Rosette color={loss ? '#fda4af' : '#6ee7b7'} />
+      {/* Left: the engraved side band. */}
+      <div className="absolute inset-y-0 left-0 w-[8%] overflow-hidden" style={{ background: INK }}>
+        <svg aria-hidden className="absolute inset-0 h-full w-full" viewBox="0 0 30 200" preserveAspectRatio="none">
+          {Array.from({ length: 20 }, (_, i) => (
+            <path key={i} d={`M0 ${i * 10} L15 ${i * 10 + 6} L30 ${i * 10}`} fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="0.8" />
+          ))}
+        </svg>
+        <span className="absolute left-1/2 top-[7%] -translate-x-1/2 text-[1.35rem] font-black leading-none text-white/90">৳</span>
+      </div>
 
-      <div className="relative flex h-full flex-col">
-        {/* Top: what the card shows, and a contactless mark. */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">{loss ? 'Net loss' : 'Net profit'}</p>
-            {netMargin !== null && <p className={`text-[10px] font-semibold ${loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'}`}>{netMargin}% of income</p>}
-          </div>
-          <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6 text-white/75" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <path d="M7 9.5a3.5 3.5 0 0 1 0 5" /><path d="M10.5 7a7 7 0 0 1 0 10" /><path d="M14 4.5a10.5 10.5 0 0 1 0 15" />
-          </svg>
-        </div>
+      {/* Right: the watermark window, holding the shop's logo. */}
+      <div className="absolute right-[5%] top-[9%] grid aspect-square w-[34%] place-items-center rounded-full bg-[radial-gradient(circle,#ffffff_0%,#ffffffee_55%,#ffffff00_72%)]">
+        <div className="absolute inset-[6%] rounded-full ring-1 ring-[#e8a77a]/50" />
+        <MiniRosette />
+        {logo
+          // eslint-disable-next-line @next/next/no-img-element -- a small brand mark on the card
+          ? <img src={logo} alt="" className="relative w-[78%] object-contain opacity-95" />
+          : <span className="relative font-serif text-[1.3rem] font-bold italic" style={{ color: INK }}>{brand}</span>}
+      </div>
 
-        {/* The gold chip. */}
-        <Chip />
+      {/* The bird on its branch. */}
+      <MagpieRobin className="absolute left-[28%] top-[21%] h-[45%] w-auto" />
 
-        {/* The amount, where the card number goes. */}
-        <p className="mt-auto pt-1.5 font-mono text-[clamp(1.2rem,5vw,1.9rem)] font-semibold leading-none tracking-[0.06em] text-white/95 [text-shadow:0_1px_0_rgba(255,255,255,0.25),0_-1px_0_rgba(0,0,0,0.6)] lg:text-[1.75rem]">
-          {money(net)}
-        </p>
+      {/* Top: what the card shows, and a contactless mark. */}
+      <div className="absolute left-[12%] right-[42%] top-[8%]">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em]">{loss ? 'Net loss' : 'Net profit'}</p>
+        <p className="text-[11px] font-semibold opacity-60">{loss ? 'নিট লোকসান' : 'নিট লাভ'}</p>
+      </div>
 
-        {/* Bottom: the period as "valid" dates, and the shop's name where VISA goes. */}
-        <div className="mt-[5%] flex items-end justify-between gap-3">
-          <div className="flex gap-4 font-mono text-white/85">
-            <div>
-              <p className="text-[7.5px] font-sans font-semibold uppercase leading-tight tracking-wider text-white/50">Valid<br />from</p>
-              <p className="text-[12px] tracking-wider">{ddmm(from)}</p>
-            </div>
-            <div>
-              <p className="text-[7.5px] font-sans font-semibold uppercase leading-tight tracking-wider text-white/50">Valid<br />thru</p>
-              <p className="text-[12px] tracking-wider">{ddmm(to)}</p>
-            </div>
-          </div>
-          <p className="max-w-[55%] truncate text-right text-[1.45rem] font-black italic leading-none tracking-tight text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.35)]">
-            {brand}
+      {/* The gold chip. */}
+      <Chip className="absolute left-[12%] top-[30%] h-[17%] w-auto" />
+
+      {/* The amount, where a note says its value. */}
+      <p className={`absolute bottom-[22%] right-[5%] text-right text-[clamp(1.35rem,5vw,2rem)] font-black leading-none tracking-tight lg:text-[1.85rem] ${loss ? 'text-[#9f1239]' : ''}`}
+        style={{ textShadow: '0 1px 0 rgba(255,255,255,0.7)' }}>
+        {money(net)}
+      </p>
+
+      {/* Bottom: the engraved strip with the period, and the shop's name. */}
+      <div className="absolute inset-x-0 bottom-0 h-[19%] overflow-hidden" style={{ background: `linear-gradient(90deg, ${INK}ee, ${INK}cc)` }}>
+        <svg aria-hidden className="absolute inset-0 h-full w-full" viewBox="0 0 400 48" preserveAspectRatio="none">
+          {Array.from({ length: 9 }, (_, i) => (
+            <path key={i} d={`M0 ${24 + Math.sin(i) * 4} ${Array.from({ length: 20 }, (_, k) => `Q ${k * 20 + 10} ${i % 2 ? 6 : 42} ${k * 20 + 20} 24`).join(' ')}`} fill="none" stroke="#fff" strokeOpacity="0.12" strokeWidth="0.7" />
+          ))}
+        </svg>
+        <div className="relative flex h-full items-center justify-between pl-[11%] pr-[5%] text-white">
+          <p className="font-mono text-[11px] tracking-wider text-white/85">
+            <span className="mr-1.5 font-sans text-[7.5px] font-semibold uppercase tracking-wider text-white/55">Valid</span>
+            {ddmm(from)} – {ddmm(to)}
           </p>
+          {netMargin !== null && (
+            <p className="text-[11px] font-bold tracking-wide text-[#f3d886]">{netMargin}% <span className="font-medium text-white/60">of income</span></p>
+          )}
         </div>
       </div>
+
+      {/* A soft sheen across the card. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.35)_42%,transparent_52%)] mix-blend-soft-light" />
     </div>
   );
 }
 
-/** A gold EMV chip. */
-function Chip() {
+/** An original line drawing of a magpie-robin (doyel) on a leafy branch. */
+function MagpieRobin({ className }: { className?: string }) {
   return (
-    <svg aria-hidden viewBox="0 0 50 38" className="mt-[3%] h-[19%] w-auto self-start drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
+    <svg aria-hidden viewBox="0 0 120 100" className={className}>
+      <g fill={INK}>
+        {/* tail, raised */}
+        <path d="M44 56 L14 10 Q12 6 17 7 L50 50 Z" />
+        {/* body */}
+        <ellipse cx="62" cy="57" rx="23" ry="13" transform="rotate(-14 62 57)" />
+        {/* head and beak */}
+        <circle cx="84" cy="43" r="9.5" />
+        <path d="M92.5 41.5 L105 44.5 L92.5 47 Z" />
+      </g>
+      {/* white wing bar and belly */}
+      <path d="M48 52 Q63 44 77 49 Q64 53 49 58 Z" fill="#ffffff" fillOpacity="0.92" />
+      <path d="M57 67 Q72 70 82 55 Q78 66 58 70 Z" fill="#ffffff" fillOpacity="0.85" />
+      {/* eye */}
+      <circle cx="86.5" cy="41" r="1.8" fill="#ffffff" />
+      <circle cx="86.8" cy="41" r="0.9" fill={INK} />
+      {/* legs */}
+      <path d="M63 68 L61 80 M70 67 L70 80" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
+      {/* branch with leaves */}
+      <path d="M20 84 Q 64 74 116 86" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M96 82 Q 104 70 112 66" fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
+      <g fill={INK} fillOpacity="0.85">
+        <ellipse cx="34" cy="76" rx="5" ry="2.4" transform="rotate(-30 34 76)" />
+        <ellipse cx="44" cy="87" rx="5" ry="2.4" transform="rotate(25 44 87)" />
+        <ellipse cx="104" cy="72" rx="5" ry="2.4" transform="rotate(-40 104 72)" />
+        <ellipse cx="112" cy="62" rx="4.5" ry="2.2" transform="rotate(-70 112 62)" />
+        <ellipse cx="90" cy="88" rx="5" ry="2.4" transform="rotate(20 90 88)" />
+      </g>
+    </svg>
+  );
+}
+
+/** A faint engraved rosette behind the logo in the watermark window. */
+function MiniRosette() {
+  const loop = (R: number, amp: number, k: number, phase: number) => {
+    const pts: string[] = [];
+    for (let i = 0; i <= 160; i++) {
+      const t = (i / 160) * Math.PI * 2;
+      const r = R + amp * Math.sin(k * t + phase);
+      pts.push(`${(50 + r * Math.cos(t)).toFixed(2)},${(50 + r * Math.sin(t)).toFixed(2)}`);
+    }
+    return `M${pts.join(' L')}Z`;
+  };
+  return (
+    <svg aria-hidden viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+      <g fill="none" stroke="#e8a77a" strokeWidth="0.35" strokeOpacity="0.55">
+        {Array.from({ length: 6 }, (_, i) => <path key={i} d={loop(40, 5, 10, (i * Math.PI) / 6)} />)}
+      </g>
+    </svg>
+  );
+}
+
+/** A gold EMV chip. */
+function Chip({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 50 38" className={`${className ?? ''} drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]`}>
       <defs>
         <linearGradient id="chip-gold" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#f8e7a1" />
@@ -188,48 +263,6 @@ function Chip() {
         <path d="M1 13h14M1 25h14M35 13h14M35 25h14" />
         <path d="M15 1v10a4 4 0 0 0 4 4h12a4 4 0 0 0 4-4V1M15 37V27a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v10" />
         <rect x="19" y="15" width="12" height="8" rx="2" />
-      </g>
-    </svg>
-  );
-}
-
-/**
- * A guilloche rosette: rings of fine looping lines, like the engraving on a
- * bank card, set in the card's upper right with a soft gold centre.
- */
-function Rosette({ color }: { color: string }) {
-  // One closed loop: a circle whose radius wobbles k times round (a rose curve on a ring).
-  const loop = (R: number, amp: number, k: number, phase: number) => {
-    const pts: string[] = [];
-    for (let i = 0; i <= 180; i++) {
-      const t = (i / 180) * Math.PI * 2;
-      const r = R + amp * Math.sin(k * t + phase);
-      pts.push(`${(100 + r * Math.cos(t)).toFixed(2)},${(100 + r * Math.sin(t)).toFixed(2)}`);
-    }
-    return `M${pts.join(' L')}Z`;
-  };
-  const rings = [
-    ...Array.from({ length: 9 }, (_, i) => ({ d: loop(78, 10, 12, (i * Math.PI) / 9), o: 0.5 })),
-    ...Array.from({ length: 7 }, (_, i) => ({ d: loop(52, 9, 9, (i * Math.PI) / 7), o: 0.6 })),
-    ...Array.from({ length: 5 }, (_, i) => ({ d: loop(28, 7, 6, (i * Math.PI) / 5), o: 0.75 })),
-  ];
-  return (
-    <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute right-[6%] top-[46%] h-[80%] -translate-y-1/2">
-      <defs>
-        <radialGradient id="rosette-glow">
-          <stop offset="0%" stopColor="#f3d886" stopOpacity="0.35" />
-          <stop offset="55%" stopColor="#f3d886" stopOpacity="0.06" />
-          <stop offset="100%" stopColor="#f3d886" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <circle cx="100" cy="100" r="96" fill="url(#rosette-glow)" />
-      <g fill="none" stroke={color} strokeWidth="0.45">
-        {rings.map((x, i) => <path key={i} d={x.d} strokeOpacity={x.o * 0.42} />)}
-      </g>
-      <g fill="none" stroke="#f3d886" strokeWidth="0.5" strokeOpacity="0.45">
-        <circle cx="100" cy="100" r="90" />
-        <circle cx="100" cy="100" r="64" strokeDasharray="1.5 2.5" />
-        <circle cx="100" cy="100" r="14" />
       </g>
     </svg>
   );
