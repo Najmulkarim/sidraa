@@ -135,6 +135,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               <Line label="Product sales">{money(n(p.product_sales))}</Line>
               {n(p.discounts) > 0 && <Line label="Less: discounts">{money(-n(p.discounts))}</Line>}
               <Line label="Delivery charges collected">{money(n(p.delivery_income))}</Line>
+              {n(p.short_at_door) > 0 && <Line label={`Less: customers paid less at the door (${n(p.short_orders)} order${n(p.short_orders) === 1 ? '' : 's'})`}>{money(-n(p.short_at_door))}</Line>}
               {n(p.return_income) > 0 && <Line label={`Paid by customers on returns (${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'})`}>{money(n(p.return_income))}</Line>}
               <Total label="Total income">{money(income)}</Total>
 

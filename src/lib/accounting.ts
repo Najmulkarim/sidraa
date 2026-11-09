@@ -36,6 +36,9 @@ export type Pnl = {
   expenses: Partial<Record<ExpenseCategory, number>>; expenses_total: number;
   /** Delivery cost of orders returned in the period; already inside expenses_total. */
   return_delivery?: number;
+  /** Delivered orders where the customer paid less than the total (Paid lowered); already taken off income. */
+  short_at_door?: number;
+  short_orders?: number;
   /** What customers paid on returned orders (a paid return); already inside income. */
   return_income?: number;
   paid_returns?: number;
