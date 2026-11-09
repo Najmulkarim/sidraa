@@ -32,7 +32,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
   params: Promise<{ courier: string }>;
   searchParams: Promise<{ range?: string; from?: string; to?: string; view?: string; q?: string; page?: string }>;
 }) {
-  const [{ supabase }, { courier: raw }, sp] = await Promise.all([requirePermission('revenue'), params, searchParams]);
+  const [{ supabase, profile }, { courier: raw }, sp] = await Promise.all([requirePermission('revenue'), params, searchParams]);
   if (!(raw in COURIER_LABEL)) notFound();
   const courier = raw as CourierName;
   const name = COURIER_LABEL[courier];
@@ -119,7 +119,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
       <CourierParcels
         rows={list.slice((page - 1) * PER_PAGE, page * PER_PAGE)} name={name} checked={ins.checked} unchecked={ins.unchecked} all={ins.rows.length}
         view={view} q={sp.q ?? ''} page={page} pages={pages} matched={list.length} perPage={PER_PAGE}
-        basePath={`/admin/accounting/courier/${courier}`} keepRange={keepRange}
+        basePath={`/admin/accounting/courier/${courier}`} keepRange={keepRange} canEditChecked={profile.role === 'super_admin'}
       />
     </div>
   );

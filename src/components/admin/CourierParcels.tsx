@@ -26,8 +26,8 @@ function checkValues(r: InsightRow, cash = r.collected, charge = r.fee) {
  * with a search, Not checked / Checked / All, and "check this whole page" for
  * parcels that already match the courier's panel.
  */
-export function CourierParcels({ rows, name, checked, unchecked, all, view, q, page, pages, matched, perPage, basePath, keepRange }: {
-  rows: InsightRow[]; name: string; checked: number; unchecked: number; all: number;
+export function CourierParcels({ rows, name, checked, unchecked, all, view, q, page, pages, matched, perPage, basePath, keepRange, canEditChecked = false }: {
+  rows: InsightRow[]; name: string; checked: number; unchecked: number; all: number; canEditChecked?: boolean;
   view: View; q: string; page: number; pages: number; matched: number; perPage: number; basePath: string; keepRange: string;
 }) {
   const router = useRouter();
@@ -112,7 +112,7 @@ export function CourierParcels({ rows, name, checked, unchecked, all, view, q, p
                 <th className="px-4 py-2.5">Collected · check</th>
               </tr>
             </thead>
-            <tbody>{rows.map((r) => <Row key={r.id} r={r} />)}</tbody>
+            <tbody>{rows.map((r) => <Row key={r.id} r={r} canEditChecked={canEditChecked} />)}</tbody>
           </table>
         </div>
       )}
@@ -159,32 +159,38 @@ function CopyId({ id }: { id: string }) {
   );
 }
 
-function Row({ r }: { r: InsightRow }) {
+function Row({ r, canEditChecked }: { r: InsightRow; canEditChecked: boolean }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [amount, setAmount] = useState(String(r.collected));
   const [charge, setCharge] = useState(String(r.fee));
+  const [codInput, setCodInput] = useState(String(r.codFee));
+  const [reopened, setReopened] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const finished = FINISHED.includes(r.group);
   const noCash = r.group === 'regular_return';
-  const editing = finished && !r.payment_checked_at;
-  // The COD fee follows the cash typed in, at the rate of the parcel's day, until it is saved or the courier reports it.
-  const fromRate = r.courier_cod_fee === null || r.courier_cod_fee === undefined || r.courier_cod_fee === '';
+  const isChecked = !!r.payment_checked_at;
+  // A checked payment is locked; a super admin can open it again to correct it.
+  const editing = finished && (!isChecked || reopened);
+  // First check: the COD fee follows the cash typed in, at the rate of the parcel's day (unless the courier reported it).
+  // Editing a checked one: the saved COD fee is shown as its own field.
+  const fromRate = !isChecked && (r.courier_cod_fee === null || r.courier_cod_fee === undefined || r.courier_cod_fee === '');
   const cash = Number(amount);
-  const codFee = editing ? checkValues(r, Number.isFinite(cash) ? cash : 0).codFee : r.codFee;
+  const codFee = !editing ? r.codFee : reopened ? Number(codInput) : checkValues(r, Number.isFinite(cash) ? cash : 0).codFee;
 
   const save = (checked: boolean) => {
     const collected = Number(amount);
     const fee = Number(charge);
     if (checked && !noCash && (!Number.isFinite(collected) || collected < 0)) { setErr('Enter the cash collected'); return; }
     if (checked && (charge.trim() === '' || !Number.isFinite(fee) || fee < 0)) { setErr('Enter the delivery charge'); return; }
+    if (checked && reopened && (codInput.trim() === '' || !Number.isFinite(codFee) || codFee < 0)) { setErr('Enter the COD fee'); return; }
     setErr(null);
     start(async () => {
       const res = checked
         ? await checkOrderPayment(r.id, paidAfterCheck(r, noCash ? 0 : collected), true, fee, codFee)
         : await checkOrderPayment(r.id, Number(r.paid_amount), false);
       if (!res.ok) setErr(res.message ?? 'Could not save');
-      else router.refresh();
+      else { setReopened(false); router.refresh(); }
     });
   };
 
@@ -216,19 +222,37 @@ function Row({ r }: { r: InsightRow }) {
         ) : r.fee ? formatMoney(-r.fee) : '—'}
       </td>
       <td className="whitespace-nowrap px-4 py-2.5 text-right">
-        {codFee ? formatMoney(-codFee) : '—'}
-        {editing && fromRate && codFee > 0 && <span className="block text-[11px] text-muted">at {r.codRate}%</span>}
+        {reopened ? (
+          <label className="inline-flex items-center gap-1">
+            <span className="text-muted">৳</span>
+            <input inputMode="decimal" aria-label={`COD fee for ${r.public_ref}`} value={codInput} onChange={(e) => setCodInput(e.target.value)}
+              className="input h-9 w-20 px-2 py-1 text-right" />
+          </label>
+        ) : (
+          <>
+            {codFee ? formatMoney(-codFee) : '—'}
+            {editing && fromRate && codFee > 0 && <span className="block text-[11px] text-muted">at {r.codRate}%</span>}
+          </>
+        )}
       </td>
       <td className="px-4 py-2">
         {!finished ? (
           <span className="text-muted">{formatMoney(r.toCollect)} to collect · on the road</span>
-        ) : r.payment_checked_at ? (
+        ) : isChecked && !reopened ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="inline-flex items-center gap-1 rounded-md bg-ok/12 px-2 py-0.5 font-semibold text-ok">
               <Icon name="check" size={14} /> {formatMoney(r.collected)} checked
             </span>
             <span className="text-[12px] text-muted">{r.payment_checked_by_name ?? 'Staff'} · {formatDateTime(r.payment_checked_at)}</span>
-            <button type="button" disabled={busy} onClick={() => save(false)} className="text-[12px] font-semibold text-muted underline hover:text-ink disabled:opacity-50">Undo</button>
+            {canEditChecked ? (
+              <>
+                <button type="button" disabled={busy} onClick={() => { setErr(null); setReopened(true); }} className="text-[12px] font-semibold text-brand underline disabled:opacity-50">Edit</button>
+                <button type="button" disabled={busy} onClick={() => save(false)} className="text-[12px] font-semibold text-muted underline hover:text-ink disabled:opacity-50">Undo</button>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[12px] text-muted" title="Only a super admin can change a checked payment"><Icon name="lock" size={12} /> Locked</span>
+            )}
+            {err && <span className="text-[12px] text-bad">{err}</span>}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
@@ -242,8 +266,12 @@ function Row({ r }: { r: InsightRow }) {
               </label>
             )}
             <button type="button" disabled={busy} onClick={() => save(true)} className="btn btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50">
-              <Icon name="check" size={14} /> {busy ? 'Saving…' : 'Check'}
+              <Icon name="check" size={14} /> {busy ? 'Saving…' : reopened ? 'Save' : 'Check'}
             </button>
+            {reopened && (
+              <button type="button" disabled={busy} onClick={() => { setReopened(false); setErr(null); setAmount(String(r.collected)); setCharge(String(r.fee)); setCodInput(String(r.codFee)); }}
+                className="text-[12px] font-semibold text-muted underline">Cancel</button>
+            )}
             {err && <span className="text-[12px] text-bad">{err}</span>}
           </div>
         )}
