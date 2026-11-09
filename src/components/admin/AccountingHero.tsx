@@ -20,11 +20,13 @@ const COLOR = { cogs: '#7c83f0', exp: '#c97c00', net: '#0ea371' };
  * expenses, and where each taka of income went. Right: the net profit, on its
  * own card.
  */
-export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '', trend = [], trendLabel = 'Daily net' }: {
+export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '', brand, from, to }: {
   period: string; net: number; netMargin: number | null; income: number; gross: number; grossMargin: number | null;
   cogs: number; expenses: number; incomeSub: string; expenseSub: string; cogsSub?: string;
-  /** Net profit per period (oldest first), for the small line on the card. */
-  trend?: number[]; trendLabel?: string;
+  /** The shop's name, written where a bank card says VISA. */
+  brand: string;
+  /** The period as YYYY-MM-DD, for the card's "valid" dates. */
+  from: string; to: string;
 }) {
   const loss = net < 0;
   // Shares of income: product cost, expenses, and what is left (profit). A loss shows the costs against income.
@@ -34,7 +36,6 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
     { key: 'exp', label: 'Expenses', value: expenses, color: COLOR.exp },
     { key: 'net', label: 'Profit', value: Math.max(net, 0), color: COLOR.net },
   ].filter((x) => x.value > 0);
-  const per100 = income > 0 ? Math.round((net / income) * 100) : null;
 
   return (
     <section className="relative overflow-hidden rounded-2xl bg-night p-4 text-white shadow-lg sm:p-5">
@@ -81,40 +82,9 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
           )}
         </div>
 
-        {/* Right: the result, on its own card. */}
-        <div className={`group relative order-first overflow-hidden rounded-2xl p-[1px] lg:order-none ${loss
-          ? 'bg-gradient-to-br from-[#fda4af]/50 via-[#fda4af]/10 to-transparent'
-          : 'bg-gradient-to-br from-[#6ee7b7]/60 via-[#34d399]/10 to-transparent'}`}>
-          <div className={`relative flex h-full flex-col gap-4 overflow-hidden rounded-[15px] p-5 ${loss
-            ? 'bg-[radial-gradient(120%_90%_at_100%_0%,#7f1d3a_0%,#3b0a1a_45%,#1c0f14_100%)]'
-            : 'bg-[radial-gradient(120%_90%_at_100%_0%,#0f766e_0%,#064e3b_40%,#0b1f1b_100%)]'}`}>
-            {/* Soft dot pattern and a glow, for depth. */}
-            <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:14px_14px]" />
-            <div aria-hidden className={`pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full blur-3xl ${loss ? 'bg-[#fb7185]/20' : 'bg-[#34d399]/20'}`} />
-
-            <div className="relative flex items-start justify-between gap-3">
-              <div>
-                <p className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-[0.16em] ${loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${loss ? 'bg-[#fda4af]' : 'bg-[#6ee7b7]'} shadow-[0_0_8px_currentColor]`} />
-                  {loss ? 'Net loss' : 'Net profit'}
-                </p>
-                <p className="mt-0.5 text-[11.5px] text-white/45">{period}</p>
-              </div>
-              {netMargin !== null && <MarginRing pct={netMargin} loss={loss} />}
-            </div>
-
-            <Amount value={net} />
-
-            <div className="relative mt-auto space-y-3">
-              {trend.length > 1 && <Sparkline values={trend} loss={loss} label={trendLabel} />}
-              {per100 !== null && (
-                <p className="flex items-center gap-2 rounded-lg bg-black/20 px-3 py-2 text-[12px] text-white/70 ring-1 ring-white/5">
-                  <Icon name="cash" size={14} className={loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'} />
-                  {loss ? <>Every ৳100 sold lost <b className="text-white">৳{Math.abs(per100)}</b></> : <>Every ৳100 sold left <b className="text-white">৳{per100}</b> profit</>}
-                </p>
-              )}
-            </div>
-          </div>
+        {/* Right: the result, as a bank card. */}
+        <div className="order-first flex items-center justify-center lg:order-none">
+          <ProfitCard net={net} netMargin={netMargin} brand={brand} from={from} to={to} />
         </div>
       </div>
     </section>
@@ -132,61 +102,91 @@ function HeroStat({ label, value, sub, accent }: { label: string; value: string;
   );
 }
 
-/** The amount with a small taka sign and small paisa, the whole taka large. */
-function Amount({ value }: { value: number }) {
-  const text = money(value); // e.g. "৳4,266.50" or "−৳1,200"
-  const m = /^(−?)৳([\d,]+)(\.\d+)?$/.exec(text);
-  if (!m) return <p className="relative truncate text-[2.5rem] font-bold leading-none tracking-tight">{text}</p>;
-  return (
-    <p className="relative flex items-baseline truncate font-bold leading-none tracking-tight">
-      <span className="mr-1 text-[1.5rem] text-white/60">{m[1]}৳</span>
-      <span className="text-[2.6rem] sm:text-[2.9rem]">{m[2]}</span>
-      {m[3] && <span className="text-[1.4rem] text-white/50">{m[3]}</span>}
-    </p>
-  );
-}
+const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
-/** A small ring showing net profit as a share of income. */
-function MarginRing({ pct, loss }: { pct: number; loss: boolean }) {
-  const r = 20, c = 2 * Math.PI * r;
-  const share = Math.min(100, Math.abs(pct));
+/**
+ * Net profit as a bank card (the real card shape, 85.6 × 54 mm): a gold chip,
+ * the amount where the card number goes, the period as its "valid" dates, and
+ * the shop's name where the card network's name sits.
+ */
+function ProfitCard({ net, netMargin, brand, from, to }: { net: number; netMargin: number | null; brand: string; from: string; to: string }) {
+  const loss = net < 0;
   return (
-    <div className="relative grid h-14 w-14 shrink-0 place-items-center" title={`${pct}% of income`}>
-      <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx="24" cy="24" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4" />
-        <circle cx="24" cy="24" r={r} fill="none" stroke={loss ? '#fda4af' : '#6ee7b7'} strokeWidth="4" strokeLinecap="round"
-          strokeDasharray={`${(share / 100) * c} ${c}`} />
+    <div
+      className={`relative aspect-[85.6/54] w-full max-w-[24rem] select-none overflow-hidden rounded-[18px] p-[6%] text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/15 ${loss
+        ? 'bg-[linear-gradient(135deg,#5b0f22_0%,#2a0912_55%,#140509_100%)]'
+        : 'bg-[linear-gradient(135deg,#0b3d33_0%,#08241f_50%,#05110f_100%)]'}`}
+      role="img"
+      aria-label={`${loss ? 'Net loss' : 'Net profit'} ${money(net)}${netMargin !== null ? `, ${netMargin}% of income` : ''}, ${ddmm(from)} to ${ddmm(to)}`}
+    >
+      {/* Card art: soft waves, a sheen and a glow. */}
+      <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.16]" viewBox="0 0 400 252" preserveAspectRatio="none">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <path key={i} d={`M-20 ${150 + i * 18} C 90 ${90 + i * 18}, 220 ${230 + i * 14}, 420 ${120 + i * 16}`} fill="none" stroke={loss ? '#fda4af' : '#6ee7b7'} strokeWidth="1" />
+        ))}
       </svg>
-      <span className="text-[11.5px] font-bold">{Math.round(pct)}%</span>
+      <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_35%,rgba(255,255,255,0.08)_45%,transparent_55%)]" />
+
+      <div className="relative flex h-full flex-col">
+        {/* Top: what the card shows, and a contactless mark. */}
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">{loss ? 'Net loss' : 'Net profit'}</p>
+            {netMargin !== null && <p className={`text-[10px] font-semibold ${loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'}`}>{netMargin}% of income</p>}
+          </div>
+          <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6 text-white/75" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M7 9.5a3.5 3.5 0 0 1 0 5" /><path d="M10.5 7a7 7 0 0 1 0 10" /><path d="M14 4.5a10.5 10.5 0 0 1 0 15" />
+          </svg>
+        </div>
+
+        {/* The gold chip. */}
+        <Chip />
+
+        {/* The amount, where the card number goes. */}
+        <p className="mt-auto pt-1.5 font-mono text-[clamp(1.2rem,5vw,1.9rem)] font-semibold leading-none tracking-[0.06em] text-white/95 [text-shadow:0_1px_0_rgba(255,255,255,0.25),0_-1px_0_rgba(0,0,0,0.6)] lg:text-[1.75rem]">
+          {money(net)}
+        </p>
+
+        {/* Bottom: the period as "valid" dates, and the shop's name where VISA goes. */}
+        <div className="mt-[5%] flex items-end justify-between gap-3">
+          <div className="flex gap-4 font-mono text-white/85">
+            <div>
+              <p className="text-[7.5px] font-sans font-semibold uppercase leading-tight tracking-wider text-white/50">Valid<br />from</p>
+              <p className="text-[12px] tracking-wider">{ddmm(from)}</p>
+            </div>
+            <div>
+              <p className="text-[7.5px] font-sans font-semibold uppercase leading-tight tracking-wider text-white/50">Valid<br />thru</p>
+              <p className="text-[12px] tracking-wider">{ddmm(to)}</p>
+            </div>
+          </div>
+          <p className="max-w-[55%] truncate text-right text-[1.45rem] font-black italic leading-none tracking-tight text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.35)]">
+            {brand}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Net profit per period as a thin line, with a zero line when it crosses below zero. */
-function Sparkline({ values, loss, label }: { values: number[]; loss: boolean; label: string }) {
-  const w = 240, h = 44, pad = 3;
-  const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
-  const span = hi - lo || 1;
-  const x = (i: number) => pad + (i / (values.length - 1)) * (w - pad * 2);
-  const y = (v: number) => pad + (1 - (v - lo) / span) * (h - pad * 2);
-  const line = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-  const area = `${line} L${x(values.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
-  const stroke = loss ? '#fda4af' : '#6ee7b7';
-  const id = loss ? 'spark-loss' : 'spark-profit';
+/** A gold EMV chip. */
+function Chip() {
   return (
-    <div>
-      <p className="mb-1 text-[11px] font-medium text-white/45">{label}</p>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-11 w-full" preserveAspectRatio="none" role="img" aria-label={`${label}: ${values.map((v) => money(v)).join(', ')}`}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity="0.35" />
-            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {lo < 0 && hi > 0 && <line x1={pad} x2={w - pad} y1={y(0)} y2={y(0)} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
-        <path d={area} fill={`url(#${id})`} />
-        <path d={line} fill="none" stroke={stroke} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-    </div>
+    <svg aria-hidden viewBox="0 0 50 38" className="mt-[3%] h-[19%] w-auto self-start drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">
+      <defs>
+        <linearGradient id="chip-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f8e7a1" />
+          <stop offset="35%" stopColor="#d9b25a" />
+          <stop offset="65%" stopColor="#f3d886" />
+          <stop offset="100%" stopColor="#b8892f" />
+        </linearGradient>
+      </defs>
+      <rect x="1" y="1" width="48" height="36" rx="6" fill="url(#chip-gold)" stroke="#8a6420" strokeWidth="0.8" />
+      <g fill="none" stroke="#8a6420" strokeWidth="0.9" opacity="0.85">
+        <path d="M1 13h14M1 25h14M35 13h14M35 25h14" />
+        <path d="M15 1v10a4 4 0 0 0 4 4h12a4 4 0 0 0 4-4V1M15 37V27a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v10" />
+        <rect x="19" y="15" width="12" height="8" rx="2" />
+      </g>
+    </svg>
   );
 }

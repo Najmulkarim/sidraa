@@ -6,6 +6,7 @@ import { ExpenseManager, PrintButton, ReapplyCosts, type Expense } from '@/compo
 import { Icon, type IconName } from '@/components/icons';
 import { autoGroup, CATEGORY_KEYS, EXPENSE_CATEGORIES, pnlTotals, type Pnl } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
+import { getSettings } from '@/lib/catalog';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
 import { AccountingHero as Hero, periodLabel } from '@/components/admin/AccountingHero';
 import { addDays, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
@@ -57,13 +58,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   // Daily rows only up to about a year.
   const group = wanted === 'day' && days > 400 ? 'month' : wanted;
 
-  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers] = await Promise.all([
+  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers, settings] = await Promise.all([
     supabase.rpc('accounting_pnl', { p_from: range.from, p_to: range.to, p_group: group }),
     supabase.from('expenses').select('id, spent_on, category, amount, paid_via, reference, note').gte('spent_on', range.from).lte('spent_on', range.to).order('spent_on', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     // Paid returns whose amount nobody has entered yet (the courier did not send it).
     supabase.from('orders').select('id, public_ref').eq('status', 'returned').is('deleted_at', null).eq('paid_amount', 0)
       .ilike('courier_status', '%paid%return%').order('returned_at', { ascending: false }).limit(20),
     usedCouriers(supabase),
+    getSettings(),
   ]);
 
   if (error || !data) {
@@ -124,8 +126,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         cogs={cogs} expenses={expensesTotal}
         incomeSub={`${n(p.orders)} delivered${n(p.paid_returns) > 0 ? ` · ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`}
         cogsSub={`${n(p.units)} piece${n(p.units) === 1 ? '' : 's'} sold`}
-        trend={p.buckets.map((b) => Math.round((n(b.income) - n(b.cogs) - n(b.expenses)) * 100) / 100)}
-        trendLabel={`${GROUPS.find((g) => g.value === group)?.label ?? 'Daily'} net`}
+        brand={settings.store_name} from={range.from} to={range.to}
         expenseSub={`${n(p.returned_orders) > 0 ? `${n(p.returned_orders)} return${n(p.returned_orders) === 1 ? '' : 's'} · ` : ''}courier, ads & more`}
       />
 
