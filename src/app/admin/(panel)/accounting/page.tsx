@@ -7,6 +7,7 @@ import { Icon, type IconName } from '@/components/icons';
 import { autoGroup, CATEGORY_KEYS, EXPENSE_CATEGORIES, pnlTotals, type Pnl } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
+import { AccountingHero as Hero, periodLabel } from '@/components/admin/AccountingHero';
 import { addDays, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Accounting' };
@@ -117,21 +118,29 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         </div>
       )}
 
-      {/* Headline numbers. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon="cash" tone="bg-[#2563eb]" label="Income" value={money(income)} sub={`${n(p.orders)} order${n(p.orders) === 1 ? '' : 's'} delivered${n(p.paid_returns) > 0 ? ` + ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`} />
-        <Kpi icon="box" tone="bg-[#7c3aed]" label="Gross profit" value={money(gross)} sub={grossMargin === null ? 'No sales' : `${grossMargin}% of income`} negative={gross < 0} />
-        <Kpi icon="tag" tone="bg-[#ea580c]" label="Expenses" value={money(expensesTotal)} sub={`${Object.keys(p.expenses ?? {}).length} categor${Object.keys(p.expenses ?? {}).length === 1 ? 'y' : 'ies'}`} />
-        <Kpi icon="chart" tone={net < 0 ? 'bg-bad' : 'bg-ok'} label={net < 0 ? 'Net loss' : 'Net profit'} value={money(net)} sub={netMargin === null ? '—' : `${netMargin}% of income`} negative={net < 0} />
-      </div>
+      {/* Headline: where the period's money went. */}
+      <Hero
+        period={periodLabel(range.from, range.to)} net={net} netMargin={netMargin} income={income} gross={gross} grossMargin={grossMargin}
+        cogs={cogs} expenses={expensesTotal}
+        incomeSub={`${n(p.orders)} delivered${n(p.paid_returns) > 0 ? ` · ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`}
+        expenseSub={`${n(p.returned_orders) > 0 ? `${n(p.returned_orders)} return${n(p.returned_orders) === 1 ? '' : 's'} · ` : ''}courier, ads & more`}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         {/* The statement. */}
         <section className="card overflow-hidden">
-          <h2 className="border-b border-line px-5 py-3.5 font-semibold">Profit &amp; loss statement</h2>
+          <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-tint text-brand"><Icon name="note" size={17} /></span>
+              <div>
+                <h2 className="font-semibold leading-tight">Profit &amp; loss statement</h2>
+                <p className="text-[12px] text-muted">{periodLabel(range.from, range.to)}</p>
+              </div>
+            </div>
+          </div>
           <table className="w-full text-[14px]">
             <tbody>
-              <Head>Operating income</Head>
+              <Head icon="cash">Operating income</Head>
               <Line label="Product sales">{money(n(p.product_sales))}</Line>
               {n(p.discounts) > 0 && <Line label="Less: discounts">{money(-n(p.discounts))}</Line>}
               <Line label="Delivery charges collected">{money(n(p.delivery_income))}</Line>
@@ -139,11 +148,11 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               {n(p.return_income) > 0 && <Line label={`Paid by customers on returns (${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'})`}>{money(n(p.return_income))}</Line>}
               <Total label="Total income">{money(income)}</Total>
 
-              <Head>Cost of goods sold</Head>
+              <Head icon="box">Cost of goods sold</Head>
               <Line label={`Product cost (${n(p.units)} piece${n(p.units) === 1 ? '' : 's'} sold)`}>{money(-cogs)}</Line>
               <Total label="Gross profit" strong negative={gross < 0}>{money(gross)}</Total>
 
-              <Head>Operating expenses</Head>
+              <Head icon="tag">Operating expenses</Head>
               {CATEGORY_KEYS.filter((k) => n(p.expenses?.[k]) > 0).map((k) => <Line key={k} label={EXPENSE_CATEGORIES[k].label}>{money(-n(p.expenses[k]))}</Line>)}
               {n(p.courier_delivery) > 0 && <Line label={`Courier delivery charges (${n(p.courier_orders)} delivered order${n(p.courier_orders) === 1 ? '' : 's'})`}>{money(-n(p.courier_delivery))}</Line>}
               {n(p.return_delivery) > 0 && <Line label={`Delivery cost on returned orders (${n(p.returned_orders)})`}>{money(-n(p.return_delivery))}</Line>}
@@ -152,9 +161,12 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               {expensesTotal === 0 && <Line label="No expenses entered">{money(0)}</Line>}
               <Total label="Total expenses">{money(-expensesTotal)}</Total>
 
-              <tr className={net < 0 ? 'bg-bad/10' : 'bg-ok/10'}>
-                <th scope="row" className="px-5 py-4 text-left text-[15px] font-bold">{net < 0 ? 'Net loss' : 'Net profit'}</th>
-                <td className={`px-5 py-4 text-right text-[17px] font-bold ${net < 0 ? 'text-bad' : 'text-ok'}`}>{money(net)}</td>
+              <tr className={net < 0 ? 'bg-gradient-to-r from-bad/12 to-bad/5' : 'bg-gradient-to-r from-ok/14 to-ok/5'}>
+                <th scope="row" className="px-5 py-5 text-left">
+                  <span className="block text-[15px] font-bold">{net < 0 ? 'Net loss' : 'Net profit'}</span>
+                  {netMargin !== null && <span className="text-[12px] font-medium text-muted">{netMargin}% of income</span>}
+                </th>
+                <td className={`px-5 py-5 text-right text-[1.6rem] font-bold tracking-tight ${net < 0 ? 'text-bad' : 'text-ok'}`}>{money(net)}</td>
               </tr>
             </tbody>
           </table>
@@ -168,7 +180,10 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         {/* Period by period. */}
         <section className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
-            <h2 className="font-semibold">{GROUPS.find((g) => g.value === group)?.label} breakdown</h2>
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-tint text-brand"><Icon name="chart" size={17} /></span>
+              <h2 className="font-semibold">{GROUPS.find((g) => g.value === group)?.label} breakdown</h2>
+            </div>
             <nav className="no-print flex rounded-lg bg-soft p-0.5" aria-label="Group by">
               {GROUPS.map((g) => {
                 const disabled = g.value === 'day' && days > 400;
@@ -186,17 +201,25 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
                 <tr><th className="px-4 py-2.5">Period</th><th className="px-3 py-2.5 text-right">Delivered</th><th className="px-3 py-2.5 text-right">Income</th><th className="px-3 py-2.5 text-right">Cost</th><th className="px-3 py-2.5 text-right">Expenses</th><th className="px-4 py-2.5 text-right">Net</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {[...p.buckets].reverse().map((b) => {
+                {[...p.buckets].reverse().map((b, _i, all) => {
+                  const most = Math.max(1, ...all.map((x) => Math.abs(n(x.income) - n(x.cogs) - n(x.expenses))));
                   const bNet = n(b.income) - n(b.cogs) - n(b.expenses);
                   const empty = !n(b.orders) && !n(b.expenses) && !n(b.returns);
                   return (
-                    <tr key={b.start} className={empty ? 'text-ink/40' : ''}>
+                    <tr key={b.start} className={`transition hover:bg-soft/60 ${empty ? 'text-ink/40' : ''}`}>
                       <td className="whitespace-nowrap px-4 py-2">{bucketLabel(b.start, group, range.from, range.to)}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{n(b.orders)}{n(b.returns) > 0 && <span className="text-[12px] font-normal text-muted"> · {n(b.returns)} return{n(b.returns) === 1 ? '' : 's'}</span>}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.income))}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.cogs))}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.expenses))}</td>
-                      <td className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${empty ? '' : bNet < 0 ? 'text-bad' : 'text-ok'}`}>{money(Math.round(bNet * 100) / 100)}</td>
+                      <td className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${empty ? '' : bNet < 0 ? 'text-bad' : 'text-ok'}`}>
+                        {money(Math.round(bNet * 100) / 100)}
+                        {!empty && (
+                          <span className="mt-1 ml-auto block h-1 w-16 overflow-hidden rounded-full bg-soft" aria-hidden>
+                            <span className={`block h-full rounded-full ${bNet < 0 ? 'bg-bad/70' : 'bg-ok/70'}`} style={{ width: `${Math.max(4, Math.round((Math.abs(bNet) / most) * 100))}%` }} />
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -217,9 +240,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       </div>
 
       <section className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold">Expenses</h2>
-          <p className="text-[13px] text-muted">Ad cost, salaries, rent, courier charges and the rest — by the day you paid. The list shows this period.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-tint text-brand"><Icon name="tag" size={17} /></span>
+            <div>
+              <h2 className="text-lg font-bold leading-tight">Expenses</h2>
+              <p className="text-[12.5px] text-muted">Ads, salaries, rent and the rest — by the day you paid. Parcel charges and COD fees are added automatically.</p>
+            </div>
+          </div>
         </div>
         <ExpenseManager expenses={(expenseRows ?? []) as Expense[]} today={today} />
       </section>
@@ -227,23 +255,17 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   );
 }
 
-function Kpi({ icon, tone, label, value, sub, negative = false }: { icon: IconName; tone: string; label: string; value: string; sub: string; negative?: boolean }) {
+function Head({ children, icon }: { children: ReactNode; icon?: IconName }) {
   return (
-    <div className="card flex items-start gap-3 p-4">
-      <span className={`hidden h-10 w-10 shrink-0 place-items-center rounded-xl text-white sm:grid ${tone}`}><Icon name={icon} size={19} /></span>
-      <div className="min-w-0">
-        <p className="text-[12.5px] text-muted">{label}</p>
-        <p className={`break-all text-[1.15rem] font-bold leading-tight sm:text-[1.35rem] ${negative ? 'text-bad' : ''}`}>{value}</p>
-        <p className="text-[12px] text-muted">{sub}</p>
-      </div>
-    </div>
+    <tr>
+      <th colSpan={2} scope="colgroup" className="bg-soft/70 px-5 pb-2 pt-3.5 text-left text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted">
+        <span className="inline-flex items-center gap-1.5">{icon && <Icon name={icon} size={13} />}{children}</span>
+      </th>
+    </tr>
   );
 }
-function Head({ children }: { children: ReactNode }) {
-  return <tr><th colSpan={2} scope="colgroup" className="bg-soft px-5 pb-1.5 pt-3 text-left text-[11.5px] font-bold uppercase tracking-wide text-muted">{children}</th></tr>;
-}
 function Line({ label, children }: { label: string; children: ReactNode }) {
-  return <tr className="border-b border-line/70"><td className="px-5 py-2 pl-8 text-ink/80">{label}</td><td className="whitespace-nowrap px-5 py-2 text-right">{children}</td></tr>;
+  return <tr className="border-b border-line/60 transition hover:bg-soft/50"><td className="px-5 py-2.5 pl-8 text-ink/80">{label}</td><td className="whitespace-nowrap px-5 py-2 text-right">{children}</td></tr>;
 }
 function Total({ label, children, strong = false, negative = false }: { label: string; children: ReactNode; strong?: boolean; negative?: boolean }) {
   return (
