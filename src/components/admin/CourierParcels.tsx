@@ -239,18 +239,33 @@ function Row({ r, canEditChecked }: { r: InsightRow; canEditChecked: boolean }) 
         {!finished ? (
           <span className="text-muted">{formatMoney(r.toCollect)} to collect · on the road</span>
         ) : isChecked && !reopened ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1 rounded-md bg-ok/12 px-2 py-0.5 font-semibold text-ok">
-              <Icon name="check" size={14} /> {formatMoney(r.collected)} checked
-            </span>
-            <span className="text-[12px] text-muted">{r.payment_checked_by_name ?? 'Staff'} · {formatDateTime(r.payment_checked_at)}</span>
+          <div className="flex items-center gap-3">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-ok/12 px-2.5 py-1 text-[13.5px] font-bold text-ok">
+                <span className="grid h-4 w-4 place-items-center rounded-full bg-ok text-white"><Icon name="check" size={10} /></span>
+                {formatMoney(r.collected)}
+              </span>
+              <p className="mt-1 flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted">
+                <Icon name="user" size={11} /> {r.payment_checked_by_name ?? 'Staff'}
+                <span aria-hidden>·</span>
+                <Icon name="clock" size={11} /> {formatDateTime(r.payment_checked_at)}
+              </p>
+            </div>
             {canEditChecked ? (
-              <>
-                <button type="button" disabled={busy} onClick={() => { setErr(null); setReopened(true); }} className="text-[12px] font-semibold text-brand underline disabled:opacity-50">Edit</button>
-                <button type="button" disabled={busy} onClick={() => save(false)} className="text-[12px] font-semibold text-muted underline hover:text-ink disabled:opacity-50">Undo</button>
-              </>
+              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                <button type="button" disabled={busy} onClick={() => { setErr(null); setReopened(true); }} title="Edit this checked payment"
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-white px-2.5 text-[12px] font-semibold text-ink/80 transition hover:border-brand/40 hover:text-brand disabled:opacity-50">
+                  <Icon name="pencil" size={13} /> Edit
+                </button>
+                <button type="button" disabled={busy} onClick={() => save(false)} title="Undo the check"
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-white px-2.5 text-[12px] font-semibold text-muted transition hover:border-bad/40 hover:text-bad disabled:opacity-50">
+                  <Icon name="return" size={13} /> {busy ? '…' : 'Undo'}
+                </button>
+              </div>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[12px] text-muted" title="Only a super admin can change a checked payment"><Icon name="lock" size={12} /> Locked</span>
+              <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg bg-soft px-2 py-1 text-[11.5px] font-semibold text-muted" title="Only a super admin can change a checked payment">
+                <Icon name="lock" size={12} /> Locked
+              </span>
             )}
             {err && <span className="text-[12px] text-bad">{err}</span>}
           </div>
