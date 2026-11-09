@@ -36,6 +36,9 @@ export type Pnl = {
   expenses: Partial<Record<ExpenseCategory, number>>; expenses_total: number;
   /** Delivery cost of orders returned in the period; already inside expenses_total. */
   return_delivery?: number;
+  /** What customers paid on returned orders (a paid return); already inside income. */
+  return_income?: number;
+  paid_returns?: number;
   returned_orders: number; returned_value: number;
   buckets: PnlBucket[];
 };

@@ -1,0 +1,117 @@
+-- 0062 — A "paid return" (the customer paid the delivery charge at the door and
+-- sent the product back) is not a loss: what the customer paid on a returned
+-- order counts as income in Accounting, next to that order's delivery cost.
+-- The Pathao sync records the order's delivery charge as paid when the parcel
+-- comes back as a paid return (staff can change Paid on the order if the
+-- customer paid a different amount). Safe to run again.
+
+-- 1. Courier sync: a paid return records the delivery charge as paid.
+create or replace function public.apply_courier_status(p_courier text, p_consignment_id text, p_raw_status text, p_charge numeric default null)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  o public.orders%rowtype;
+  v_to public.order_status := public.courier_status_to_order(p_raw_status);
+  v_paid_return boolean := regexp_replace(lower(btrim(coalesce(p_raw_status, ''))), '[^a-z]+', '_', 'g') = 'paid_return';
+begin
+  select * into o from public.orders
+   where courier = p_courier and courier_consignment_id = p_consignment_id for update;
+  if not found then
+    return jsonb_build_object('found', false);
+  end if;
+  update public.orders set courier_status = left(p_raw_status, 60), courier_synced_at = now(),
+         courier_charge = coalesce(p_charge, courier_charge),
+         paid_amount = case when v_paid_return and paid_amount = 0 then least(delivery_charge, total) else paid_amount end
+   where id = o.id;
+  if v_to is not null and v_to <> o.status and o.deleted_at is null
+     and (v_to = any (public.allowed_next_statuses(o.status)) or (o.status = 'shipped' and v_to = 'cancelled')) then
+    perform public.apply_order_status(o.id, v_to, initcap(p_courier) || ': ' || left(p_raw_status, 60), null);
+    return jsonb_build_object('found', true, 'status', v_to);
+  end if;
+  return jsonb_build_object('found', true, 'status', o.status);
+end;
+$$;
+
+-- 2. Paid returns already synced.
+update public.orders
+   set paid_amount = least(delivery_charge, total)
+ where status = 'returned' and paid_amount = 0 and delivery_charge > 0
+   and regexp_replace(lower(btrim(coalesce(courier_status, ''))), '[^a-z]+', '_', 'g') = 'paid_return';
+
+-- 3. Accounting: money paid on returned orders is income, on the day they came back.
+create or replace function public.accounting_pnl(p_from date, p_to date, p_group text default 'day')
+returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  r tstzrange;
+  g text := case when p_group in ('day', 'week', 'month', 'year') then p_group else 'day' end;
+  v jsonb;
+begin
+  perform public.require_permission('revenue');
+  if p_from is null or p_to is null or p_to < p_from or p_to - p_from > 3700 then
+    raise exception using message = 'INVALID_INPUT', detail = jsonb_build_object('field', 'range', 'reason', 'Choose a period of up to ten years')::text;
+  end if;
+  if g = 'day' and p_to - p_from > 400 then g := 'month'; end if;
+  r := public.dhaka_range(p_from, p_to);
+
+  with d as (
+    select o.id, (o.delivered_at at time zone 'Asia/Dhaka')::date as day, o.subtotal, o.discount, o.delivery_charge, o.total
+      from public.orders o
+     where o.status = 'delivered' and o.deleted_at is null and o.delivered_at <@ r
+  ), items as (
+    select d.day, oi.quantity, oi.unit_cost
+      from d join public.order_items oi on oi.order_id = d.id
+  ), e as (
+    select x.spent_on as day, x.category, x.amount
+      from public.expenses x
+     where x.spent_on between p_from and p_to
+  ), ret as (
+    select (o.returned_at at time zone 'Asia/Dhaka')::date as day, o.total, coalesce(o.courier_charge, o.delivery_charge) as cost,
+           o.paid_amount as paid
+      from public.orders o
+     where o.status = 'returned' and o.deleted_at is null and o.returned_at <@ r
+  )
+  select jsonb_build_object(
+    'from', p_from, 'to', p_to, 'group', g,
+    'orders',           (select count(*) from d),
+    'product_sales',    (select coalesce(sum(subtotal), 0) from d),
+    'discounts',        (select coalesce(sum(discount), 0) from d),
+    'delivery_income',  (select coalesce(sum(delivery_charge), 0) from d),
+    'return_income',    (select coalesce(sum(paid), 0) from ret),
+    'paid_returns',     (select count(*) from ret where paid > 0),
+    'income',           (select coalesce(sum(total), 0) from d) + (select coalesce(sum(paid), 0) from ret),
+    'units',            (select coalesce(sum(quantity), 0) from items),
+    'cogs',             (select coalesce(sum(quantity * unit_cost), 0) from items where unit_cost is not null),
+    'units_missing_cost', (select coalesce(sum(quantity), 0) from items where unit_cost is null),
+    'expenses',         (select coalesce(jsonb_object_agg(category, amt), '{}'::jsonb) from (select category, sum(amount) as amt from e group by category) s),
+    'return_delivery',  (select coalesce(sum(cost), 0) from ret),
+    'expenses_total',   (select coalesce(sum(amount), 0) from e) + (select coalesce(sum(cost), 0) from ret),
+    'returned_orders',  (select count(*) from ret),
+    'returned_value',   (select coalesce(sum(total), 0) from ret),
+    'buckets', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'start', b.k,
+               'orders', coalesce(i.n, 0),
+               'income', coalesce(i.inc, 0) + coalesce(y.paid, 0),
+               'cogs', coalesce(c.cogs, 0),
+               'expenses', coalesce(x.amt, 0) + coalesce(y.amt, 0)) order by b.k), '[]'::jsonb)
+        from (select distinct public.accounting_bucket(gs::date, g) as k from generate_series(p_from, p_to, interval '1 day') gs) b
+        left join (select public.accounting_bucket(day, g) as k, sum(total) as inc, count(*) as n from d group by 1) i on i.k = b.k
+        left join (select public.accounting_bucket(day, g) as k, sum(quantity * unit_cost) as cogs from items where unit_cost is not null group by 1) c on c.k = b.k
+        left join (select public.accounting_bucket(day, g) as k, sum(amount) as amt from e group by 1) x on x.k = b.k
+        left join (select public.accounting_bucket(day, g) as k, sum(cost) as amt, sum(paid) as paid from ret group by 1) y on y.k = b.k
+    )
+  ) into v;
+  return v;
+end;
+$$;
+revoke execute on function public.accounting_pnl(date, date, text) from public, anon;
+grant execute on function public.accounting_pnl(date, date, text) to authenticated;

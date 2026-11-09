@@ -107,7 +107,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
 
       {/* Headline numbers. */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon="cash" tone="bg-[#2563eb]" label="Income" value={money(income)} sub={`${n(p.orders)} order${n(p.orders) === 1 ? '' : 's'} delivered`} />
+        <Kpi icon="cash" tone="bg-[#2563eb]" label="Income" value={money(income)} sub={`${n(p.orders)} order${n(p.orders) === 1 ? '' : 's'} delivered${n(p.paid_returns) > 0 ? ` + ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`} />
         <Kpi icon="box" tone="bg-[#7c3aed]" label="Gross profit" value={money(gross)} sub={grossMargin === null ? 'No sales' : `${grossMargin}% of income`} negative={gross < 0} />
         <Kpi icon="tag" tone="bg-[#ea580c]" label="Expenses" value={money(expensesTotal)} sub={`${Object.keys(p.expenses ?? {}).length} categor${Object.keys(p.expenses ?? {}).length === 1 ? 'y' : 'ies'}`} />
         <Kpi icon="chart" tone={net < 0 ? 'bg-bad' : 'bg-ok'} label={net < 0 ? 'Net loss' : 'Net profit'} value={money(net)} sub={netMargin === null ? '—' : `${netMargin}% of income`} negative={net < 0} />
@@ -123,6 +123,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               <Line label="Product sales">{money(n(p.product_sales))}</Line>
               {n(p.discounts) > 0 && <Line label="Less: discounts">{money(-n(p.discounts))}</Line>}
               <Line label="Delivery charges collected">{money(n(p.delivery_income))}</Line>
+              {n(p.return_income) > 0 && <Line label={`Paid by customers on returns (${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'})`}>{money(n(p.return_income))}</Line>}
               <Total label="Total income">{money(income)}</Total>
 
               <Head>Cost of goods sold</Head>
@@ -143,7 +144,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
           </table>
           {n(p.returned_orders) > 0 && (
             <p className="border-t border-line px-5 py-3 text-[12.5px] text-muted">
-              {n(p.returned_orders)} order{n(p.returned_orders) === 1 ? ' was' : 's were'} returned in this period ({money(n(p.returned_value))}) — not counted as income. Their delivery cost is already in the expenses above, so do not enter it again.
+              {n(p.returned_orders)} order{n(p.returned_orders) === 1 ? ' was' : 's were'} returned in this period ({money(n(p.returned_value))}) — the products are not counted as income{n(p.return_income) > 0 && <>, only the {money(n(p.return_income))} the customers paid at the door (a paid return)</>}. Their delivery cost is already in the expenses above, so do not enter it again.
             </p>
           )}
         </section>
