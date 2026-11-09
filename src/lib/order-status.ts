@@ -56,15 +56,15 @@ export const STATUS_HINT: Record<OrderStatus, string> = {
 const NEXT: Record<OrderStatus, OrderStatus[]> = {
   pending: ['confirmed', 'processing', 'shipped', 'delivered', 'hold', 'ship_later', 'cancelled', 'fake'],
   confirmed: ['processing', 'shipped', 'delivered', 'hold', 'ship_later', 'cancelled', 'fake'],
-  processing: ['shipped', 'delivered', 'hold', 'ship_later', 'cancelled'],
+  processing: ['confirmed', 'shipped', 'delivered', 'hold', 'ship_later', 'cancelled'],
   hold: ['pending', 'confirmed', 'processing', 'shipped', 'ship_later', 'cancelled', 'fake'],
   ship_later: ['pending', 'confirmed', 'processing', 'shipped', 'hold', 'cancelled', 'fake'],
   // Back to any earlier step except New (stock stays reserved), or forward.
   shipped: ['confirmed', 'processing', 'hold', 'ship_later', 'delivered', 'returned', 'lost'],
-  delivered: ['returned'],
+  delivered: ['confirmed', 'processing', 'shipped', 'hold', 'ship_later', 'returned', 'lost'],
   cancelled: [],
   returned: [],
-  lost: [],
+  lost: ['confirmed', 'processing', 'shipped', 'hold', 'ship_later', 'delivered', 'returned'],
   fake: [],
 };
 

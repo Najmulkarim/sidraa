@@ -68,17 +68,18 @@ describe('order status workflow (mirrors allowed_next_statuses)', () => {
     expect(nextStatuses('hold')).toContain('confirmed');
     expect(nextStatuses('shipped')).toEqual(['confirmed', 'processing', 'hold', 'ship_later', 'delivered', 'returned', 'lost']);
     expect(nextStatuses('shipped')).not.toContain('pending');
-    expect(nextStatuses('delivered')).toEqual(['returned']);
+    expect(nextStatuses('delivered')).toEqual(['confirmed', 'processing', 'shipped', 'hold', 'ship_later', 'returned', 'lost']);
   });
-  it('final statuses go nowhere', () => {
-    for (const s of ['cancelled', 'returned', 'lost', 'fake'] as const) expect(nextStatuses(s)).toEqual([]);
+  it('final statuses go nowhere (a lost parcel can still be found)', () => {
+    for (const s of ['cancelled', 'returned', 'fake'] as const) expect(nextStatuses(s)).toEqual([]);
+    expect(nextStatuses('lost')).toContain('delivered');
   });
-  it('never moves backwards along the main flow, except In courier back to Confirmed / Ready (never to New)', () => {
-    const flow = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'] as const;
-    const allowedBack = (from: string, to: string) => from === 'shipped' && (to === 'confirmed' || to === 'processing');
-    flow.forEach((from, i) => flow.slice(0, i + 1).forEach((to) => expect(canTransition(from, to)).toBe(allowedBack(from, to))));
-    expect(canTransition('shipped', 'pending')).toBe(false);
-    expect(canTransition('delivered', 'processing')).toBe(false);
+  it('moves back to any earlier step but never to New; Cancelled, Return and Fake stay final', () => {
+    const flow = ['confirmed', 'processing', 'shipped', 'delivered'] as const;
+    flow.forEach((from, i) => flow.slice(0, i).forEach((to) => expect(canTransition(from, to)).toBe(true)));
+    flow.forEach((from) => expect(canTransition(from, 'pending')).toBe(false));
+    expect(canTransition('lost', 'shipped')).toBe(true);
+    (['cancelled', 'returned', 'fake'] as const).forEach((s) => expect(nextStatuses(s)).toEqual([]));
     expect(canTransition('processing', 'returned')).toBe(false);
     expect(canTransition('shipped', 'cancelled')).toBe(false);
   });
