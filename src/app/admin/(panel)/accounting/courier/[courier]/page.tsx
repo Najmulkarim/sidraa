@@ -7,7 +7,8 @@ import { CourierParcels } from '@/components/admin/CourierParcels';
 import { Icon } from '@/components/icons';
 import { requirePermission } from '@/lib/auth';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
-import { courierInsight, type InsightOrder } from '@/lib/courier-insight';
+import { courierInsight, rateFor, type FeeRate, type InsightOrder } from '@/lib/courier-insight';
+import { CodRateSetting } from '@/components/admin/CodRateSetting';
 import { addDays, dhakaDayStartUtc, dhakaToday, formatMoney, formatTaka, resolveRange } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Courier' };
@@ -34,8 +35,9 @@ export default async function CourierInsightPage({ params, searchParams }: {
   const today = dhakaToday();
   const range = resolveRange(sp.range ?? '30d', sp.from, sp.to, new Date(), 3650);
 
-  const [couriers, { data, error }] = await Promise.all([
+  const [couriers, { data: rateRows }, { data, error }] = await Promise.all([
     usedCouriers(supabase),
+    supabase.from('courier_fee_rates').select('cod_rate, effective_from').eq('courier', courier).order('effective_from', { ascending: false }).limit(50),
     // Like the courier's own dashboard: parcels by the day they were handed to it.
     supabase.from('orders')
       .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name')
@@ -53,7 +55,9 @@ export default async function CourierInsightPage({ params, searchParams }: {
     );
   }
 
-  const ins = courierInsight((data ?? []) as (InsightOrder & { courier_sent_at: string })[]);
+  const rates = (rateRows ?? []) as FeeRate[];
+  const ins = courierInsight((data ?? []) as InsightOrder[], rates);
+  const rateNow = rateFor(rates, new Date().toISOString());
 
   return (
     <div className="space-y-6">
@@ -77,17 +81,19 @@ export default async function CourierInsightPage({ params, searchParams }: {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Money label="Collected from customers" value={ins.collected} sub="Delivered parcels and paid returns" />
           <Money label="Delivery charges" value={-ins.fees} sub={ins.missingFee > 0 ? `${ins.missingFee} parcel${ins.missingFee === 1 ? '' : 's'} without the charge yet` : `What ${name} charged`} />
-          <Money label="COD fee" value={-ins.codFees} sub={ins.codFeeEstimated > 0 ? `About 1% of the cash (estimate for ${ins.codFeeEstimated})` : `As ${name} reported`} />
+          <Money label="COD fee" value={-ins.codFees} sub={`${rateNow}% now · each parcel at the rate on its day`} />
           <Money label={`${name} should pay you`} value={ins.payout} sub="Collected − charges − COD fee" strong />
         </div>
         <p className="flex items-start gap-2 text-[12.5px] text-muted">
           <Icon name="note" size={15} className="mt-px shrink-0" />
           <span>
-            Worked out from our parcels, so it can differ from {name}&apos;s panel by a few taka{ins.codFeeEstimated > 0 ? ` (its exact COD fee arrives with its webhook messages)` : ''}. Which of it {name} has already paid you, and when, only {name}&apos;s panel shows.
+            Worked out from our parcels; checking a parcel below saves its charge and COD fee for good. Which of it {name} has already paid you, and when, only {name}&apos;s panel shows.
             {ins.toCollect > 0 && <> Still on the road or on hold: <b className="text-ink">{formatTaka(ins.toCollect)}</b> to collect.</>}
           </span>
         </p>
       </section>
+
+      <div className="max-w-md"><CodRateSetting courier={courier} name={name} rates={rates} /></div>
 
       {/* Every parcel, checked one by one against the courier. */}
       <CourierParcels rows={ins.rows} name={name} checked={ins.checked} unchecked={ins.unchecked} />

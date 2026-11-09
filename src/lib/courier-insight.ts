@@ -16,8 +16,25 @@ export const INSIGHT_GROUPS: { key: InsightKey; label: string; color: string; hi
 /** Groups whose parcel journey is over: the courier charges for these. */
 export const FINISHED: InsightKey[] = ['delivered', 'regular_return', 'paid_return', 'partial', 'exchange'];
 
-/** The courier's COD fee when it does not report one: about 1% of the cash collected. */
-export const COD_FEE_RATE = 0.01;
+/** A COD fee rate (percent of the cash collected) and the moment it started. */
+export type FeeRate = { cod_rate: number | string; effective_from: string };
+
+/** The default when no rate has been set: 1%. */
+export const DEFAULT_COD_RATE = 1;
+
+/** The rate in force when the parcel was handed over (rates in any order). */
+export function rateFor(rates: FeeRate[], at: string | null | undefined): number {
+  const t = at ? new Date(at).getTime() : Date.now();
+  let best: FeeRate | null = null;
+  for (const r of rates) {
+    const from = new Date(r.effective_from).getTime();
+    if (from <= t && (!best || from > new Date(best.effective_from).getTime())) best = r;
+  }
+  return best ? Number(best.cod_rate) : DEFAULT_COD_RATE;
+}
+
+/** COD fee for an amount at a rate (percent), to the paisa. */
+export const codFeeAt = (collected: number, ratePct: number) => Math.round(collected * ratePct) / 100;
 
 export type InsightOrder = {
   id: string;
@@ -67,10 +84,13 @@ export type InsightRow = InsightOrder & {
   toCollect: number;
   fee: number;
   codFee: number;
+  /** True while the COD fee comes from the rate (not yet saved on the order or reported by the courier). */
   codFeeEstimated: boolean;
+  /** The COD fee rate (percent) in force when the parcel was handed over. */
+  codRate: number;
 };
 
-export function insightRow(o: InsightOrder, group: InsightKey): InsightRow {
+export function insightRow(o: InsightOrder, group: InsightKey, codRate = DEFAULT_COD_RATE): InsightRow {
   const total = num(o.total) ?? 0;
   const paid = num(o.paid_amount) ?? 0;
   const reported = num(o.courier_collected);
@@ -80,7 +100,7 @@ export function insightRow(o: InsightOrder, group: InsightKey): InsightRow {
   else if (group === 'paid_return' || group === 'partial' || group === 'exchange') collected = reported ?? paid;
   const finished = FINISHED.includes(group);
   const reportedCod = num(o.courier_cod_fee);
-  const codFee = !finished ? 0 : reportedCod ?? Math.round(collected * COD_FEE_RATE * 100) / 100;
+  const codFee = !finished ? 0 : reportedCod ?? codFeeAt(collected, codRate);
   return {
     ...o,
     group,
@@ -89,6 +109,7 @@ export function insightRow(o: InsightOrder, group: InsightKey): InsightRow {
     fee: finished ? num(o.courier_charge) ?? 0 : 0,
     codFee,
     codFeeEstimated: finished && reportedCod === null && collected > 0,
+    codRate,
   };
 }
 
@@ -110,13 +131,13 @@ export type Insight = {
   toCollect: number;
 };
 
-export function courierInsight(orders: InsightOrder[]): Insight {
+export function courierInsight(orders: InsightOrder[], rates: FeeRate[] = []): Insight {
   const rows: InsightRow[] = [];
   let pickupCancelled = 0;
   for (const o of orders) {
     const g = insightGroup(o);
     if (g === null) pickupCancelled++;
-    else rows.push(insightRow(o, g));
+    else rows.push(insightRow(o, g, rateFor(rates, o.courier_sent_at)));
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;
   const sum = (f: (r: InsightRow) => number, xs = rows) => r2(xs.reduce((a, r) => a + f(r), 0));

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { checkOrderPayment } from '@/actions/accounting';
 import { Icon } from '@/components/icons';
-import { FINISHED, INSIGHT_GROUPS, paidAfterCheck, type InsightRow } from '@/lib/courier-insight';
+import { codFeeAt, FINISHED, INSIGHT_GROUPS, paidAfterCheck, type InsightRow } from '@/lib/courier-insight';
 import { formatDateTime, formatMoney } from '@/lib/format';
 
 type View = 'todo' | 'done' | 'all';
@@ -68,16 +68,26 @@ function Row({ r }: { r: InsightRow }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [amount, setAmount] = useState(String(r.collected));
+  const [charge, setCharge] = useState(String(r.fee));
   const [err, setErr] = useState<string | null>(null);
   const finished = FINISHED.includes(r.group);
   const noCash = r.group === 'regular_return';
+  const editing = finished && !r.payment_checked_at;
+  // The COD fee follows the cash typed in, at the rate of the parcel's day, until it is saved or the courier reports it.
+  const fromRate = r.courier_cod_fee === null || r.courier_cod_fee === undefined || r.courier_cod_fee === '';
+  const cash = noCash ? 0 : Number(amount);
+  const codFee = editing && fromRate ? codFeeAt(Number.isFinite(cash) && cash > 0 ? cash : 0, r.codRate) : r.codFee;
 
   const save = (checked: boolean) => {
     const collected = Number(amount);
+    const fee = Number(charge);
     if (checked && !noCash && (!Number.isFinite(collected) || collected < 0)) { setErr('Enter the cash collected'); return; }
+    if (checked && (charge.trim() === '' || !Number.isFinite(fee) || fee < 0)) { setErr('Enter the delivery charge'); return; }
     setErr(null);
     start(async () => {
-      const res = await checkOrderPayment(r.id, paidAfterCheck(r, noCash ? 0 : collected), checked);
+      const res = checked
+        ? await checkOrderPayment(r.id, paidAfterCheck(r, noCash ? 0 : collected), true, fee, codFee)
+        : await checkOrderPayment(r.id, Number(r.paid_amount), false);
       if (!res.ok) setErr(res.message ?? 'Could not save');
       else router.refresh();
     });
@@ -94,8 +104,19 @@ function Row({ r }: { r: InsightRow }) {
           {LABEL[r.group].label}
         </span>
       </td>
-      <td className="whitespace-nowrap px-4 py-2.5 text-right">{r.fee ? formatMoney(-r.fee) : '—'}</td>
-      <td className="whitespace-nowrap px-4 py-2.5 text-right">{r.codFee ? <>{formatMoney(-r.codFee)}{r.codFeeEstimated && <span className="text-muted" title="Estimate: about 1%">*</span>}</> : '—'}</td>
+      <td className="whitespace-nowrap px-4 py-2 text-right">
+        {editing ? (
+          <label className="inline-flex items-center gap-1">
+            <span className="text-muted">৳</span>
+            <input inputMode="decimal" aria-label={`Delivery charge for ${r.public_ref}`} value={charge} onChange={(e) => setCharge(e.target.value)}
+              className="input h-9 w-20 px-2 py-1 text-right" />
+          </label>
+        ) : r.fee ? formatMoney(-r.fee) : '—'}
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5 text-right">
+        {codFee ? formatMoney(-codFee) : '—'}
+        {editing && fromRate && <span className="block text-[11px] text-muted">at {r.codRate}%</span>}
+      </td>
       <td className="px-4 py-2">
         {!finished ? (
           <span className="text-muted">{formatMoney(r.toCollect)} to collect · on the road</span>

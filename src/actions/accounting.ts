@@ -49,16 +49,32 @@ const checkSchema = z.object({
   orderId: z.uuid(),
   paid: z.number().min(0).max(99_999_999),
   checked: z.boolean(),
+  charge: z.number().min(0).max(100_000).nullable(),
+  codFee: z.number().min(0).max(100_000).nullable(),
 });
+const r2 = (n: number | null | undefined) => (n === null || n === undefined || !Number.isFinite(Number(n)) ? null : Math.round(Number(n) * 100) / 100);
 
 /** Marks one courier parcel's payment as checked (with what was really collected), or undoes the check. */
-export async function checkOrderPayment(orderId: string, paid: number, checked = true): Promise<ActionState> {
+export async function checkOrderPayment(orderId: string, paid: number, checked = true, charge: number | null = null, codFee: number | null = null): Promise<ActionState> {
   const { supabase } = await requirePermission('revenue');
-  const p = checkSchema.safeParse({ orderId, paid: Math.round(Number(paid) * 100) / 100, checked });
-  if (!p.success) return { ok: false, message: 'Enter the amount collected (0 or more).' };
-  const { error } = await supabase.rpc('check_order_payment', { p_order_id: p.data.orderId, p_paid: p.data.paid, p_checked: p.data.checked });
+  const p = checkSchema.safeParse({ orderId, paid: r2(paid), checked, charge: r2(charge), codFee: r2(codFee) });
+  if (!p.success) return { ok: false, message: 'Enter the cash collected and the delivery charge (0 or more).' };
+  const { error } = await supabase.rpc('check_order_payment', {
+    p_order_id: p.data.orderId, p_paid: p.data.paid, p_checked: p.data.checked, p_charge: p.data.charge, p_cod_fee: p.data.codFee,
+  });
   if (error) return { ok: false, message: mapDbError(error).message };
   revalidatePath('/admin/accounting', 'layout');
   revalidatePath(`/admin/orders/${p.data.orderId}`);
   return { ok: true, message: p.data.checked ? 'Payment checked.' : 'Check undone.' };
+}
+
+/** Sets a courier's COD fee rate (percent) from now on; parcels handed over earlier keep their rate. */
+export async function setCodRate(courier: string, rate: number): Promise<ActionState> {
+  const { supabase } = await requirePermission('revenue');
+  const p = z.object({ courier: z.enum(['pathao', 'steadfast']), rate: z.number().min(0).max(20) }).safeParse({ courier, rate: Math.round(Number(rate) * 1000) / 1000 });
+  if (!p.success) return { ok: false, message: 'COD fee must be between 0% and 20%.' };
+  const { error } = await supabase.rpc('set_courier_cod_rate', { p_courier: p.data.courier, p_rate: p.data.rate });
+  if (error) return { ok: false, message: mapDbError(error).message };
+  revalidatePath('/admin/accounting', 'layout');
+  return { ok: true, message: `COD fee set to ${p.data.rate}% from now on.` };
 }

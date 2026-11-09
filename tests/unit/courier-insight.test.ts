@@ -77,3 +77,22 @@ describe('payment check', () => {
     expect([r.checked, r.unchecked]).toEqual([1, 1]);
   });
 });
+
+describe('COD fee rate by date', () => {
+  it('uses the rate in force when the parcel was handed over, so a new rate never changes older parcels', async () => {
+    const { rateFor, courierInsight: ci } = await import('@/lib/courier-insight');
+    const rates = [
+      { cod_rate: 1, effective_from: '2000-01-01T00:00:00Z' },
+      { cod_rate: '0.5', effective_from: '2026-11-15T00:00:00Z' },
+    ];
+    expect(rateFor(rates, '2026-11-08T12:00:00Z')).toBe(1);
+    expect(rateFor(rates, '2026-11-20T12:00:00Z')).toBe(0.5);
+    expect(rateFor([], '2026-11-20T12:00:00Z')).toBe(1);
+    const r = ci([
+      o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 1000, courier_sent_at: '2026-11-08T12:00:00Z' }),
+      o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 1000, courier_sent_at: '2026-11-20T12:00:00Z' }),
+      o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 1000, courier_sent_at: '2026-11-20T12:00:00Z', courier_cod_fee: 7 }),
+    ], rates);
+    expect(r.rows.map((x) => x.codFee)).toEqual([10, 5, 7]);
+  });
+});
