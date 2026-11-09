@@ -29,8 +29,8 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
     <section className="relative overflow-hidden rounded-2xl bg-night p-5 text-white shadow-lg sm:p-7">
       <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/30 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#34d399]/10 blur-3xl" />
-      <div className="relative grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center lg:gap-10">
-        <div className="lg:min-w-[15rem] lg:border-r lg:border-white/10 lg:pr-10">
+      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+        <div className="lg:order-2 lg:min-w-[16rem] lg:border-l lg:border-white/10 lg:pl-12">
           <p className="flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.14em] text-white/55">
             <Icon name="calendar" size={14} /> {period}
           </p>
@@ -42,8 +42,8 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
             </p>
           )}
         </div>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        <div className="space-y-5 lg:order-1 lg:max-w-[50rem]">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4 lg:gap-5">
             <HeroStat label="Income" value={money(income)} sub={incomeSub} />
             <HeroStat label="Product cost" value={money(cogs)} sub={cogsSub || (income > 0 ? `${Math.round((cogs / income) * 100)}% of income` : "—")} />
             <HeroStat label="Gross profit" value={money(gross)} sub={grossMargin === null ? 'No sales' : `${grossMargin}% margin`} />
@@ -78,9 +78,9 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
 }
 function HeroStat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-sm">
-      <p className="text-[11.5px] font-medium text-white/60">{label}</p>
-      <p className="mt-0.5 truncate text-[1.05rem] font-bold sm:text-[1.25rem]">{value}</p>
+    <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 backdrop-blur-sm">
+      <p className="text-[11px] font-medium text-white/60">{label}</p>
+      <p className="mt-0.5 truncate text-[1.02rem] font-bold sm:text-[1.15rem]">{value}</p>
       <p className="truncate text-[11px] text-white/45">{sub}</p>
     </div>
   );
