@@ -178,3 +178,15 @@ export function paidAfterCheck(r: Pick<InsightRow, 'group' | 'paid_amount' | 'pa
   const advance = r.group === 'delivered' ? num(r.paid_before_delivery) ?? 0 : 0;
   return Math.min(total, Math.round((collected + advance) * 100) / 100);
 }
+
+/** The parcels a payment-check view shows: not checked / checked (finished parcels only) or all, matching a search on order or consignment ID. */
+export function filterParcels(rows: InsightRow[], view: 'todo' | 'done' | 'all', q: string): InsightRow[] {
+  const needle = q.trim().toLowerCase();
+  return rows.filter((r) => {
+    if (view !== 'all') {
+      if (!FINISHED.includes(r.group)) return false;
+      if (view === 'done' ? !r.payment_checked_at : r.payment_checked_at) return false;
+    }
+    return !needle || r.public_ref.toLowerCase().includes(needle) || (r.courier_consignment_id ?? '').toLowerCase().includes(needle);
+  });
+}

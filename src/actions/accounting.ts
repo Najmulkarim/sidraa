@@ -78,3 +78,24 @@ export async function setCodRate(courier: string, rate: number): Promise<ActionS
   revalidatePath('/admin/accounting', 'layout');
   return { ok: true, message: `COD fee set to ${p.data.rate}% from now on.` };
 }
+
+/** Checks many parcels at once with the amounts shown (one page at a time). */
+export async function checkOrderPayments(items: { orderId: string; paid: number; charge: number | null; codFee: number | null }[]): Promise<ActionState> {
+  const { supabase } = await requirePermission('revenue');
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100) return { ok: false, message: 'Choose up to 100 parcels.' };
+  let done = 0;
+  const failed: string[] = [];
+  for (const it of items) {
+    const p = checkSchema.safeParse({ orderId: it.orderId, paid: r2(it.paid), checked: true, charge: r2(it.charge), codFee: r2(it.codFee) });
+    if (!p.success) { failed.push(it.orderId); continue; }
+    const { error } = await supabase.rpc('check_order_payment', {
+      p_order_id: p.data.orderId, p_paid: p.data.paid, p_checked: true, p_charge: p.data.charge, p_cod_fee: p.data.codFee,
+    });
+    if (error) failed.push(it.orderId);
+    else done++;
+  }
+  revalidatePath('/admin/accounting', 'layout');
+  return failed.length
+    ? { ok: done > 0, message: `${done} checked, ${failed.length} could not be checked — open them one by one.` }
+    : { ok: true, message: `${done} parcel${done === 1 ? '' : 's'} checked.` };
+}

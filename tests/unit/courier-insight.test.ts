@@ -96,3 +96,19 @@ describe('COD fee rate by date', () => {
     expect(r.rows.map((x) => x.codFee)).toEqual([10, 5, 7]);
   });
 });
+
+describe('payment check list', () => {
+  it('filters by view and searches order or consignment ID', async () => {
+    const { filterParcels, courierInsight: ci } = await import('@/lib/courier-insight');
+    const r = ci([
+      o({ id: 'a', public_ref: 'SD0007', status: 'delivered', courier_status: 'Delivered', paid_amount: 1000, courier_consignment_id: 'DN081126CV4T4X' }),
+      o({ id: 'b', public_ref: 'SD0008', status: 'delivered', courier_status: 'Delivered', paid_amount: 1000, payment_checked_at: '2026-11-10T10:00:00Z' }),
+      o({ id: 'c', public_ref: 'SD0009', status: 'shipped', courier_status: 'In_Transit' }),
+    ]);
+    expect(filterParcels(r.rows, 'todo', '').map((x) => x.id)).toEqual(['a']);
+    expect(filterParcels(r.rows, 'done', '').map((x) => x.id)).toEqual(['b']);
+    expect(filterParcels(r.rows, 'all', '').length).toBe(3);
+    expect(filterParcels(r.rows, 'all', 'cv4t').map((x) => x.id)).toEqual(['a']);
+    expect(filterParcels(r.rows, 'all', 'sd0009').map((x) => x.id)).toEqual(['c']);
+  });
+});

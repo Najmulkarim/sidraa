@@ -7,7 +7,7 @@ import { CourierParcels } from '@/components/admin/CourierParcels';
 import { Icon } from '@/components/icons';
 import { requirePermission } from '@/lib/auth';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
-import { courierInsight, rateFor, type FeeRate, type InsightOrder } from '@/lib/courier-insight';
+import { courierInsight, filterParcels, rateFor, type FeeRate, type InsightOrder } from '@/lib/courier-insight';
 import { CodRateSetting } from '@/components/admin/CodRateSetting';
 import { addDays, dhakaDayStartUtc, dhakaToday, formatMoney, formatTaka, resolveRange } from '@/lib/format';
 
@@ -24,9 +24,13 @@ const PRESETS = [
   { value: 'this-year', label: 'This year' },
 ] as const;
 
+const PER_PAGE = 50;
+/** Enough for a few busy months; a longer period is better looked at month by month. */
+const MAX_PARCELS = 30_000;
+
 export default async function CourierInsightPage({ params, searchParams }: {
   params: Promise<{ courier: string }>;
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string; view?: string; q?: string; page?: string }>;
 }) {
   const [{ supabase }, { courier: raw }, sp] = await Promise.all([requirePermission('revenue'), params, searchParams]);
   if (!(raw in COURIER_LABEL)) notFound();
@@ -35,15 +39,26 @@ export default async function CourierInsightPage({ params, searchParams }: {
   const today = dhakaToday();
   const range = resolveRange(sp.range ?? '30d', sp.from, sp.to, new Date(), 3650);
 
+  // Like the courier's own dashboard: parcels by the day they were handed to it.
+  // The database hands out 1,000 rows at a time, so a busy month is read in pages.
+  const loadParcels = async () => {
+    const all: InsightOrder[] = [];
+    for (let from = 0; from < MAX_PARCELS; from += 1000) {
+      const { data, error } = await supabase.from('orders')
+        .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name')
+        .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
+        .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
+        .order('courier_sent_at', { ascending: false }).order('id').range(from, from + 999);
+      if (error) return { data: null, error };
+      all.push(...((data ?? []) as InsightOrder[]));
+      if ((data ?? []).length < 1000) break;
+    }
+    return { data: all, error: null };
+  };
   const [couriers, { data: rateRows }, { data, error }] = await Promise.all([
     usedCouriers(supabase),
     supabase.from('courier_fee_rates').select('cod_rate, effective_from').eq('courier', courier).order('effective_from', { ascending: false }).limit(50),
-    // Like the courier's own dashboard: parcels by the day they were handed to it.
-    supabase.from('orders')
-      .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name')
-      .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
-      .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
-      .order('courier_sent_at', { ascending: false }).limit(5000),
+    loadParcels(),
   ]);
 
   if (error) {
@@ -56,8 +71,13 @@ export default async function CourierInsightPage({ params, searchParams }: {
   }
 
   const rates = (rateRows ?? []) as FeeRate[];
-  const ins = courierInsight((data ?? []) as InsightOrder[], rates);
+  const ins = courierInsight(data ?? [], rates);
   const rateNow = rateFor(rates, new Date().toISOString());
+  const view = sp.view === 'done' || sp.view === 'all' ? sp.view : sp.view === 'todo' || ins.unchecked > 0 ? 'todo' : 'all';
+  const list = filterParcels(ins.rows, view, sp.q ?? '');
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+  const page = Math.min(pages, Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1));
+  const keepRange = `range=${range.preset}${range.preset === 'custom' ? `&from=${range.from}&to=${range.to}` : ''}`;
 
   return (
     <div className="space-y-6">
@@ -96,7 +116,11 @@ export default async function CourierInsightPage({ params, searchParams }: {
       <div className="max-w-md"><CodRateSetting courier={courier} name={name} rates={rates} /></div>
 
       {/* Every parcel, checked one by one against the courier. */}
-      <CourierParcels rows={ins.rows} name={name} checked={ins.checked} unchecked={ins.unchecked} />
+      <CourierParcels
+        rows={list.slice((page - 1) * PER_PAGE, page * PER_PAGE)} name={name} checked={ins.checked} unchecked={ins.unchecked} all={ins.rows.length}
+        view={view} q={sp.q ?? ''} page={page} pages={pages} matched={list.length} perPage={PER_PAGE}
+        basePath={`/admin/accounting/courier/${courier}`} keepRange={keepRange}
+      />
     </div>
   );
 }

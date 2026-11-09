@@ -33,8 +33,11 @@ export async function POST(req: NextRequest) {
   }
 
   const consignment = body.consignment_id ? String(body.consignment_id) : '';
+  // A return names its kind ("paid_return", …): keep that, not the step it is at ("return-in-transit").
+  const returnType = typeof body.return_type === 'string' && /return/i.test(body.return_type) ? body.return_type : '';
   const status =
-    typeof body.order_status_slug === 'string' ? body.order_status_slug
+    returnType ? returnType
+    : typeof body.order_status_slug === 'string' ? body.order_status_slug
     : typeof body.order_status === 'string' ? body.order_status
     : typeof body.event === 'string' ? body.event
     : '';
