@@ -13,9 +13,9 @@ export function periodLabel(from: string, to: string) {
 }
 
 /** The period at a glance: net profit, the three figures behind it, and where each taka of income went. */
-export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub }: {
+export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '' }: {
   period: string; net: number; netMargin: number | null; income: number; gross: number; grossMargin: number | null;
-  cogs: number; expenses: number; incomeSub: string; expenseSub: string;
+  cogs: number; expenses: number; incomeSub: string; expenseSub: string; cogsSub?: string;
 }) {
   const loss = net < 0;
   // Shares of income: product cost, expenses, and what is left (profit). A loss shows the costs against income.
@@ -43,8 +43,9 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
           )}
         </div>
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             <HeroStat label="Income" value={money(income)} sub={incomeSub} />
+            <HeroStat label="Product cost" value={money(cogs)} sub={cogsSub || (income > 0 ? `${Math.round((cogs / income) * 100)}% of income` : "—")} />
             <HeroStat label="Gross profit" value={money(gross)} sub={grossMargin === null ? 'No sales' : `${grossMargin}% margin`} />
             <HeroStat label="Expenses" value={money(expenses)} sub={expenseSub} />
           </div>

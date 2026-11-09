@@ -123,6 +123,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         period={periodLabel(range.from, range.to)} net={net} netMargin={netMargin} income={income} gross={gross} grossMargin={grossMargin}
         cogs={cogs} expenses={expensesTotal}
         incomeSub={`${n(p.orders)} delivered${n(p.paid_returns) > 0 ? ` · ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`}
+        cogsSub={`${n(p.units)} piece${n(p.units) === 1 ? '' : 's'} sold`}
         expenseSub={`${n(p.returned_orders) > 0 ? `${n(p.returned_orders)} return${n(p.returned_orders) === 1 ? '' : 's'} · ` : ''}courier, ads & more`}
       />
 
