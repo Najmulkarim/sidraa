@@ -20,9 +20,11 @@ const COLOR = { cogs: '#7c83f0', exp: '#c97c00', net: '#0ea371' };
  * expenses, and where each taka of income went. Right: the net profit, on its
  * own card.
  */
-export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '' }: {
+export function AccountingHero({ period, net, netMargin, income, gross, grossMargin, cogs, expenses, incomeSub, expenseSub, cogsSub = '', trend = [], trendLabel = 'Daily net' }: {
   period: string; net: number; netMargin: number | null; income: number; gross: number; grossMargin: number | null;
   cogs: number; expenses: number; incomeSub: string; expenseSub: string; cogsSub?: string;
+  /** Net profit per period (oldest first), for the small line on the card. */
+  trend?: number[]; trendLabel?: string;
 }) {
   const loss = net < 0;
   // Shares of income: product cost, expenses, and what is left (profit). A loss shows the costs against income.
@@ -80,26 +82,38 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
         </div>
 
         {/* Right: the result, on its own card. */}
-        <div className={`relative order-first flex flex-col justify-between overflow-hidden rounded-xl p-5 ring-1 lg:order-none ${loss
-          ? 'bg-gradient-to-br from-[#4c0519] via-[#3b0a1a] to-[#1f1015] ring-[#fda4af]/25'
-          : 'bg-gradient-to-br from-[#064e3b] via-[#053d30] to-[#0b2420] ring-[#34d399]/25'}`}>
-          <div aria-hidden className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full blur-2xl ${loss ? 'bg-[#fb7185]/25' : 'bg-[#34d399]/25'}`} />
-          <div className="relative flex items-center justify-between gap-2">
-            <p className={`text-[12px] font-semibold uppercase tracking-[0.14em] ${loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'}`}>{loss ? 'Net loss' : 'Net profit'}</p>
-            <span className={`grid h-8 w-8 place-items-center rounded-lg ${loss ? 'bg-[#fda4af]/15 text-[#fda4af]' : 'bg-[#34d399]/15 text-[#6ee7b7]'}`}><Icon name="chart" size={16} /></span>
-          </div>
-          <p className="relative mt-3 truncate text-[2.4rem] font-bold leading-none tracking-tight sm:text-[2.7rem]">{money(net)}</p>
-          <div className="relative mt-4 space-y-1.5">
-            {netMargin !== null && (
-              <p className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${loss ? 'bg-[#fda4af]/15 text-[#fda4af]' : 'bg-[#34d399]/15 text-[#6ee7b7]'}`}>
-                {netMargin}% of income
-              </p>
-            )}
-            {per100 !== null && (
-              <p className="text-[12px] text-white/55">
-                {loss ? `Every ৳100 sold lost ৳${Math.abs(per100)}` : `Every ৳100 sold left ৳${per100} profit`}
-              </p>
-            )}
+        <div className={`group relative order-first overflow-hidden rounded-2xl p-[1px] lg:order-none ${loss
+          ? 'bg-gradient-to-br from-[#fda4af]/50 via-[#fda4af]/10 to-transparent'
+          : 'bg-gradient-to-br from-[#6ee7b7]/60 via-[#34d399]/10 to-transparent'}`}>
+          <div className={`relative flex h-full flex-col gap-4 overflow-hidden rounded-[15px] p-5 ${loss
+            ? 'bg-[radial-gradient(120%_90%_at_100%_0%,#7f1d3a_0%,#3b0a1a_45%,#1c0f14_100%)]'
+            : 'bg-[radial-gradient(120%_90%_at_100%_0%,#0f766e_0%,#064e3b_40%,#0b1f1b_100%)]'}`}>
+            {/* Soft dot pattern and a glow, for depth. */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:14px_14px]" />
+            <div aria-hidden className={`pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full blur-3xl ${loss ? 'bg-[#fb7185]/20' : 'bg-[#34d399]/20'}`} />
+
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <p className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-[0.16em] ${loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${loss ? 'bg-[#fda4af]' : 'bg-[#6ee7b7]'} shadow-[0_0_8px_currentColor]`} />
+                  {loss ? 'Net loss' : 'Net profit'}
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-white/45">{period}</p>
+              </div>
+              {netMargin !== null && <MarginRing pct={netMargin} loss={loss} />}
+            </div>
+
+            <Amount value={net} />
+
+            <div className="relative mt-auto space-y-3">
+              {trend.length > 1 && <Sparkline values={trend} loss={loss} label={trendLabel} />}
+              {per100 !== null && (
+                <p className="flex items-center gap-2 rounded-lg bg-black/20 px-3 py-2 text-[12px] text-white/70 ring-1 ring-white/5">
+                  <Icon name="cash" size={14} className={loss ? 'text-[#fda4af]' : 'text-[#6ee7b7]'} />
+                  {loss ? <>Every ৳100 sold lost <b className="text-white">৳{Math.abs(per100)}</b></> : <>Every ৳100 sold left <b className="text-white">৳{per100}</b> profit</>}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -114,6 +128,65 @@ function HeroStat({ label, value, sub, accent }: { label: string; value: string;
       <p className="text-[11.5px] font-medium text-white/60">{label}</p>
       <p className="mt-1 truncate text-[1.1rem] font-bold leading-tight sm:text-[1.2rem]">{value}</p>
       <p className="mt-0.5 truncate text-[11px] text-white/45">{sub}</p>
+    </div>
+  );
+}
+
+/** The amount with a small taka sign and small paisa, the whole taka large. */
+function Amount({ value }: { value: number }) {
+  const text = money(value); // e.g. "৳4,266.50" or "−৳1,200"
+  const m = /^(−?)৳([\d,]+)(\.\d+)?$/.exec(text);
+  if (!m) return <p className="relative truncate text-[2.5rem] font-bold leading-none tracking-tight">{text}</p>;
+  return (
+    <p className="relative flex items-baseline truncate font-bold leading-none tracking-tight">
+      <span className="mr-1 text-[1.5rem] text-white/60">{m[1]}৳</span>
+      <span className="text-[2.6rem] sm:text-[2.9rem]">{m[2]}</span>
+      {m[3] && <span className="text-[1.4rem] text-white/50">{m[3]}</span>}
+    </p>
+  );
+}
+
+/** A small ring showing net profit as a share of income. */
+function MarginRing({ pct, loss }: { pct: number; loss: boolean }) {
+  const r = 20, c = 2 * Math.PI * r;
+  const share = Math.min(100, Math.abs(pct));
+  return (
+    <div className="relative grid h-14 w-14 shrink-0 place-items-center" title={`${pct}% of income`}>
+      <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx="24" cy="24" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="4" />
+        <circle cx="24" cy="24" r={r} fill="none" stroke={loss ? '#fda4af' : '#6ee7b7'} strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={`${(share / 100) * c} ${c}`} />
+      </svg>
+      <span className="text-[11.5px] font-bold">{Math.round(pct)}%</span>
+    </div>
+  );
+}
+
+/** Net profit per period as a thin line, with a zero line when it crosses below zero. */
+function Sparkline({ values, loss, label }: { values: number[]; loss: boolean; label: string }) {
+  const w = 240, h = 44, pad = 3;
+  const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
+  const span = hi - lo || 1;
+  const x = (i: number) => pad + (i / (values.length - 1)) * (w - pad * 2);
+  const y = (v: number) => pad + (1 - (v - lo) / span) * (h - pad * 2);
+  const line = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(values.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
+  const stroke = loss ? '#fda4af' : '#6ee7b7';
+  const id = loss ? 'spark-loss' : 'spark-profit';
+  return (
+    <div>
+      <p className="mb-1 text-[11px] font-medium text-white/45">{label}</p>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-11 w-full" preserveAspectRatio="none" role="img" aria-label={`${label}: ${values.map((v) => money(v)).join(', ')}`}>
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {lo < 0 && hi > 0 && <line x1={pad} x2={w - pad} y1={y(0)} y2={y(0)} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
+        <path d={area} fill={`url(#${id})`} />
+        <path d={line} fill="none" stroke={stroke} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </div>
   );
 }

@@ -124,6 +124,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         cogs={cogs} expenses={expensesTotal}
         incomeSub={`${n(p.orders)} delivered${n(p.paid_returns) > 0 ? ` · ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`}
         cogsSub={`${n(p.units)} piece${n(p.units) === 1 ? '' : 's'} sold`}
+        trend={p.buckets.map((b) => Math.round((n(b.income) - n(b.cogs) - n(b.expenses)) * 100) / 100)}
+        trendLabel={`${GROUPS.find((g) => g.value === group)?.label ?? 'Daily'} net`}
         expenseSub={`${n(p.returned_orders) > 0 ? `${n(p.returned_orders)} return${n(p.returned_orders) === 1 ? '' : 's'} · ` : ''}courier, ads & more`}
       />
 
