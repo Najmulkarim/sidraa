@@ -98,7 +98,7 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
             <a href="https://www.ehelperbd.com" target="_blank" rel="noopener" title="e-helper — complete e-commerce solution"
               className="inline-flex items-center opacity-90 transition hover:-translate-y-px hover:opacity-100">
               {/* eslint-disable-next-line @next/next/no-img-element -- a tiny fixed-size mark */}
-              <img src="/brand/e-helper-dark.png" alt="e-helper" width={112} height={24} loading="lazy" decoding="async" className="h-6 w-auto" />
+              <img src="/brand/e-helper-dark.png" alt="e-helper" width={94} height={24} loading="lazy" decoding="async" className="h-6 w-auto" />
             </a>
           </p>
         </div>
