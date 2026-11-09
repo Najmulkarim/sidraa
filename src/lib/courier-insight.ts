@@ -71,7 +71,8 @@ export function insightRow(o: InsightOrder, group: InsightKey): InsightRow {
   const paid = num(o.paid_amount) ?? 0;
   const reported = num(o.courier_collected);
   let collected = 0;
-  if (group === 'delivered') collected = reported ?? Math.max(0, total - (num(o.paid_before_delivery) ?? 0));
+  // Delivered: Paid on the order (staff lower it when the customer paid less at the door), less any advance paid before.
+  if (group === 'delivered') collected = reported ?? Math.max(0, Math.min(paid, total) - (num(o.paid_before_delivery) ?? 0));
   else if (group === 'paid_return' || group === 'partial' || group === 'exchange') collected = reported ?? paid;
   const finished = FINISHED.includes(group);
   const reportedCod = num(o.courier_cod_fee);

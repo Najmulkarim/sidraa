@@ -38,6 +38,12 @@ describe('courier insight', () => {
     expect(r.payout).toBe(7273.5);
   });
 
+  it('counts what the customer really paid at the door', () => {
+    const r = courierInsight([o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 950, paid_before_delivery: 0 })]);
+    expect(r.collected).toBe(950);
+    expect(r.groups.find((g) => g.key === 'delivered')?.amount).toBe(950);
+  });
+
   it('uses the money the courier reported, and an advance is not collected', () => {
     const r = courierInsight([
       o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 1000, paid_before_delivery: 200 }),
