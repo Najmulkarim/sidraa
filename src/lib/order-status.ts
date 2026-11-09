@@ -59,7 +59,8 @@ const NEXT: Record<OrderStatus, OrderStatus[]> = {
   processing: ['shipped', 'delivered', 'hold', 'ship_later', 'cancelled'],
   hold: ['pending', 'confirmed', 'processing', 'shipped', 'ship_later', 'cancelled', 'fake'],
   ship_later: ['pending', 'confirmed', 'processing', 'shipped', 'hold', 'cancelled', 'fake'],
-  shipped: ['delivered', 'returned', 'lost'],
+  // Back to any earlier step except New (stock stays reserved), or forward.
+  shipped: ['confirmed', 'processing', 'hold', 'ship_later', 'delivered', 'returned', 'lost'],
   delivered: ['returned'],
   cancelled: [],
   returned: [],

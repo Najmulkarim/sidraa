@@ -66,15 +66,19 @@ describe('order status workflow (mirrors allowed_next_statuses)', () => {
   it('allows forward moves, hold / ship later, cancel or fake while open', () => {
     expect(nextStatuses('pending')).toEqual(['confirmed', 'processing', 'shipped', 'delivered', 'hold', 'ship_later', 'cancelled', 'fake']);
     expect(nextStatuses('hold')).toContain('confirmed');
-    expect(nextStatuses('shipped')).toEqual(['delivered', 'returned', 'lost']);
+    expect(nextStatuses('shipped')).toEqual(['confirmed', 'processing', 'hold', 'ship_later', 'delivered', 'returned', 'lost']);
+    expect(nextStatuses('shipped')).not.toContain('pending');
     expect(nextStatuses('delivered')).toEqual(['returned']);
   });
   it('final statuses go nowhere', () => {
     for (const s of ['cancelled', 'returned', 'lost', 'fake'] as const) expect(nextStatuses(s)).toEqual([]);
   });
-  it('never moves backwards along the main flow', () => {
+  it('never moves backwards along the main flow, except In courier back to Confirmed / Ready (never to New)', () => {
     const flow = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'] as const;
-    flow.forEach((from, i) => flow.slice(0, i + 1).forEach((to) => expect(canTransition(from, to)).toBe(false)));
+    const allowedBack = (from: string, to: string) => from === 'shipped' && (to === 'confirmed' || to === 'processing');
+    flow.forEach((from, i) => flow.slice(0, i + 1).forEach((to) => expect(canTransition(from, to)).toBe(allowedBack(from, to))));
+    expect(canTransition('shipped', 'pending')).toBe(false);
+    expect(canTransition('delivered', 'processing')).toBe(false);
     expect(canTransition('processing', 'returned')).toBe(false);
     expect(canTransition('shipped', 'cancelled')).toBe(false);
   });
