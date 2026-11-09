@@ -90,7 +90,17 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
         </div>}
       </div>
       <div className={`py-5 text-center text-[12.5px] tracking-wide ${light ? 'bg-night text-white/70' : 'border-t border-white/10 text-white/50'}`}>
-        © {year} {settings.store_name}. All rights reserved · Prices in Bangladeshi Taka (৳)
+        <div className="container-page flex flex-col items-center justify-between gap-3 sm:flex-row">
+          <p>© {year} {settings.store_name}. All rights reserved · Prices in Bangladeshi Taka (৳)</p>
+          {/* The site's developer. */}
+          <p className="inline-flex items-center gap-2 text-[11.5px]">
+            Developed by
+            <span className="inline-flex items-center rounded-md bg-white px-2 py-1 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a tiny fixed-size mark */}
+              <img src="/brand/e-helper.png" alt="e-helper" width={84} height={20} loading="lazy" decoding="async" className="h-5 w-auto" />
+            </span>
+          </p>
+        </div>
       </div>
     </footer>
   );
