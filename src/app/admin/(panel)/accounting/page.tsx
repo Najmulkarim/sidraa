@@ -61,9 +61,12 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   // Daily rows only up to about a year.
   const group = wanted === 'day' && days > 400 ? 'month' : wanted;
 
-  const [{ data, error }, { data: expenseRows }] = await Promise.all([
+  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }] = await Promise.all([
     supabase.rpc('accounting_pnl', { p_from: range.from, p_to: range.to, p_group: group }),
     supabase.from('expenses').select('id, spent_on, category, amount, paid_via, reference, note').gte('spent_on', range.from).lte('spent_on', range.to).order('spent_on', { ascending: false }).order('created_at', { ascending: false }).limit(500),
+    // Paid returns whose amount nobody has entered yet (the courier did not send it).
+    supabase.from('orders').select('id, public_ref').eq('status', 'returned').is('deleted_at', null).eq('paid_amount', 0)
+      .ilike('courier_status', '%paid%return%').order('returned_at', { ascending: false }).limit(20),
   ]);
 
   if (error || !data) {
@@ -102,6 +105,16 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
           <Icon name="note" size={18} className="shrink-0" />
           <p className="min-w-0 flex-1"><b>{missing} sold piece{missing === 1 ? ' has' : 's have'} no cost price</b>, so the profit below is higher than the real one. Add the cost price in <Link href="/admin/products" className="underline">Products</Link> — past sales pick it up automatically.</p>
           <ReapplyCosts from={range.from} to={range.to} />
+        </div>
+      )}
+
+      {(unpaidReturns ?? []).length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-warn/10 px-4 py-3 text-[13.5px] text-warn">
+          <Icon name="cash" size={18} className="shrink-0" />
+          <p className="min-w-0 flex-1">
+            <b>{unpaidReturns!.length} paid return{unpaidReturns!.length === 1 ? '' : 's'} without the amount the customer paid.</b> Open the order and enter it in Paid, so it counts as income:{' '}
+            {unpaidReturns!.map((o, i) => <span key={o.id}>{i > 0 && ', '}<Link href={`/admin/orders/${o.id}`} className="font-semibold underline">{o.public_ref}</Link></span>)}
+          </p>
         </div>
       )}
 

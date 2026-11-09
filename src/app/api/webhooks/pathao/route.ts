@@ -42,9 +42,12 @@ export async function POST(req: NextRequest) {
   if (!consignment || !status) return reply({ message: 'OK' });
   const fee = body.delivery_fee ?? body.collected_delivery_fee;
   const charge = fee === undefined || fee === null ? null : Number(fee);
+  // What the rider took from the customer (a paid return records it as paid).
+  const got = body.collected_amount ?? body.collected_delivery_fee;
+  const collected = got === undefined || got === null || got === '' ? null : Number(got);
 
   try {
-    await applyCourierStatus('pathao', consignment.slice(0, 60), status, charge);
+    await applyCourierStatus('pathao', consignment.slice(0, 60), status, charge, collected);
     return reply({ message: 'OK' });
   } catch (e) {
     console.error('[webhook] pathao', e);

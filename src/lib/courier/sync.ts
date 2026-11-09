@@ -21,12 +21,13 @@ export async function syncParcel(settings: CourierSettingsRow, courier: CourierN
   return applyCourierStatus(courier, consignmentId, result.status, result.charge);
 }
 
-export async function applyCourierStatus(courier: CourierName, consignmentId: string, status: string, charge: number | null) {
+export async function applyCourierStatus(courier: CourierName, consignmentId: string, status: string, charge: number | null, collected: number | null = null) {
   const { data, error } = await createAdminClient().rpc('apply_courier_status', {
     p_courier: courier,
     p_consignment_id: consignmentId,
     p_raw_status: status.slice(0, 60),
     p_charge: charge !== null && Number.isFinite(charge) ? charge : null,
+    p_collected: collected !== null && Number.isFinite(collected) ? collected : null,
   });
   if (error) throw new Error(`apply_courier_status: ${error.message}`);
   return { raw: status, ...(data as { found: boolean; status?: string }) };
