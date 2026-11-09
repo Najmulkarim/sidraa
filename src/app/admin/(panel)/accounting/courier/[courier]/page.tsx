@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
 import { DateRangePicker } from '@/components/admin/DateRangePicker';
 import { CourierInsightChart } from '@/components/admin/CourierInsightChart';
+import { CourierParcels } from '@/components/admin/CourierParcels';
 import { Icon } from '@/components/icons';
 import { requirePermission } from '@/lib/auth';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
-import { courierInsight, INSIGHT_GROUPS, type InsightKey, type InsightOrder } from '@/lib/courier-insight';
-import { addDays, dhakaDayStartUtc, dhakaToday, formatDateTime, formatMoney, formatTaka, resolveRange } from '@/lib/format';
+import { courierInsight, type InsightOrder } from '@/lib/courier-insight';
+import { addDays, dhakaDayStartUtc, dhakaToday, formatMoney, formatTaka, resolveRange } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Courier' };
 
@@ -38,7 +38,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
     usedCouriers(supabase),
     // Like the courier's own dashboard: parcels by the day they were handed to it.
     supabase.from('orders')
-      .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at')
+      .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, payment_checked_at, payment_checked_by_name')
       .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
       .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
       .order('courier_sent_at', { ascending: false }).limit(5000),
@@ -54,8 +54,6 @@ export default async function CourierInsightPage({ params, searchParams }: {
   }
 
   const ins = courierInsight((data ?? []) as (InsightOrder & { courier_sent_at: string })[]);
-  const sentAt = new Map((data ?? []).map((o) => [o.id, o.courier_sent_at as string]));
-  const label = Object.fromEntries(INSIGHT_GROUPS.map((g) => [g.key, g])) as Record<InsightKey, (typeof INSIGHT_GROUPS)[number]>;
 
   return (
     <div className="space-y-6">
@@ -91,47 +89,8 @@ export default async function CourierInsightPage({ params, searchParams }: {
         </p>
       </section>
 
-      {/* Every parcel, to check against the courier. */}
-      <section className="card overflow-hidden">
-        <h2 className="border-b border-line px-5 py-3.5 font-semibold">Parcels ({ins.count})</h2>
-        {ins.rows.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-muted">No {name} parcels in this period.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-[13.5px]">
-              <thead className="bg-soft text-left text-[11.5px] font-bold uppercase tracking-wide text-muted">
-                <tr>
-                  <th className="px-4 py-2.5">Order</th>
-                  <th className="px-4 py-2.5">Handed over</th>
-                  <th className="px-4 py-2.5">Status</th>
-                  <th className="px-4 py-2.5 text-right">Collected</th>
-                  <th className="px-4 py-2.5 text-right">Charge</th>
-                  <th className="px-4 py-2.5 text-right">COD fee</th>
-                  <th className="px-4 py-2.5 text-right">You get</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ins.rows.map((r) => (
-                  <tr key={r.id} className="border-t border-line/70">
-                    <td className="px-4 py-2"><Link href={`/admin/orders/${r.id}`} className="font-semibold text-brand hover:underline">{r.public_ref}</Link></td>
-                    <td className="whitespace-nowrap px-4 py-2 text-muted">{formatDateTime(sentAt.get(r.id))}</td>
-                    <td className="px-4 py-2">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: label[r.group].color }} aria-hidden />
-                        {label[r.group].label}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right">{r.toCollect > 0 ? <span className="text-muted">{formatTaka(r.toCollect)} to collect</span> : formatTaka(r.collected)}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right">{r.fee ? formatMoney(-r.fee) : '—'}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right">{r.codFee ? <>{formatMoney(-r.codFee)}{r.codFeeEstimated && <span className="text-muted" title="Estimate: about 1%">*</span>}</> : '—'}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-semibold">{r.toCollect > 0 ? '—' : formatMoney(r.collected - r.fee - r.codFee)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {/* Every parcel, checked one by one against the courier. */}
+      <CourierParcels rows={ins.rows} name={name} checked={ins.checked} unchecked={ins.unchecked} />
     </div>
   );
 }

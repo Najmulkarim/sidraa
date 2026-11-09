@@ -14,7 +14,7 @@ export const INSIGHT_GROUPS: { key: InsightKey; label: string; color: string; hi
 ];
 
 /** Groups whose parcel journey is over: the courier charges for these. */
-const FINISHED: InsightKey[] = ['delivered', 'regular_return', 'paid_return', 'partial', 'exchange'];
+export const FINISHED: InsightKey[] = ['delivered', 'regular_return', 'paid_return', 'partial', 'exchange'];
 
 /** The courier's COD fee when it does not report one: about 1% of the cash collected. */
 export const COD_FEE_RATE = 0.01;
@@ -30,6 +30,9 @@ export type InsightOrder = {
   total: number | string;
   paid_amount: number | string;
   paid_before_delivery: number | string | null;
+  courier_sent_at?: string | null;
+  payment_checked_at?: string | null;
+  payment_checked_by_name?: string | null;
 };
 
 const num = (v: number | string | null | undefined) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -99,6 +102,9 @@ export type Insight = {
   codFees: number;
   codFeeEstimated: number;
   missingFee: number;
+  /** Finished parcels whose payment has / has not been checked yet. */
+  checked: number;
+  unchecked: number;
   payout: number;
   toCollect: number;
 };
@@ -133,6 +139,20 @@ export function courierInsight(orders: InsightOrder[]): Insight {
     codFeeEstimated: rows.filter((r) => r.codFeeEstimated).length,
     missingFee: rows.filter((r) => FINISHED.includes(r.group) && num(r.courier_charge) === null).length,
     payout: r2(collected - fees - codFees),
+    checked: rows.filter((r) => FINISHED.includes(r.group) && r.payment_checked_at).length,
+    unchecked: rows.filter((r) => FINISHED.includes(r.group) && !r.payment_checked_at).length,
     toCollect: sum((r) => r.toCollect),
   };
+}
+
+/**
+ * What Paid on the order becomes when staff confirm the cash the courier
+ * collected: a delivered order keeps any advance on top; a regular return
+ * collected nothing, so Paid stays as it is.
+ */
+export function paidAfterCheck(r: Pick<InsightRow, 'group' | 'paid_amount' | 'paid_before_delivery' | 'total'>, collected: number): number {
+  const total = num(r.total) ?? 0;
+  if (r.group === 'regular_return') return num(r.paid_amount) ?? 0;
+  const advance = r.group === 'delivered' ? num(r.paid_before_delivery) ?? 0 : 0;
+  return Math.min(total, Math.round((collected + advance) * 100) / 100);
 }

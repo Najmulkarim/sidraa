@@ -58,3 +58,22 @@ describe('courier insight', () => {
     expect(r.missingFee).toBe(0);
   });
 });
+
+describe('payment check', () => {
+  it('keeps an advance on top of the cash collected, and a return keeps Paid', async () => {
+    const { paidAfterCheck } = await import('@/lib/courier-insight');
+    expect(paidAfterCheck({ group: 'delivered', total: 1000, paid_amount: 1000, paid_before_delivery: 200 }, 750)).toBe(950);
+    expect(paidAfterCheck({ group: 'delivered', total: 1000, paid_amount: 1000, paid_before_delivery: null }, 1200)).toBe(1000);
+    expect(paidAfterCheck({ group: 'paid_return', total: 760, paid_amount: 0, paid_before_delivery: null }, 60)).toBe(60);
+    expect(paidAfterCheck({ group: 'regular_return', total: 760, paid_amount: 150, paid_before_delivery: null }, 0)).toBe(150);
+  });
+
+  it('counts checked and unchecked finished parcels only', () => {
+    const r = courierInsight([
+      o({ status: 'delivered', courier_status: 'Delivered', paid_amount: 1000, payment_checked_at: '2026-11-10T10:00:00Z' }),
+      o({ status: 'delivered', courier_status: 'Delivered', paid_amount: 1000 }),
+      o({ status: 'shipped', courier_status: 'In_Transit' }),
+    ]);
+    expect([r.checked, r.unchecked]).toEqual([1, 1]);
+  });
+});

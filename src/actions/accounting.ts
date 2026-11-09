@@ -6,6 +6,7 @@ import { expenseSchema } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
 import { isYmd } from '@/lib/format';
 import type { ActionState } from '@/lib/types';
+import { mapDbError } from '@/lib/db-errors';
 
 /** Accounting: expenses and cost re-calculation. Only staff who may see money (revenue). */
 
@@ -42,4 +43,22 @@ export async function reapplyCosts(from: string, to: string): Promise<ActionStat
   if (error) return { ok: false, message: 'Could not update. Please try again.' };
   revalidatePath('/admin/accounting');
   return { ok: true, message: `Done — ${Number(data ?? 0)} sold item line${Number(data) === 1 ? '' : 's'} now use the current cost prices.` };
+}
+
+const checkSchema = z.object({
+  orderId: z.uuid(),
+  paid: z.number().min(0).max(99_999_999),
+  checked: z.boolean(),
+});
+
+/** Marks one courier parcel's payment as checked (with what was really collected), or undoes the check. */
+export async function checkOrderPayment(orderId: string, paid: number, checked = true): Promise<ActionState> {
+  const { supabase } = await requirePermission('revenue');
+  const p = checkSchema.safeParse({ orderId, paid: Math.round(Number(paid) * 100) / 100, checked });
+  if (!p.success) return { ok: false, message: 'Enter the amount collected (0 or more).' };
+  const { error } = await supabase.rpc('check_order_payment', { p_order_id: p.data.orderId, p_paid: p.data.paid, p_checked: p.data.checked });
+  if (error) return { ok: false, message: mapDbError(error).message };
+  revalidatePath('/admin/accounting', 'layout');
+  revalidatePath(`/admin/orders/${p.data.orderId}`);
+  return { ok: true, message: p.data.checked ? 'Payment checked.' : 'Check undone.' };
 }
