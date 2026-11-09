@@ -30,7 +30,7 @@ export function AccountingHero({ period, net, netMargin, income, gross, grossMar
       <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/30 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#34d399]/10 blur-3xl" />
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
-        <div className="lg:order-2 lg:min-w-[16rem] lg:border-l lg:border-white/10 lg:pl-12">
+        <div className="lg:order-2 lg:mr-24 lg:min-w-[16rem]">
           <p className="flex items-center gap-2 text-[12.5px] font-semibold uppercase tracking-[0.14em] text-white/55">
             <Icon name="calendar" size={14} /> {period}
           </p>
