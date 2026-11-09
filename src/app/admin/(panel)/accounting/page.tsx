@@ -7,7 +7,6 @@ import { Icon, type IconName } from '@/components/icons';
 import { autoGroup, CATEGORY_KEYS, EXPENSE_CATEGORIES, pnlTotals, type Pnl } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
 import { getSettings } from '@/lib/catalog';
-import { imageUrl } from '@/lib/env';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
 import { AccountingHero as Hero, periodLabel } from '@/components/admin/AccountingHero';
 import { addDays, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
@@ -127,7 +126,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         cogs={cogs} expenses={expensesTotal}
         incomeSub={`${n(p.orders)} delivered${n(p.paid_returns) > 0 ? ` · ${n(p.paid_returns)} paid return${n(p.paid_returns) === 1 ? '' : 's'}` : ''}`}
         cogsSub={`${n(p.units)} piece${n(p.units) === 1 ? '' : 's'} sold`}
-        brand={settings.store_name} logo={imageUrl(settings.logo_path) ?? '/brand/logo-light.png'} from={range.from} to={range.to}
+        brand={settings.store_name} from={range.from} to={range.to}
         expenseSub={`${n(p.returned_orders) > 0 ? `${n(p.returned_orders)} return${n(p.returned_orders) === 1 ? '' : 's'} · ` : ''}courier, ads & more`}
       />
 
