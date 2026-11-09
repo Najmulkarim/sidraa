@@ -61,7 +61,11 @@ export function EditOrderDialog({ order: o, editable, onClose, onSaved }: { orde
         </div>
         {field('note', 'Customer note', o.note, { maxLength: 500 })}
         <div className="field">
-          <label htmlFor="eo-paid" className="label">Paid so far ৳ <span className="font-normal text-muted">(advance by bKash/Nagad, of {toNumber(o.total)})</span></label>
+          {o.status === 'delivered' || o.status === 'returned' ? (
+            <label htmlFor="eo-paid" className="label">Paid by the customer ৳ <span className="font-normal text-muted">(what was really collected, of {toNumber(o.total)} — lower it if they paid less at the door)</span></label>
+          ) : (
+            <label htmlFor="eo-paid" className="label">Paid so far ৳ <span className="font-normal text-muted">(advance by bKash/Nagad, of {toNumber(o.total)})</span></label>
+          )}
           <input id="eo-paid" name="paid" inputMode="decimal" defaultValue={String(toNumber(o.paid_amount))} className="input" />
           <FieldError state={state} name="paid" />
         </div>
