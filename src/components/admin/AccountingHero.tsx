@@ -113,7 +113,7 @@ function ProfitCard({ net, netMargin, brand, from, to }: { net: number; netMargi
   const loss = net < 0;
   return (
     <div
-      className={`relative aspect-[85.6/54] w-full max-w-[24rem] select-none overflow-hidden rounded-[18px] p-[6%] text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/15 ${loss
+      className={`relative aspect-[85.6/54] w-full max-w-[24rem] select-none overflow-hidden rounded-[11px] p-[6%] text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/15 ${loss
         ? 'bg-[linear-gradient(135deg,#5b0f22_0%,#2a0912_55%,#140509_100%)]'
         : 'bg-[linear-gradient(135deg,#0b3d33_0%,#08241f_50%,#05110f_100%)]'}`}
       role="img"
@@ -127,6 +127,8 @@ function ProfitCard({ net, netMargin, brand, from, to }: { net: number; netMargi
       </svg>
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_35%,rgba(255,255,255,0.08)_45%,transparent_55%)]" />
+
+      <Rosette color={loss ? '#fda4af' : '#6ee7b7'} />
 
       <div className="relative flex h-full flex-col">
         {/* Top: what the card shows, and a contactless mark. */}
@@ -186,6 +188,48 @@ function Chip() {
         <path d="M1 13h14M1 25h14M35 13h14M35 25h14" />
         <path d="M15 1v10a4 4 0 0 0 4 4h12a4 4 0 0 0 4-4V1M15 37V27a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v10" />
         <rect x="19" y="15" width="12" height="8" rx="2" />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * A guilloche rosette: rings of fine looping lines, like the engraving on a
+ * bank card, set in the card's upper right with a soft gold centre.
+ */
+function Rosette({ color }: { color: string }) {
+  // One closed loop: a circle whose radius wobbles k times round (a rose curve on a ring).
+  const loop = (R: number, amp: number, k: number, phase: number) => {
+    const pts: string[] = [];
+    for (let i = 0; i <= 180; i++) {
+      const t = (i / 180) * Math.PI * 2;
+      const r = R + amp * Math.sin(k * t + phase);
+      pts.push(`${(100 + r * Math.cos(t)).toFixed(2)},${(100 + r * Math.sin(t)).toFixed(2)}`);
+    }
+    return `M${pts.join(' L')}Z`;
+  };
+  const rings = [
+    ...Array.from({ length: 9 }, (_, i) => ({ d: loop(78, 10, 12, (i * Math.PI) / 9), o: 0.5 })),
+    ...Array.from({ length: 7 }, (_, i) => ({ d: loop(52, 9, 9, (i * Math.PI) / 7), o: 0.6 })),
+    ...Array.from({ length: 5 }, (_, i) => ({ d: loop(28, 7, 6, (i * Math.PI) / 5), o: 0.75 })),
+  ];
+  return (
+    <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute right-[6%] top-[46%] h-[80%] -translate-y-1/2">
+      <defs>
+        <radialGradient id="rosette-glow">
+          <stop offset="0%" stopColor="#f3d886" stopOpacity="0.35" />
+          <stop offset="55%" stopColor="#f3d886" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="#f3d886" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="100" cy="100" r="96" fill="url(#rosette-glow)" />
+      <g fill="none" stroke={color} strokeWidth="0.45">
+        {rings.map((x, i) => <path key={i} d={x.d} strokeOpacity={x.o * 0.42} />)}
+      </g>
+      <g fill="none" stroke="#f3d886" strokeWidth="0.5" strokeOpacity="0.45">
+        <circle cx="100" cy="100" r="90" />
+        <circle cx="100" cy="100" r="64" strokeDasharray="1.5 2.5" />
+        <circle cx="100" cy="100" r="14" />
       </g>
     </svg>
   );
