@@ -95,10 +95,11 @@ export function Footer({ settings, categories, tone = 'dark' }: { settings: Stor
           {/* The site's developer. */}
           <p className="inline-flex items-center gap-2 text-[11.5px]">
             Developed by
-            <span className="inline-flex items-center rounded-md bg-white px-2 py-1 shadow-sm">
+            <a href="https://www.ehelperbd.com" target="_blank" rel="noopener" title="e-helper — complete e-commerce solution"
+              className="inline-flex items-center rounded-md bg-white px-2 py-1 shadow-sm transition hover:-translate-y-px hover:shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element -- a tiny fixed-size mark */}
               <img src="/brand/e-helper.png" alt="e-helper" width={84} height={20} loading="lazy" decoding="async" className="h-5 w-auto" />
-            </span>
+            </a>
           </p>
         </div>
       </div>
