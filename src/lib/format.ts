@@ -12,6 +12,14 @@ export function formatTaka(value: number | string | null | undefined): string {
   return `৳${taka.format(n)}`;
 }
 
+const taka2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Accounts: paisa as two digits (৳48,639.50), whole amounts stay whole, minus as "−৳60". */
+export function formatMoney(n: number): string {
+  const a = Math.abs(n);
+  const s = Number.isInteger(Math.round(a * 100) / 100) ? formatTaka(a) : `৳${taka2.format(a)}`;
+  return n < 0 ? `−${s}` : s;
+}
+
 /** Parses a numeric column (supabase-js returns numeric as number or string). */
 export function toNumber(value: number | string | null | undefined): number {
   const n = typeof value === 'string' ? Number(value) : value ?? 0;

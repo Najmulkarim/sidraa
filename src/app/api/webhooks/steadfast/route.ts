@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { readCourierSettings } from '@/lib/courier/config';
-import { applyCourierStatus } from '@/lib/courier/sync';
+import { applyCourierStatus, recordCourierEvent } from '@/lib/courier/sync';
 import { safeEqual } from '@/lib/secure-compare';
 
 /**
@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const r = await applyCourierStatus('steadfast', consignment.slice(0, 60), status, charge);
+    // Steadfast's cod_amount is what it took from the customer once the parcel is delivered.
+    const done = /deliver/i.test(status);
+    await recordCourierEvent('steadfast', consignment.slice(0, 60), status, body, { collected: done ? body.cod_amount : undefined, codFee: body.cod_charge ?? body.cod_fee });
     return NextResponse.json({ status: 'success', message: r.found ? `Order is ${r.status}` : 'Unknown consignment' });
   } catch (e) {
     console.error('[webhook] steadfast', e);

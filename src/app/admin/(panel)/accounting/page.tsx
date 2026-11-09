@@ -6,7 +6,8 @@ import { ExpenseManager, PrintButton, ReapplyCosts, type Expense } from '@/compo
 import { Icon, type IconName } from '@/components/icons';
 import { autoGroup, CATEGORY_KEYS, EXPENSE_CATEGORIES, pnlTotals, type Pnl } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
-import { addDays, dhakaToday, formatTaka, resolveRange, toNumber } from '@/lib/format';
+import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
+import { addDays, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Accounting' };
 
@@ -39,13 +40,7 @@ function bucketLabel(start: string, group: Pnl['group'], from: string, to: strin
   return fmt.day.format(utc(start));
 }
 
-// Accounts show paisa as two digits (৳48,639.50); whole amounts stay whole.
-const taka2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const money = (n: number) => {
-  const a = Math.abs(n);
-  const s = Number.isInteger(Math.round(a * 100) / 100) ? formatTaka(a) : `৳${taka2.format(a)}`;
-  return n < 0 ? `−${s}` : s;
-};
+const money = formatMoney;
 
 /**
  * Profit & loss in the Zoho Books layout. Sales count on the day an order is
@@ -61,12 +56,13 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   // Daily rows only up to about a year.
   const group = wanted === 'day' && days > 400 ? 'month' : wanted;
 
-  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }] = await Promise.all([
+  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers] = await Promise.all([
     supabase.rpc('accounting_pnl', { p_from: range.from, p_to: range.to, p_group: group }),
     supabase.from('expenses').select('id, spent_on, category, amount, paid_via, reference, note').gte('spent_on', range.from).lte('spent_on', range.to).order('spent_on', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     // Paid returns whose amount nobody has entered yet (the courier did not send it).
     supabase.from('orders').select('id, public_ref').eq('status', 'returned').is('deleted_at', null).eq('paid_amount', 0)
       .ilike('courier_status', '%paid%return%').order('returned_at', { ascending: false }).limit(20),
+    usedCouriers(supabase),
   ]);
 
   if (error || !data) {
@@ -90,8 +86,11 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Accounting</h1>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">Accounting</h1>
+            <AccountingTabs active="pnl" couriers={couriers} />
+          </div>
           <p className="text-sm text-muted">Profit &amp; loss for {days === 1 ? 'one day' : `${days} days`} · sales count when an order is delivered · deleted orders never count.</p>
         </div>
         <div className="no-print flex flex-wrap items-center gap-2">

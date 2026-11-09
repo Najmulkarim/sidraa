@@ -32,3 +32,31 @@ export async function applyCourierStatus(courier: CourierName, consignmentId: st
   if (error) throw new Error(`apply_courier_status: ${error.message}`);
   return { raw: status, ...(data as { found: boolean; status?: string }) };
 }
+
+const money = (v: unknown) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+/**
+ * Keeps a webhook message (for checking the figures later) and the exact money
+ * it reports for the parcel: what the courier collected and its COD fee.
+ * Never throws: the status update has already been saved.
+ */
+export async function recordCourierEvent(courier: CourierName, consignmentId: string, event: string, body: Record<string, unknown>, found: { collected?: unknown; codFee?: unknown }) {
+  try {
+    const db = createAdminClient();
+    const collected = money(found.collected);
+    const codFee = money(found.codFee);
+    await Promise.all([
+      db.from('courier_events').insert({ courier, consignment_id: consignmentId.slice(0, 60), event: event.slice(0, 60), payload: body }),
+      collected !== null || codFee !== null
+        ? db.from('orders').update({ ...(collected !== null ? { courier_collected: collected } : {}), ...(codFee !== null ? { courier_cod_fee: codFee } : {}) })
+            .eq('courier', courier).eq('courier_consignment_id', consignmentId)
+        : null,
+    ]);
+  } catch (e) {
+    console.error('[webhook] could not keep the courier message', e);
+  }
+}

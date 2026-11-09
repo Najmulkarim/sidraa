@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { readCourierSettings } from '@/lib/courier/config';
-import { applyCourierStatus } from '@/lib/courier/sync';
+import { applyCourierStatus, recordCourierEvent } from '@/lib/courier/sync';
 import { safeEqual } from '@/lib/secure-compare';
 
 /**
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await applyCourierStatus('pathao', consignment.slice(0, 60), status, charge, collected);
+    await recordCourierEvent('pathao', consignment.slice(0, 60), status, body, { collected: body.collected_amount, codFee: body.cod_fee ?? body.cod_charge });
     return reply({ message: 'OK' });
   } catch (e) {
     console.error('[webhook] pathao', e);
