@@ -31,6 +31,7 @@ export type InsightOrder = {
   paid_amount: number | string;
   paid_before_delivery: number | string | null;
   courier_sent_at?: string | null;
+  courier_consignment_id?: string | null;
   payment_checked_at?: string | null;
   payment_checked_by_name?: string | null;
 };

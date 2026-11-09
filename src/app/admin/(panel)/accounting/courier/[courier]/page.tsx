@@ -38,7 +38,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
     usedCouriers(supabase),
     // Like the courier's own dashboard: parcels by the day they were handed to it.
     supabase.from('orders')
-      .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, payment_checked_at, payment_checked_by_name')
+      .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name')
       .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
       .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
       .order('courier_sent_at', { ascending: false }).limit(5000),

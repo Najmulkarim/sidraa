@@ -44,10 +44,11 @@ export function CourierParcels({ rows, name, checked, unchecked }: { rows: Insig
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-[13.5px]">
+          <table className="w-full min-w-[980px] text-[13.5px]">
             <thead className="bg-soft text-left text-[11.5px] font-bold uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-2.5">Order</th>
+                <th className="px-4 py-2.5">Consignment ID</th>
                 <th className="px-4 py-2.5">Handed over</th>
                 <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5 text-right">Charge</th>
@@ -85,6 +86,7 @@ function Row({ r }: { r: InsightRow }) {
   return (
     <tr className={`border-t border-line/70 ${r.payment_checked_at ? 'bg-ok/[0.04]' : ''}`}>
       <td className="px-4 py-2.5"><Link href={`/admin/orders/${r.id}`} className="font-semibold text-brand hover:underline">{r.public_ref}</Link></td>
+      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[12.5px] text-ink/85 select-all">{r.courier_consignment_id ?? '—'}</td>
       <td className="whitespace-nowrap px-4 py-2.5 text-muted">{formatDateTime(r.courier_sent_at)}</td>
       <td className="px-4 py-2.5">
         <span className="inline-flex items-center gap-1.5">
