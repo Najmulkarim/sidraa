@@ -6,7 +6,7 @@ export const EXPENSE_CATEGORIES = {
   salary: { label: 'Salaries & wages', hint: 'Staff pay, bonuses' },
   rent: { label: 'Office / shop rent', hint: 'Rent, service charge' },
   utilities: { label: 'Electricity, internet & phone', hint: 'Bills' },
-  courier: { label: 'Courier charges', hint: 'What you pay the courier: delivery, return, COD charge' },
+  courier: { label: 'Courier charges (other)', hint: 'Only extra courier costs not on a parcel — each parcel’s delivery charge and COD fee are counted automatically' },
   packaging: { label: 'Packaging', hint: 'Poly bags, boxes, tape, stickers' },
   transport: { label: 'Transport', hint: 'Rickshaw, CNG, fuel' },
   software: { label: 'Software & subscriptions', hint: 'Website, domain, apps' },
@@ -28,7 +28,7 @@ export const expenseSchema = z.object({
   note: z.string().trim().max(300).optional().default(''),
 });
 
-export type PnlBucket = { start: string; orders: number; income: number; cogs: number; expenses: number };
+export type PnlBucket = { start: string; orders: number; returns?: number; income: number; cogs: number; expenses: number };
 export type Pnl = {
   from: string; to: string; group: 'day' | 'week' | 'month' | 'year';
   orders: number; product_sales: number; discounts: number; delivery_income: number; income: number;
@@ -36,6 +36,11 @@ export type Pnl = {
   expenses: Partial<Record<ExpenseCategory, number>>; expenses_total: number;
   /** Delivery cost of orders returned in the period; already inside expenses_total. */
   return_delivery?: number;
+  /** The courier's delivery charge on delivered orders, its COD fees, and delivered courier orders still without a charge; all already inside expenses_total. */
+  courier_delivery?: number;
+  courier_orders?: number;
+  courier_missing?: number;
+  cod_fees?: number;
   /** Delivered orders where the customer paid less than the total (Paid lowered); already taken off income. */
   short_at_door?: number;
   short_orders?: number;

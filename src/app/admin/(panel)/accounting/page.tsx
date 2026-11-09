@@ -145,7 +145,10 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
 
               <Head>Operating expenses</Head>
               {CATEGORY_KEYS.filter((k) => n(p.expenses?.[k]) > 0).map((k) => <Line key={k} label={EXPENSE_CATEGORIES[k].label}>{money(-n(p.expenses[k]))}</Line>)}
+              {n(p.courier_delivery) > 0 && <Line label={`Courier delivery charges (${n(p.courier_orders)} delivered order${n(p.courier_orders) === 1 ? '' : 's'})`}>{money(-n(p.courier_delivery))}</Line>}
               {n(p.return_delivery) > 0 && <Line label={`Delivery cost on returned orders (${n(p.returned_orders)})`}>{money(-n(p.return_delivery))}</Line>}
+              {n(p.cod_fees) > 0 && <Line label="Courier COD fees (on the cash collected)">{money(-n(p.cod_fees))}</Line>}
+              {n(p.courier_missing) > 0 && <Line label={`${n(p.courier_missing)} delivered order${n(p.courier_missing) === 1 ? ' has' : 's have'} no courier charge yet`}><span className="text-warn">not counted</span></Line>}
               {expensesTotal === 0 && <Line label="No expenses entered">{money(0)}</Line>}
               <Total label="Total expenses">{money(-expensesTotal)}</Total>
 
@@ -180,16 +183,16 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
           <div className="max-h-[34rem] overflow-auto">
             <table className="w-full text-[13px]">
               <thead className="sticky top-0 bg-soft text-left text-[11.5px] uppercase tracking-wide text-muted">
-                <tr><th className="px-4 py-2.5">Period</th><th className="px-3 py-2.5 text-right">Orders</th><th className="px-3 py-2.5 text-right">Income</th><th className="px-3 py-2.5 text-right">Cost</th><th className="px-3 py-2.5 text-right">Expenses</th><th className="px-4 py-2.5 text-right">Net</th></tr>
+                <tr><th className="px-4 py-2.5">Period</th><th className="px-3 py-2.5 text-right">Delivered</th><th className="px-3 py-2.5 text-right">Income</th><th className="px-3 py-2.5 text-right">Cost</th><th className="px-3 py-2.5 text-right">Expenses</th><th className="px-4 py-2.5 text-right">Net</th></tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {[...p.buckets].reverse().map((b) => {
                   const bNet = n(b.income) - n(b.cogs) - n(b.expenses);
-                  const empty = !n(b.orders) && !n(b.expenses);
+                  const empty = !n(b.orders) && !n(b.expenses) && !n(b.returns);
                   return (
                     <tr key={b.start} className={empty ? 'text-ink/40' : ''}>
                       <td className="whitespace-nowrap px-4 py-2">{bucketLabel(b.start, group, range.from, range.to)}</td>
-                      <td className="px-3 py-2 text-right">{n(b.orders)}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">{n(b.orders)}{n(b.returns) > 0 && <span className="text-[12px] font-normal text-muted"> · {n(b.returns)} return{n(b.returns) === 1 ? '' : 's'}</span>}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.income))}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.cogs))}</td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">{money(n(b.expenses))}</td>
@@ -201,7 +204,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               <tfoot className="sticky bottom-0 bg-white font-bold shadow-[0_-1px_0_var(--line)]">
                 <tr>
                   <td className="px-4 py-2.5">Total</td>
-                  <td className="px-3 py-2.5 text-right">{n(p.orders)}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right">{n(p.orders)}{n(p.returned_orders) > 0 && <span className="text-[12px] font-normal text-muted"> · {n(p.returned_orders)} return{n(p.returned_orders) === 1 ? '' : 's'}</span>}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right">{money(income)}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right">{money(cogs)}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right">{money(expensesTotal)}</td>
