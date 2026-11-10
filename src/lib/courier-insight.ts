@@ -51,14 +51,18 @@ export type InsightOrder = {
   courier_consignment_id?: string | null;
   payment_checked_at?: string | null;
   payment_checked_by_name?: string | null;
+  /** When the courier paid you for this parcel, and on which invoice. */
+  courier_paid_at?: string | null;
+  courier_invoice_id?: string | null;
 };
 
 const num = (v: number | string | null | undefined) => (v === null || v === undefined || v === '' ? null : Number(v));
 const slug = (s: string | null) => (s ?? '').toLowerCase().replace(/[^a-z]+/g, '_').replace(/^order_|_$/g, '');
 
 /** Which group a parcel is in, from the courier's own word first, then the order's status. Null = not counted (pickup cancelled). */
-export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status'>): InsightKey | null {
-  const s = slug(o.courier_status);
+export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status'> & { paid_amount?: number | string }): InsightKey | null {
+  // "order.paid" is the courier paying you, not where the parcel is: judge by the order's own status.
+  const s = /^paid$/.test(slug(o.courier_status)) ? '' : slug(o.courier_status);
   if (/pickup_cancel/.test(s)) return null;
   if (/paid_return/.test(s)) return 'paid_return';
   if (/partial/.test(s)) return 'partial';
@@ -68,7 +72,7 @@ export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status'>)
   if (/hold/.test(s)) return 'hold';
   switch (o.status) {
     case 'delivered': return 'delivered';
-    case 'returned': return 'regular_return';
+    case 'returned': return Number(o.paid_amount ?? 0) > 0 ? 'paid_return' : 'regular_return';
     case 'hold': return 'hold';
     case 'shipped': return 'active';
     case 'cancelled': return null;
@@ -124,6 +128,9 @@ export type Insight = {
   codFees: number;
   codFeeEstimated: number;
   missingFee: number;
+  /** What the courier has already paid you (by invoice) and what it still owes, of the payout. */
+  paidOut: number;
+  paidOutCount: number;
   /** Finished parcels whose payment has / has not been checked yet. */
   checked: number;
   unchecked: number;
@@ -161,6 +168,8 @@ export function courierInsight(orders: InsightOrder[], rates: FeeRate[] = []): I
     codFeeEstimated: rows.filter((r) => r.codFeeEstimated).length,
     missingFee: rows.filter((r) => FINISHED.includes(r.group) && num(r.courier_charge) === null).length,
     payout: r2(collected - fees - codFees),
+    paidOut: sum((r) => (r.courier_paid_at ? r.collected - r.fee - r.codFee : 0)),
+    paidOutCount: rows.filter((r) => r.courier_paid_at).length,
     checked: rows.filter((r) => FINISHED.includes(r.group) && r.payment_checked_at).length,
     unchecked: rows.filter((r) => FINISHED.includes(r.group) && !r.payment_checked_at).length,
     toCollect: sum((r) => r.toCollect),

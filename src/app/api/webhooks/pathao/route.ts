@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { readCourierSettings } from '@/lib/courier/config';
-import { applyCourierStatus, recordCourierEvent } from '@/lib/courier/sync';
+import { applyCourierStatus, recordCourierEvent, recordCourierPayout } from '@/lib/courier/sync';
 import { safeEqual } from '@/lib/secure-compare';
 
 /**
@@ -48,6 +48,13 @@ export async function POST(req: NextRequest) {
   // What the rider took from the customer (a paid return records it as paid).
   const got = body.collected_amount ?? body.collected_delivery_fee;
   const collected = got === undefined || got === null || got === '' ? null : Number(got);
+
+  // "order.paid" means Pathao paid you for this parcel (an invoice) — not a parcel status.
+  if (/(^|\.)paid$/i.test(String(body.event ?? '')) || /^order[._-]?paid$/i.test(status)) {
+    await recordCourierPayout('pathao', consignment.slice(0, 60), typeof body.invoice_id === 'string' ? body.invoice_id : null);
+    await recordCourierEvent('pathao', consignment.slice(0, 60), String(body.event ?? status), body, {});
+    return reply({ message: 'OK' });
+  }
 
   try {
     await applyCourierStatus('pathao', consignment.slice(0, 60), status, charge, collected);

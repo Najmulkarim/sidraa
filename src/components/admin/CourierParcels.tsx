@@ -211,6 +211,11 @@ function Row({ r, canEditChecked }: { r: InsightRow; canEditChecked: boolean }) 
           <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: LABEL[r.group].color }} aria-hidden />
           {LABEL[r.group].label}
         </span>
+        {r.courier_paid_at && (
+          <span className="mt-1 flex w-fit items-center gap-1 rounded-md bg-[#e0f2fe] px-1.5 py-0.5 text-[11px] font-semibold text-[#0369a1]" title={r.courier_invoice_id ? `Invoice ${r.courier_invoice_id}` : undefined}>
+            <Icon name="cash" size={11} /> Paid out · {formatDateTime(r.courier_paid_at).split(',')[0]}
+          </span>
+        )}
       </td>
       <td className="whitespace-nowrap px-4 py-2 text-right">
         {editing ? (

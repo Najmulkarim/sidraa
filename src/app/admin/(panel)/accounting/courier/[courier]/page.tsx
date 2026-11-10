@@ -45,7 +45,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
     const all: InsightOrder[] = [];
     for (let from = 0; from < MAX_PARCELS; from += 1000) {
       const { data, error } = await supabase.from('orders')
-        .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name')
+        .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name, courier_paid_at, courier_invoice_id')
         .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
         .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
         .order('courier_sent_at', { ascending: false }).order('id').range(from, from + 999);
@@ -102,7 +102,8 @@ export default async function CourierInsightPage({ params, searchParams }: {
           <Money label="Collected from customers" value={ins.collected} sub="Delivered parcels and paid returns" />
           <Money label="Delivery charges" value={-ins.fees} sub={ins.missingFee > 0 ? `${ins.missingFee} parcel${ins.missingFee === 1 ? '' : 's'} without the charge yet` : `What ${name} charged`} />
           <Money label="COD fee" value={-ins.codFees} sub={`${rateNow}% now · each parcel at the rate on its day`} />
-          <Money label={`${name} should pay you`} value={ins.payout} sub="Collected − charges − COD fee" strong />
+          <Money label={`${name} should pay you`} value={ins.payout}
+            sub={ins.paidOutCount > 0 ? `Paid ${formatMoney(ins.paidOut)} · still to pay ${formatMoney(Math.round((ins.payout - ins.paidOut) * 100) / 100)}` : 'Collected − charges − COD fee'} strong />
         </div>
         <p className="flex items-start gap-2 text-[12.5px] text-muted">
           <Icon name="note" size={15} className="mt-px shrink-0" />

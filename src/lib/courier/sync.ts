@@ -60,3 +60,14 @@ export async function recordCourierEvent(courier: CourierName, consignmentId: st
     console.error('[webhook] could not keep the courier message', e);
   }
 }
+
+/** The courier paid you for a parcel (its invoice): keep when and which invoice. Never throws. */
+export async function recordCourierPayout(courier: CourierName, consignmentId: string, invoiceId: string | null) {
+  try {
+    await createAdminClient().from('orders')
+      .update({ courier_paid_at: new Date().toISOString(), ...(invoiceId ? { courier_invoice_id: invoiceId.slice(0, 60) } : {}) })
+      .eq('courier', courier).eq('courier_consignment_id', consignmentId).is('courier_paid_at', null);
+  } catch (e) {
+    console.error('[webhook] could not keep the courier payout', e);
+  }
+}

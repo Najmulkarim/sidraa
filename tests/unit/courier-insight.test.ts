@@ -112,3 +112,18 @@ describe('payment check list', () => {
     expect(filterParcels(r.rows, 'all', 'sd0009').map((x) => x.id)).toEqual(['c']);
   });
 });
+
+describe('courier payout', () => {
+  it('a payout word is not a parcel status, and payouts are summed', async () => {
+    const { insightGroup: g, courierInsight: ci } = await import('@/lib/courier-insight');
+    expect(g({ status: 'returned', courier_status: 'order.paid', paid_amount: 60 })).toBe('paid_return');
+    expect(g({ status: 'returned', courier_status: 'order.paid', paid_amount: 0 })).toBe('regular_return');
+    expect(g({ status: 'delivered', courier_status: 'order.paid' })).toBe('delivered');
+    const r = ci([
+      o({ status: 'delivered', courier_status: 'Delivered', total: 1000, paid_amount: 1000, courier_paid_at: '2026-11-10T06:18:10Z' }),
+      o({ status: 'delivered', courier_status: 'Delivered', total: 500, paid_amount: 500 }),
+    ]);
+    expect([r.paidOutCount, r.paidOut]).toEqual([1, 930]);
+    expect(r.payout).toBe(1365);
+  });
+});
