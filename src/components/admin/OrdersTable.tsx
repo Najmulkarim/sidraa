@@ -15,6 +15,7 @@ import { OrderEditDialog } from './OrderEditDialog';
 import { OrderItemsDialog } from './OrderItemsDialog';
 import { CustomerRateButton } from './CustomerRateButton';
 import { DuplicateOrderButton } from './DuplicateOrderButton';
+import { CopyId } from './CourierParcels';
 import { SendCourierDialog } from './SendCourierDialog';
 import { notify } from './Toaster';
 
@@ -334,16 +335,12 @@ export function OrdersTable({
                     {o.courier && o.courier_consignment_id ? (
                       <div className="space-y-0.5">
                         <p className="font-semibold">{COURIER_LABEL[o.courier]}</p>
-                        <p className="font-mono text-[11px] text-muted" title="Consignment ID">#{o.courier_consignment_id}</p>
+                        <p className="flex items-center gap-1" title="Consignment ID">
+                          <span className="select-all font-mono text-[11px] text-muted">#{o.courier_consignment_id}</span>
+                          <CopyId id={o.courier_consignment_id} />
+                        </p>
                         {o.courier_tracking_code && <p className="font-mono text-[11px] text-muted" title="Tracking code">{o.courier_tracking_code}</p>}
                         {o.courier_status && <p className="text-[11px] font-semibold text-[#0369a1]">{courierStatusLabel(o.courier_status)}</p>}
-                        {o.status === 'shipped' && !o.deleted_at && (o.dispatched_at ? (
-                          <p className="w-fit rounded bg-[#dcfce7] px-1.5 text-[10.5px] font-bold text-[#15803d]" title={`Left the house ${formatDateTime(o.dispatched_at)}`}>✓ Shipped done</p>
-                        ) : (
-                          <button type="button" className="mt-0.5 flex items-center gap-1 whitespace-nowrap rounded-md bg-ok px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90" disabled={busy} title="The parcel has left the house" onClick={() => run(() => setShippedDone([o.id], true))}>
-                            <Icon name="check" size={12} /> Shipped done
-                          </button>
-                        ))}
                         {perms.courier && o.status === 'shipped' && (
                           <button type="button" className="flex items-center gap-1 text-[11px] text-brand hover:underline" disabled={busy} onClick={() => run(() => refreshCourierStatus(o.id))}>
                             <Icon name="refresh" size={12} /> Check now

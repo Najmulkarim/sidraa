@@ -148,7 +148,7 @@ function pageList(page: number, pages: number): number[] {
   return out;
 }
 
-function CopyId({ id }: { id: string }) {
+export function CopyId({ id }: { id: string }) {
   const [done, setDone] = useState(false);
   return (
     <button type="button" title="Copy" aria-label={`Copy ${id}`}
