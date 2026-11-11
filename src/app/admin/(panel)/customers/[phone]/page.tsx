@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DuplicateOrderButton } from '@/components/admin/DuplicateOrderButton';
 import { StatusBadge } from '@/components/admin/StatusBadge';
+import { ProductImage } from '@/components/shop/ProductImage';
 import { requirePermission } from '@/lib/auth';
 import { formatDateTime, formatTaka, toNumber } from '@/lib/format';
 import { isPickupCancelled, type OrderStatus } from '@/lib/order-status';
@@ -15,8 +16,15 @@ const LIMIT = 200;
 type Row = {
   id: string; public_ref: string; status: OrderStatus; total: number | string; created_at: string;
   customer_name: string; address: string; area: string | null; district: string; courier_status: string | null;
-  items: { id: string; product_name: string; variant_label: string | null; quantity: number }[];
+  items: {
+    id: string; product_name: string; variant_label: string | null; quantity: number;
+    variant: { image_path: string | null } | null; product: { images: { storage_path: string; sort_order: number }[] } | null;
+  }[];
 };
+
+/** The item's picture: its variant's photo, else the product's first photo. */
+const itemImage = (i: Row['items'][number]) =>
+  i.variant?.image_path ?? [...(i.product?.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null;
 
 /** One customer (by phone number): how many orders, and what happened to each. */
 export default async function CustomerPage({ params }: { params: Promise<{ phone: string }> }) {
@@ -25,7 +33,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ phone
 
   const { data, count, error } = await supabase
     .from('orders')
-    .select('id, public_ref, status, total, created_at, customer_name, address, area, district, courier_status, items:order_items(id, product_name, variant_label, quantity)', { count: 'exact' })
+    .select('id, public_ref, status, total, created_at, customer_name, address, area, district, courier_status, items:order_items(id, product_name, variant_label, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))', { count: 'exact' })
     .eq('customer_phone', phone)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -80,7 +88,17 @@ export default async function CustomerPage({ params }: { params: Promise<{ phone
                   <p className="mt-0.5 font-mono text-[11px] text-muted">{formatDateTime(o.created_at)}</p>
                 </td>
                 <td className="px-4 py-3">
-                  {o.items.map((i) => <p key={i.id}>{i.quantity} × {i.product_name}{i.variant_label ? ` (${i.variant_label})` : ''}</p>)}
+                  <ul className="space-y-2">
+                    {o.items.map((i) => (
+                      <li key={i.id} className="flex items-center gap-3">
+                        <span className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-tint ring-1 ring-line">
+                          <ProductImage path={itemImage(i)} alt={i.product_name} sizes="44px" />
+                          {i.quantity > 1 && <span className="absolute bottom-0 right-0 rounded-tl-md bg-night px-1 text-[9px] font-bold text-white">×{i.quantity}</span>}
+                        </span>
+                        <span>{i.quantity} × {i.product_name}{i.variant_label ? <span className="text-muted"> ({i.variant_label})</span> : ''}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold">{formatTaka(o.total)}</td>
                 <td className="whitespace-nowrap px-4 py-3"><StatusBadge status={o.status} courierStatus={o.courier_status} /></td>
