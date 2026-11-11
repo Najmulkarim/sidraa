@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DuplicateOrderButton } from '@/components/admin/DuplicateOrderButton';
 import { StatusBadge } from '@/components/admin/StatusBadge';
+import { OrderItemsDialog } from '@/components/admin/OrderItemsDialog';
+import type { OrderItemInfo } from '@/components/admin/OrdersTable';
 import { ProductImage } from '@/components/shop/ProductImage';
 import { requirePermission } from '@/lib/auth';
 import { formatDateTime, formatTaka, toNumber } from '@/lib/format';
@@ -17,10 +19,14 @@ type Row = {
   id: string; public_ref: string; status: OrderStatus; total: number | string; created_at: string;
   customer_name: string; address: string; area: string | null; district: string; courier_status: string | null;
   items: {
-    id: string; product_name: string; variant_label: string | null; quantity: number;
+    id: string; product_name: string; sku: string | null; variant_label: string | null; unit_price: number | string; quantity: number;
     variant: { image_path: string | null } | null; product: { images: { storage_path: string; sort_order: number }[] } | null;
   }[];
 };
+
+/** The items in the shape the orders page's item list takes. */
+const itemInfo = (items: Row['items']): OrderItemInfo[] =>
+  items.map((i) => ({ id: i.id, product_name: i.product_name, sku: i.sku ?? '', variant_label: i.variant_label ?? '', unit_price: toNumber(i.unit_price), quantity: i.quantity, image: itemImage(i) }));
 
 /** The item's picture: its variant's photo, else the product's first photo. */
 const itemImage = (i: Row['items'][number]) =>
@@ -33,7 +39,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ phone
 
   const { data, count, error } = await supabase
     .from('orders')
-    .select('id, public_ref, status, total, created_at, customer_name, address, area, district, courier_status, items:order_items(id, product_name, variant_label, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))', { count: 'exact' })
+    .select('id, public_ref, status, total, created_at, customer_name, address, area, district, courier_status, items:order_items(id, product_name, sku, variant_label, unit_price, quantity, variant:product_variants(image_path), product:products(images:product_images(storage_path, sort_order)))', { count: 'exact' })
     .eq('customer_phone', phone)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -88,17 +94,18 @@ export default async function CustomerPage({ params }: { params: Promise<{ phone
                   <p className="mt-0.5 font-mono text-[11px] text-muted">{formatDateTime(o.created_at)}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <ul className="space-y-2">
-                    {o.items.map((i) => (
-                      <li key={i.id} className="flex items-center gap-3">
-                        <span className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-tint ring-1 ring-line">
+                  {/* As on the orders page: one overlapping row of pictures; click for the full list. */}
+                  <OrderItemsDialog items={itemInfo(o.items)} orderRef={o.public_ref}>
+                    <div className="flex w-max items-center -space-x-3">
+                      {o.items.slice(0, 3).map((i) => (
+                        <span key={i.id} className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-lg border-2 border-white bg-tint shadow-sm ring-1 ring-line transition group-hover/items:ring-brand" title={`${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''} × ${i.quantity}`}>
                           <ProductImage path={itemImage(i)} alt={i.product_name} sizes="44px" />
                           {i.quantity > 1 && <span className="absolute bottom-0 right-0 rounded-tl-md bg-night px-1 text-[9px] font-bold text-white">×{i.quantity}</span>}
                         </span>
-                        <span>{i.quantity} × {i.product_name}{i.variant_label ? <span className="text-muted"> ({i.variant_label})</span> : ''}</span>
-                      </li>
-                    ))}
-                  </ul>
+                      ))}
+                      {o.items.length > 3 && <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-white bg-night text-[12px] font-bold text-white ring-1 ring-line">+{o.items.length - 3}</span>}
+                    </div>
+                  </OrderItemsDialog>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold">{formatTaka(o.total)}</td>
                 <td className="whitespace-nowrap px-4 py-3"><StatusBadge status={o.status} courierStatus={o.courier_status} /></td>
