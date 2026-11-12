@@ -141,7 +141,7 @@ export function OrdersTable({
   // The note opened in a pop-up to read in full.
   const [noteView, setNoteView] = useState<OrderRow | null>(null);
   const [armed, setArmed] = useState<string | null>(null); // "fake:<id>" / "delete:<id>" waiting for a second click
-  const [bulkTo, setBulkTo] = useState<OrderStatus>('confirmed');
+  const [bulkPick, setBulkPick] = useState<string>('');
 
   // Selection is per page; drop it when the list changes.
   const ids = orders.map((o) => o.id).join();
@@ -180,6 +180,18 @@ export function OrdersTable({
   const closeEdit = useCallback(() => setEditing(null), []);
   const closeSend = useCallback(() => setSending(null), []);
 
+  // The bulk "Move to" list: only the moves every selected order can make — the same choices as each row's status menu.
+  const chosen = orders.filter((o) => selected.has(o.id) && !o.deleted_at);
+  const movesOf = (o: OrderRow): { value: string; label: string }[] => [
+    ...(o.status === 'shipped' ? [o.dispatched_at ? { value: 'shipped_back', label: STATUS_LABEL.shipped } : { value: 'shipped_done', label: 'Shipped done' }] : []),
+    ...nextStatusesFor(o.status, o.courier_status).map((st) => ({ value: st as string, label: STATUS_LABEL[st] })),
+  ];
+  const bulkMoves = chosen.length === 0 ? [] : chosen.slice(1).reduce((acc, o) => {
+    const ok = new Set(movesOf(o).map((m) => m.value));
+    return acc.filter((m) => ok.has(m.value));
+  }, movesOf(chosen[0]!));
+  const bulkTo = bulkMoves.some((m) => m.value === bulkPick) ? bulkPick : bulkMoves[0]?.value ?? '';
+
   return (
     <>
       {selected.size > 0 && (
@@ -188,12 +200,12 @@ export function OrdersTable({
           {!deletedTab && (
             <>
               <label htmlFor="bulk-status" className="text-muted">Move to</label>
-              <select id="bulk-status" className="input min-h-9 w-auto py-1" value={bulkTo} onChange={(e) => setBulkTo(e.target.value as OrderStatus)}>
-                {(['confirmed', 'processing', 'shipped', 'delivered', 'hold', 'ship_later', 'cancelled', 'returned', 'lost', 'fake'] as OrderStatus[]).map((s) => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
+              <select id="bulk-status" className="input min-h-9 w-auto py-1" value={bulkTo} disabled={bulkMoves.length === 0} onChange={(e) => setBulkPick(e.target.value)}>
+                {bulkMoves.length === 0 && <option value="">No move fits all selected</option>}
+                {bulkMoves.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
-              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => run(() => bulkStatus([...selected], bulkTo))}>Apply</button>
+              <button type="button" className="btn btn-primary btn-sm" disabled={busy || !bulkTo}
+                onClick={() => run(() => (bulkTo === 'shipped_done' || bulkTo === 'shipped_back' ? setShippedDone([...selected], bulkTo === 'shipped_done') : bulkStatus([...selected], bulkTo)))}>Apply</button>
             </>
           )}
           {!deletedTab && perms.courier && readyCouriers.length > 0 && sendable.length > 0 && (
