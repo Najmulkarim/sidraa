@@ -2,6 +2,8 @@
 -- clear: the total value of all orders in the period, and how much of each
 -- card's amount (all / active / delivered / cancelled) is delivery charge.
 -- Adds keys to dashboard_report; nothing else changes. Safe to run again.
+-- The new sums read the report's period orders (o), which keep `deleted_at is null`,
+-- so deleted orders stay out of them like everything else on the dashboard.
 
 do $$
 declare
