@@ -138,9 +138,8 @@ export function OrdersTable({
   const readyCouriers = (['steadfast', 'pathao'] as CourierName[]).filter((c) => couriers?.[c]);
   const [bulkCourier, setBulkCourier] = useState<CourierName>(couriers?.default_courier && couriers[couriers.default_courier] ? couriers.default_courier : readyCouriers[0] ?? 'steadfast');
   const [notesFor, setNotesFor] = useState<OrderRow | null>(null);
-  // Notes opened to their full text (click the note; click again to close).
-  const [openNotes, setOpenNotes] = useState<Set<string>>(() => new Set());
-  const toggleNote = (id: string) => setOpenNotes((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // The note opened in a pop-up to read in full.
+  const [noteView, setNoteView] = useState<OrderRow | null>(null);
   const [armed, setArmed] = useState<string | null>(null); // "fake:<id>" / "delete:<id>" waiting for a second click
   const [bulkTo, setBulkTo] = useState<OrderStatus>('confirmed');
 
@@ -363,9 +362,8 @@ export function OrdersTable({
                   </td>
                   <td className="max-w-[180px] px-3 py-4">
                     {o.last_note && (
-                      <button type="button" onClick={() => toggleNote(o.id)} aria-expanded={openNotes.has(o.id)}
-                        title={openNotes.has(o.id) ? 'Click to show less' : 'Click to read the whole note'}
-                        className={`mb-1 w-full whitespace-pre-line rounded-md text-left text-[11.5px] text-ink transition hover:bg-tint/60 ${openNotes.has(o.id) ? 'block bg-tint/50 px-1.5 py-1' : 'line-clamp-2'}`}>
+                      <button type="button" onClick={() => setNoteView(o)} title="Click to read the whole note"
+                        className="mb-1 line-clamp-2 w-full rounded-md text-left text-[11.5px] text-ink transition hover:bg-tint/60">
                         {o.last_note}
                       </button>
                     )}
@@ -445,6 +443,7 @@ export function OrdersTable({
 
       {editing && <OrderEditDialog order={editing} onClose={closeEdit} onSaved={(r) => { flash(r); setEditing(null); router.refresh(); }} />}
       {sending && couriers && <SendCourierDialog order={sending} couriers={couriers} onClose={closeSend} onDone={(r) => { flash(r); setSending(null); router.refresh(); }} />}
+      {noteView && <NoteDialog order={noteView} onClose={() => setNoteView(null)} onAll={() => { setNotesFor(noteView); setNoteView(null); }} />}
       {notesFor && <NotesPanel order={notesFor} onClose={() => setNotesFor(null)} onSaved={(r) => { flash(r); router.refresh(); }} />}
     </>
   );
@@ -508,6 +507,34 @@ function NotesPanel({ order, onClose, onSaved }: { order: OrderRow; onClose: () 
           ))}
         </ol>
       </aside>
+    </div>
+  );
+}
+
+/** The order's latest note in full, in a small pop-up; closes on Esc, the backdrop or Close. */
+export function NoteDialog({ order, onClose, onAll }: { order: OrderRow; onClose: () => void; onAll: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-night/45 p-4 backdrop-blur-[2px]" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-labelledby="note-title" className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <h2 id="note-title" className="flex items-center gap-2 font-semibold">
+            <Icon name="note" size={16} className="text-brand" /> Note · <span className="font-mono">{order.public_ref}</span>
+          </h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-soft hover:text-ink">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <p className="max-h-[60vh] overflow-y-auto whitespace-pre-line break-words px-5 py-4 text-[14px] leading-relaxed text-ink">{order.last_note}</p>
+        <div className="flex justify-end gap-2 border-t border-line bg-soft/50 px-5 py-3">
+          <button type="button" onClick={onAll} className="btn btn-sm border border-line bg-white">All notes &amp; logs</button>
+          <button type="button" onClick={onClose} className="btn btn-primary btn-sm">Close</button>
+        </div>
+      </div>
     </div>
   );
 }
