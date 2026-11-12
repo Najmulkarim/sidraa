@@ -33,6 +33,12 @@ type Report = {
   delivered_value: Money;
   cancelled_orders: number;
   cancelled_value: Money;
+  /** All orders' value and the delivery charge inside each card's amount (0073; missing before it runs). */
+  total_value?: Money;
+  total_delivery?: Money;
+  active_delivery?: Money;
+  delivered_delivery?: Money;
+  cancelled_delivery?: Money;
   returned_orders: number;
   status_counts: Partial<Record<OrderStatus, number>>;
   breakdown: { gross: number; discount: number; delivery: number; returns: number; net: number } | null;
@@ -106,9 +112,19 @@ function Stat({ label, value, sub, href, icon, tone }: { label: string; value: s
       <span className="min-w-0">
         <span className="block text-[12px] font-medium text-muted">{label}</span>
         <span className="block text-2xl font-bold leading-tight">{value}</span>
-        {sub && <span className="block truncate text-[12px] text-muted">{sub}</span>}
+        {sub && <span className="block text-[12px] text-muted">{sub}</span>}
       </span>
     </Link>
+  );
+}
+
+/** A card's amount (orders' totals, delivery charge included), with how much of it is delivery charge. */
+function Amount({ value, delivery }: { value: Money; delivery?: Money }) {
+  return (
+    <>
+      <span className="block font-semibold text-ink/80">{formatTaka(value)}</span>
+      {delivery != null && <span className="block text-[11px] text-muted">incl. {formatTaka(delivery)} delivery</span>}
+    </>
   );
 }
 
@@ -227,10 +243,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <DailyChart daily={r.daily} money={money} />
             </Card>
             <div className="grid grid-cols-2 gap-3">
-              <Stat label="Total orders" value={String(r.total_orders)} sub={<Delta value={change(r.total_orders, r.prev_total_orders)} />} href={ordersHref()} icon="cart" tone="linear-gradient(135deg,#6366f1,#8b5cf6)" />
-              <Stat label="Active orders" value={String(r.active_orders)} sub={money ? formatTaka(r.active_value) : 'in progress'} href="/admin/orders?status=open" icon="clock" tone="linear-gradient(135deg,#0ea5e9,#3b82f6)" />
-              <Stat label="Completed" value={String(r.delivered_orders)} sub={money ? formatTaka(r.delivered_value) : 'delivered'} href={ordersHref('delivered')} icon="check" tone="linear-gradient(135deg,#16a34a,#22c55e)" />
-              <Stat label="Cancelled" value={String(r.cancelled_orders)} sub={money ? formatTaka(r.cancelled_value) : 'incl. fake'} href={ordersHref('cancelled')} icon="ban" tone="linear-gradient(135deg,#ef4444,#f97316)" />
+              <Stat label="Total orders" value={String(r.total_orders)}
+                sub={money && r.total_value != null ? <><Amount value={r.total_value} delivery={r.total_delivery} /> <Delta value={change(r.total_orders, r.prev_total_orders)} /></> : <Delta value={change(r.total_orders, r.prev_total_orders)} />}
+                href={ordersHref()} icon="cart" tone="linear-gradient(135deg,#6366f1,#8b5cf6)" />
+              <Stat label="Active orders" value={String(r.active_orders)} sub={money ? <Amount value={r.active_value} delivery={r.active_delivery} /> : 'in progress'} href="/admin/orders?status=open" icon="clock" tone="linear-gradient(135deg,#0ea5e9,#3b82f6)" />
+              <Stat label="Completed" value={String(r.delivered_orders)} sub={money ? <Amount value={r.delivered_value} delivery={r.delivered_delivery} /> : 'delivered'} href={ordersHref('delivered')} icon="check" tone="linear-gradient(135deg,#16a34a,#22c55e)" />
+              <Stat label="Cancelled" value={String(r.cancelled_orders)} sub={money ? <Amount value={r.cancelled_value} delivery={r.cancelled_delivery} /> : 'incl. fake'} href={ordersHref('cancelled')} icon="ban" tone="linear-gradient(135deg,#ef4444,#f97316)" />
             </div>
           </div>
 
