@@ -7,9 +7,13 @@ import { Icon, type IconName } from '@/components/icons';
 import { autoGroup, CATEGORY_KEYS, EXPENSE_CATEGORIES, pnlTotals, type Pnl } from '@/lib/accounting';
 import { requirePermission } from '@/lib/auth';
 import { getSettings } from '@/lib/catalog';
+import { AccountingOrders } from '@/components/admin/AccountingOrders';
+import type { FeeRate } from '@/lib/courier-insight';
+import { costRow, costTotals, type CostOrder } from '@/lib/order-costs';
+import type { createClient } from '@/lib/supabase/server';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
 import { AccountingHero as Hero, periodLabel } from '@/components/admin/AccountingHero';
-import { addDays, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
+import { addDays, dhakaDayStartUtc, dhakaToday, formatMoney, formatTaka, resolveRange, toNumber } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Accounting' };
 
@@ -58,7 +62,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   // Daily rows only up to about a year.
   const group = wanted === 'day' && days > 400 ? 'month' : wanted;
 
-  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers, settings] = await Promise.all([
+  const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers, settings, costOrders, { data: rateRows }] = await Promise.all([
     supabase.rpc('accounting_pnl', { p_from: range.from, p_to: range.to, p_group: group }),
     supabase.from('expenses').select('id, spent_on, category, amount, paid_via, reference, note').gte('spent_on', range.from).lte('spent_on', range.to).order('spent_on', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     // Paid returns whose amount nobody has entered yet (the courier did not send it).
@@ -66,6 +70,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       .ilike('courier_status', '%paid%return%').order('returned_at', { ascending: false }).limit(20),
     usedCouriers(supabase),
     getSettings(),
+    loadCostOrders(supabase, range.from, range.to),
+    supabase.from('courier_fee_rates').select('courier, cod_rate, effective_from').limit(200),
   ]);
 
   if (error || !data) {
@@ -78,6 +84,9 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   }
 
   const p = data as Pnl;
+  const rates: Record<string, FeeRate[]> = {};
+  for (const r of (rateRows ?? []) as (FeeRate & { courier: string })[]) (rates[r.courier] ??= []).push(r);
+  const costRows = costOrders.map((o) => costRow(o, rates)).sort((a, b) => b.counted_at.localeCompare(a.counted_at));
   const n = (v: unknown) => toNumber(v as number | string);
   const income = n(p.income);
   const cogs = n(p.cogs);
@@ -243,6 +252,9 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         </section>
       </div>
 
+      {/* Every order behind the statement, to find and correct a wrong figure. */}
+      <AccountingOrders rows={costRows} totals={costTotals(costRows)} />
+
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -278,4 +290,24 @@ function Total({ label, children, strong = false, negative = false }: { label: s
       <td className={`whitespace-nowrap px-5 py-2.5 text-right ${strong ? 'text-[15px] font-bold' : 'font-semibold'} ${negative ? 'text-bad' : ''}`}>{children}</td>
     </tr>
   );
+}
+
+const COST_SELECT = 'id, public_ref, status, delivered_at, returned_at, total, paid_amount, paid_before_delivery, delivery_charge, courier, courier_consignment_id, courier_charge, courier_cod_fee, courier_sent_at, items:order_items(id, product_name, variant_label, quantity, unit_cost)';
+
+/** The orders the statement counts in the period: delivered in it, or returned in it (read 1,000 at a time). */
+async function loadCostOrders(supabase: Awaited<ReturnType<typeof createClient>>, from: string, to: string): Promise<CostOrder[]> {
+  const start = dhakaDayStartUtc(from), end = dhakaDayStartUtc(addDays(to, 1));
+  const out: CostOrder[] = [];
+  for (const [status, col] of [['delivered', 'delivered_at'], ['returned', 'returned_at']] as const) {
+    for (let at = 0; at < 20_000; at += 1000) {
+      const { data, error } = await supabase.from('orders').select(COST_SELECT)
+        .eq('status', status).is('deleted_at', null).gte(col, start).lt(col, end)
+        .order(col, { ascending: false }).order('id').range(at, at + 999);
+      if (error) { console.error('[admin] accounting orders', error); break; }
+      const rows = (data ?? []) as unknown as (Omit<CostOrder, 'counted_at'> & { delivered_at: string | null; returned_at: string | null })[];
+      for (const r of rows) out.push({ ...r, counted_at: (status === 'delivered' ? r.delivered_at : r.returned_at) ?? '' });
+      if (rows.length < 1000) break;
+    }
+  }
+  return out;
 }

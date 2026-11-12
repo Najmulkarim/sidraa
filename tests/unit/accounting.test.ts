@@ -44,3 +44,19 @@ describe('expenses', () => {
     expect(expenseSchema.safeParse({ spentOn: '', category: 'salary', amount: '10' }).success).toBe(false);
   });
 });
+
+describe('order by order costs', () => {
+  it('match the statement rules for delivered orders and returns', async () => {
+    const { costRow, costTotals } = await import('@/lib/order-costs');
+    const base = { courier: 'pathao', courier_consignment_id: 'DN1', courier_cod_fee: null, courier_sent_at: '2026-11-10T06:00:00Z', paid_before_delivery: null, delivery_charge: 70, counted_at: '2026-11-12T06:00:00Z' };
+    const rates = { pathao: [{ cod_rate: 1, effective_from: '2000-01-01T00:00:00Z' }] };
+    const delivered = costRow({ ...base, id: 'a', public_ref: 'SD1', status: 'delivered', total: 1000, paid_amount: 950, courier_charge: 60,
+      items: [{ id: 'i1', product_name: 'Scarf', variant_label: null, quantity: 2, unit_cost: 200 }, { id: 'i2', product_name: 'Cuff', variant_label: null, quantity: 1, unit_cost: null }] }, rates);
+    expect([delivered.income, delivered.productCost, delivered.missingCost, delivered.courierCharge, delivered.codFee, delivered.net]).toEqual([950, 400, 1, 60, 9.5, 480.5]);
+    const paidReturn = costRow({ ...base, id: 'b', public_ref: 'SD2', status: 'returned', total: 760, paid_amount: 60, courier_charge: 60, items: [] }, rates);
+    expect([paidReturn.income, paidReturn.courierCharge, paidReturn.codFee, paidReturn.net]).toEqual([60, 60, 0.6, -0.6]);
+    const refused = costRow({ ...base, id: 'c', public_ref: 'SD3', status: 'returned', total: 500, paid_amount: 0, courier_charge: null, items: [] }, rates);
+    expect([refused.income, refused.courierCharge, refused.codFee, refused.net]).toEqual([0, 70, 0, -70]);
+    expect(costTotals([delivered, paidReturn, refused]).net).toBe(409.9);
+  });
+});

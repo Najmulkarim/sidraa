@@ -99,3 +99,14 @@ export async function checkOrderPayments(items: { orderId: string; paid: number;
     ? { ok: done > 0, message: `${done} checked, ${failed.length} could not be checked — open them one by one.` }
     : { ok: true, message: `${done} parcel${done === 1 ? '' : 's'} checked.` };
 }
+
+/** Corrects what one sold piece cost the shop (Accounting → Order by order). */
+export async function setItemCost(itemId: string, cost: number): Promise<ActionState> {
+  const { supabase } = await requirePermission('revenue');
+  const p = z.object({ itemId: z.uuid(), cost: z.number().min(0).max(9_999_999) }).safeParse({ itemId, cost: Math.round(Number(cost) * 100) / 100 });
+  if (!p.success) return { ok: false, message: 'Enter a cost of 0 or more.' };
+  const { error } = await supabase.rpc('set_order_item_cost', { p_item_id: p.data.itemId, p_cost: p.data.cost });
+  if (error) return { ok: false, message: mapDbError(error).message };
+  revalidatePath('/admin/accounting', 'layout');
+  return { ok: true, message: 'Saved.' };
+}

@@ -41,14 +41,19 @@ export default async function CourierInsightPage({ params, searchParams }: {
 
   // Like the courier's own dashboard: parcels by the day they were handed to it.
   // The database hands out 1,000 rows at a time, so a busy month is read in pages.
+  // Only letters, digits and dashes reach the database filter.
+  const search = (sp.q ?? '').trim().replace(/[^a-z0-9-]/gi, '').slice(0, 30);
   const loadParcels = async () => {
     const all: InsightOrder[] = [];
     for (let from = 0; from < MAX_PARCELS; from += 1000) {
-      const { data, error } = await supabase.from('orders')
+      const q0 = supabase.from('orders')
         .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name, courier_paid_at, courier_invoice_id')
         .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
-        .gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1)))
         .order('courier_sent_at', { ascending: false }).order('id').range(from, from + 999);
+      // A search (order or consignment ID) looks through every date; otherwise the picked period.
+      const { data, error } = await (search
+        ? q0.or(`public_ref.ilike.%${search}%,courier_consignment_id.ilike.%${search}%`)
+        : q0.gte('courier_sent_at', dhakaDayStartUtc(range.from)).lt('courier_sent_at', dhakaDayStartUtc(addDays(range.to, 1))));
       if (error) return { data: null, error };
       all.push(...((data ?? []) as InsightOrder[]));
       if ((data ?? []).length < 1000) break;
