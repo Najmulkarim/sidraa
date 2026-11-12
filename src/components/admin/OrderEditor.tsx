@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useEffect, useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react';
 import { saveOrderFull } from '@/actions/admin-orders';
 import { formatTaka, toNumber } from '@/lib/format';
-import { addLine, availableFor, editorTotals, type EditorLine } from '@/lib/order-editor';
+import { addLine, availableFor, editorTotals, sellsWhenOut, type EditorLine } from '@/lib/order-editor';
 import { normalizeBdPhone } from '@/lib/phone';
 import type { ActionState, DeliveryZone, EditableOrder, VariantOption } from '@/lib/types';
 import { ORDER_SOURCES } from '@/lib/validation';
@@ -157,11 +157,13 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
                       >
                         {sizes.map((s) => (
                           <option key={s.variant_id} value={s.variant_id} disabled={s.variant_id !== l.variantId && lines.some((x) => x.variantId === s.variant_id)}>
-                            {s.label || s.sku} · {availableFor(s.variant_id, s.stock, original)} left
+                            {s.label || s.sku} · {availableFor(s.variant_id, s.stock, original) > 0 ? `${availableFor(s.variant_id, s.stock, original)} left` : sellsWhenOut(s) ? (s.stock_out_mode === 'preorder' ? 'pre-order' : 'sale ongoing') : '0 left'}
                           </option>
                         ))}
                       </select>
-                      {l.quantity > avail && <p className="error">Only {avail} available</p>}
+                      {l.quantity > avail && (sellsWhenOut(opt)
+                        ? <p className="mt-0.5 text-[10.5px] text-warn">{opt?.stock_out_mode === 'preorder' ? 'Pre-order' : 'Sale ongoing'} — stock goes below zero</p>
+                        : <p className="error">Only {avail} available</p>)}
                     </td>
                     <td className="px-3 py-2">
                       <input aria-label="Quantity" inputMode="numeric" className="input min-h-9 py-1" value={l.quantity} onChange={(e) => setLine(i, { quantity: Math.max(0, Math.min(99, Number(e.target.value.replace(/\D/g, '')) || 0)) })} />
@@ -197,7 +199,7 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
                   <li key={m.variant_id}>
                     <button
                       type="button"
-                      disabled={avail <= 0}
+                      disabled={avail <= 0 && !sellsWhenOut(m)}
                       className="flex w-full items-center gap-3 px-3 py-2 text-left text-[13px] hover:bg-soft disabled:opacity-40"
                       onClick={() => {
                         setLines((ls) => addLine(ls, m.variant_id, m.price));
@@ -207,7 +209,7 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
                       <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-md border border-line bg-tint"><ProductImage path={m.image} alt="" sizes="32px" /></span>
                       <span className="flex-1"><strong>{m.product_name}</strong>{m.label ? ` · ${m.label}` : ''} <span className="font-mono text-[11px] text-muted">{m.sku}</span></span>
                       <span className="font-mono">{formatTaka(m.price)}</span>
-                      <span className={`text-[11px] ${avail > 0 ? 'text-muted' : 'text-bad'}`}>{avail > 0 ? `${avail} left` : 'Sold out'}</span>
+                      <span className={`text-[11px] ${avail > 0 ? 'text-muted' : sellsWhenOut(m) ? 'text-warn' : 'text-bad'}`}>{avail > 0 ? `${avail} left` : sellsWhenOut(m) ? (m.stock_out_mode === 'preorder' ? 'Pre-order' : 'Sale ongoing') : 'Sold out'}</span>
                     </button>
                   </li>
                 );

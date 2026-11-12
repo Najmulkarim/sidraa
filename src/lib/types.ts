@@ -254,6 +254,8 @@ export type VariantOption = {
   price: number;
   stock: number;
   image: string | null;
+  /** When it runs out: sold_out blocks it; preorder and continue ("Sale ongoing") still sell below zero. */
+  stock_out_mode?: 'sold_out' | 'preorder' | 'continue';
 };
 
 /** What the order editor loads for an existing order. */

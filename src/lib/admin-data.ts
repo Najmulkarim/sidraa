@@ -17,14 +17,14 @@ type VariantRow = {
   price: number | string | null;
   stock: number;
   is_active: boolean;
-  product: { name: string; base_price: number | string; status: string; images: { storage_path: string; sort_order: number }[] } | null;
+  product: { name: string; base_price: number | string; status: string; stock_out_mode?: 'sold_out' | 'preorder' | 'continue'; images: { storage_path: string; sort_order: number }[] } | null;
 };
 
 /** Every active size of every non-archived product, for the order editor. */
 export async function loadVariantOptions(supabase: Db): Promise<VariantOption[]> {
   const { data, error } = await supabase
     .from('product_variants')
-    .select('id, sku, size, color, option3, image_path, price, stock, is_active, product:products!inner(name, base_price, status, images:product_images(storage_path, sort_order))')
+    .select('id, sku, size, color, option3, image_path, price, stock, is_active, product:products!inner(name, base_price, status, stock_out_mode, images:product_images(storage_path, sort_order))')
     .eq('is_active', true)
     .neq('product.status', 'archived')
     .limit(3000);
@@ -38,6 +38,7 @@ export async function loadVariantOptions(supabase: Db): Promise<VariantOption[]>
       sku: v.sku,
       price: toNumber(v.price ?? v.product!.base_price),
       stock: v.stock,
+      stock_out_mode: v.product!.stock_out_mode ?? 'sold_out',
       image: v.image_path ?? [...(v.product!.images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path ?? null,
     }))
     .sort((a, b) => a.product_name.localeCompare(b.product_name) || a.sku.localeCompare(b.sku));
@@ -96,7 +97,7 @@ export async function loadLandingFormData(supabase: Db) {
     })),
     coupons: ((coupons ?? []) as { code: string; kind: string; value: number | string; is_active: boolean; ends_at: string | null }[]).map((c) => ({
       code: c.code,
-      words: c.kind === 'percent' ? `${Number(c.value)}% off` : `৳${Number(c.value)} off`,
+      words: c.kind === 'percent' ? `${Number(c.value)}% off` : `à§³${Number(c.value)} off`,
       live: c.is_active && (!c.ends_at || Date.parse(c.ends_at) > now),
     })),
   };

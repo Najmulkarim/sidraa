@@ -36,6 +36,11 @@ export function availableFor(variantId: string, freeStock: number, original: { v
   return freeStock + original.filter((o) => o.variant_id === variantId).reduce((s, o) => s + o.quantity, 0);
 }
 
+/** True when the product keeps selling after it runs out ("Sale ongoing" or pre-order). */
+export function sellsWhenOut(o: { stock_out_mode?: string } | undefined | null): boolean {
+  return !!o && !!o.stock_out_mode && o.stock_out_mode !== 'sold_out';
+}
+
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
