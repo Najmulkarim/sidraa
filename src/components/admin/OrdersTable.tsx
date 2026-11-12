@@ -138,6 +138,9 @@ export function OrdersTable({
   const readyCouriers = (['steadfast', 'pathao'] as CourierName[]).filter((c) => couriers?.[c]);
   const [bulkCourier, setBulkCourier] = useState<CourierName>(couriers?.default_courier && couriers[couriers.default_courier] ? couriers.default_courier : readyCouriers[0] ?? 'steadfast');
   const [notesFor, setNotesFor] = useState<OrderRow | null>(null);
+  // Notes opened to their full text (click the note; click again to close).
+  const [openNotes, setOpenNotes] = useState<Set<string>>(() => new Set());
+  const toggleNote = (id: string) => setOpenNotes((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [armed, setArmed] = useState<string | null>(null); // "fake:<id>" / "delete:<id>" waiting for a second click
   const [bulkTo, setBulkTo] = useState<OrderStatus>('confirmed');
 
@@ -359,7 +362,13 @@ export function OrdersTable({
                     )}
                   </td>
                   <td className="max-w-[180px] px-3 py-4">
-                    {o.last_note && <p className="mb-1 line-clamp-2 text-[11.5px] text-ink" title={o.last_note}>{o.last_note}</p>}
+                    {o.last_note && (
+                      <button type="button" onClick={() => toggleNote(o.id)} aria-expanded={openNotes.has(o.id)}
+                        title={openNotes.has(o.id) ? 'Click to show less' : 'Click to read the whole note'}
+                        className={`mb-1 w-full whitespace-pre-line rounded-md text-left text-[11.5px] text-ink transition hover:bg-tint/60 ${openNotes.has(o.id) ? 'block bg-tint/50 px-1.5 py-1' : 'line-clamp-2'}`}>
+                        {o.last_note}
+                      </button>
+                    )}
                     <div className="flex gap-3 whitespace-nowrap text-[11.5px]">
                       <button type="button" className="flex items-center gap-1 text-brand hover:underline" onClick={() => setNotesFor(o)}><Icon name="note" size={13} /> Add note</button>
                       <button type="button" className="flex items-center gap-1 text-muted hover:text-ink hover:underline" onClick={() => setNotesFor(o)}><Icon name="clock" size={13} /> Logs</button>
