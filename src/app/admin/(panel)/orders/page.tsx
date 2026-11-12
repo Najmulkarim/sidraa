@@ -71,7 +71,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   else if (tab === 'shipped_done') query = query.eq('status', 'shipped').not('dispatched_at', 'is', null);
   else if (isOrderStatus(tab)) query = query.eq('status', tab);
   if (emp) query = query.eq('assigned_to', emp);
-  if (!allTime) query = query.gte('created_at', dhakaDayStartUtc(range.from)).lt('created_at', dhakaDayStartUtc(addDays(range.to, 1)));
+  // A search (order number, phone or name) looks through every date: the order is usually not from today.
+  if (!allTime && !q) query = query.gte('created_at', dhakaDayStartUtc(range.from)).lt('created_at', dhakaDayStartUtc(addDays(range.to, 1)));
   if (q) {
     const digits = q.replace(/\D/g, '');
     // "Order12" or "order 0012" finds Order0012.
@@ -194,6 +195,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             {can.has('orders_export') && <a href={exportHref} className="grid h-10 w-10 place-items-center rounded-lg border border-line text-ink hover:border-brand hover:text-brand" title="Download CSV" aria-label="Download CSV"><Icon name="download" size={18} /></a>}
           </div>
         </div>
+        {q && (
+          <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-muted">
+            <Icon name="search" size={13} /> Showing “{q}” from every date, not just the dates picked.
+            <Link href={href({ q: undefined, page: undefined })} className="font-semibold text-brand hover:underline">Clear search</Link>
+          </p>
+        )}
 
         {/* Status tabs */}
         <nav aria-label="Order status" className="mt-3 flex gap-1 overflow-x-auto border-t border-line pt-3 [scrollbar-width:thin]">
