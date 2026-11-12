@@ -9,7 +9,7 @@ import { requirePermission } from '@/lib/auth';
 import { getSettings } from '@/lib/catalog';
 import { AccountingOrders } from '@/components/admin/AccountingOrders';
 import type { FeeRate } from '@/lib/courier-insight';
-import { costRow, costTotals, type CostOrder } from '@/lib/order-costs';
+import { costRow, type CostOrder } from '@/lib/order-costs';
 import type { createClient } from '@/lib/supabase/server';
 import { AccountingTabs, usedCouriers } from '@/components/admin/AccountingTabs';
 import { AccountingHero as Hero, periodLabel } from '@/components/admin/AccountingHero';
@@ -53,7 +53,7 @@ const money = formatMoney;
  * delivered (cash on delivery: the money is in hand); product cost is what each
  * sold piece cost when it sold; expenses are entered here by date.
  */
-export default async function AccountingPage({ searchParams }: { searchParams: Promise<{ range?: string; from?: string; to?: string; group?: string }> }) {
+export default async function AccountingPage({ searchParams }: { searchParams: Promise<{ range?: string; from?: string; to?: string; group?: string; oq?: string }> }) {
   const [{ supabase }, sp] = await Promise.all([requirePermission('revenue'), searchParams]);
   const today = dhakaToday();
   const range = resolveRange(sp.range ?? 'today', sp.from, sp.to, new Date(), 3650);
@@ -62,6 +62,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   // Daily rows only up to about a year.
   const group = wanted === 'day' && days > 400 ? 'month' : wanted;
 
+  // An order-number search in "Order by order" looks through every date.
+  const orderSearch = (sp.oq ?? '').trim().replace(/[^a-z0-9-]/gi, '').slice(0, 30);
   const [{ data, error }, { data: expenseRows }, { data: unpaidReturns }, couriers, settings, costOrders, { data: rateRows }] = await Promise.all([
     supabase.rpc('accounting_pnl', { p_from: range.from, p_to: range.to, p_group: group }),
     supabase.from('expenses').select('id, spent_on, category, amount, paid_via, reference, note').gte('spent_on', range.from).lte('spent_on', range.to).order('spent_on', { ascending: false }).order('created_at', { ascending: false }).limit(500),
@@ -70,7 +72,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       .ilike('courier_status', '%paid%return%').order('returned_at', { ascending: false }).limit(20),
     usedCouriers(supabase),
     getSettings(),
-    loadCostOrders(supabase, range.from, range.to),
+    loadCostOrders(supabase, range.from, range.to, orderSearch),
     supabase.from('courier_fee_rates').select('courier, cod_rate, effective_from').limit(200),
   ]);
 
@@ -253,7 +255,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       </div>
 
       {/* Every order behind the statement, to find and correct a wrong figure. */}
-      <AccountingOrders rows={costRows} totals={costTotals(costRows)} />
+      <AccountingOrders rows={costRows} search={orderSearch}
+        keep={Object.fromEntries(Object.entries({ range: range.preset, from: range.preset === 'custom' ? range.from : '', to: range.preset === 'custom' ? range.to : '', group: sp.group ?? '' }).filter(([, v]) => v))} />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -295,13 +298,13 @@ function Total({ label, children, strong = false, negative = false }: { label: s
 const COST_SELECT = 'id, public_ref, status, delivered_at, returned_at, total, paid_amount, paid_before_delivery, delivery_charge, courier, courier_consignment_id, courier_charge, courier_cod_fee, courier_sent_at, items:order_items(id, product_name, variant_label, quantity, unit_cost)';
 
 /** The orders the statement counts in the period: delivered in it, or returned in it (read 1,000 at a time). */
-async function loadCostOrders(supabase: Awaited<ReturnType<typeof createClient>>, from: string, to: string): Promise<CostOrder[]> {
+async function loadCostOrders(supabase: Awaited<ReturnType<typeof createClient>>, from: string, to: string, search = ''): Promise<CostOrder[]> {
   const start = dhakaDayStartUtc(from), end = dhakaDayStartUtc(addDays(to, 1));
   const out: CostOrder[] = [];
   for (const [status, col] of [['delivered', 'delivered_at'], ['returned', 'returned_at']] as const) {
     for (let at = 0; at < 20_000; at += 1000) {
-      const { data, error } = await supabase.from('orders').select(COST_SELECT)
-        .eq('status', status).is('deleted_at', null).gte(col, start).lt(col, end)
+      const base = supabase.from('orders').select(COST_SELECT).eq('status', status).is('deleted_at', null);
+      const { data, error } = await (search ? base.ilike('public_ref', `%${search}%`) : base.gte(col, start).lt(col, end))
         .order(col, { ascending: false }).order('id').range(at, at + 999);
       if (error) { console.error('[admin] accounting orders', error); break; }
       const rows = (data ?? []) as unknown as (Omit<CostOrder, 'counted_at'> & { delivered_at: string | null; returned_at: string | null })[];

@@ -7,7 +7,7 @@ import { setItemCost } from '@/actions/accounting';
 import { Icon } from '@/components/icons';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 import { formatDateTime, formatMoney } from '@/lib/format';
-import type { CostRow } from '@/lib/order-costs';
+import { costTotals, type CostRow } from '@/lib/order-costs';
 
 const SHOW = 50;
 
@@ -16,12 +16,20 @@ const SHOW = 50;
  * income and to costs, so a wrong figure can be found and corrected: item costs
  * right here, the courier's charge and COD fee in the courier's payment check.
  */
-export function AccountingOrders({ rows, totals }: { rows: CostRow[]; totals: { income: number; productCost: number; courierCharge: number; codFee: number; net: number } }) {
+export function AccountingOrders({ rows, search = '', keep }: {
+  rows: CostRow[];
+  /** A search already run across every date (from the URL), or '' for the period's orders. */
+  search?: string;
+  /** The page's other query (range, group) so a search keeps it. */
+  keep: Record<string, string>;
+}) {
   const [open, setOpen] = useState<string | null>(null);
   const [all, setAll] = useState(false);
-  const [q, setQ] = useState('');
-  const needle = q.trim().toLowerCase();
+  const [q, setQ] = useState(search);
+  // Typing narrows the list at once; Enter searches every date.
+  const needle = search ? '' : q.trim().toLowerCase();
   const found = needle ? rows.filter((r) => r.public_ref.toLowerCase().includes(needle)) : rows;
+  const totals = costTotals(found);
   const shown = all || needle ? found : found.slice(0, SHOW);
   const flagged = rows.filter((r) => r.missingCost > 0 || r.chargeMissing).length;
 
@@ -38,15 +46,24 @@ export function AccountingOrders({ rows, totals }: { rows: CostRow[]; totals: { 
             </p>
           </div>
         </div>
-        <label className="relative w-full sm:w-56">
-          <span className="sr-only">Find an order</span>
-          <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Order no." className="input h-9 w-full py-1 pl-8 text-[13px]" />
-        </label>
+        <form action="/admin/accounting" className="flex w-full items-center gap-2 sm:w-auto" role="search">
+          {Object.entries(keep).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+          <label className="relative min-w-0 flex-1 sm:w-56">
+            <span className="sr-only">Find an order</span>
+            <Icon name="search" size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+            <input name="oq" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Order no. — Enter: all dates" className="input h-9 w-full py-1 pl-8 text-[13px]" />
+          </label>
+          {search && <Link href={`/admin/accounting?${new URLSearchParams(keep)}`} className="whitespace-nowrap text-[12.5px] font-semibold text-brand hover:underline">Clear</Link>}
+        </form>
       </div>
 
-      {rows.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-muted">No delivered or returned orders in this period.</p>
+      {search && rows.length > 0 && (
+        <p className="border-b border-line bg-soft/60 px-5 py-2 text-[12.5px] text-muted">Showing “{search}” from every date — these may be outside the period above.</p>
+      )}
+      {found.length === 0 && !search && needle ? (
+        <p className="px-5 py-8 text-center text-sm text-muted">No order “{q.trim()}” in this period. Press Enter to search every date.</p>
+      ) : rows.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-muted">{search ? `No delivered or returned order matches “${search}” on any date.` : 'No delivered or returned orders in this period.'}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-[13px]">
@@ -106,7 +123,7 @@ export function AccountingOrders({ rows, totals }: { rows: CostRow[]; totals: { 
             </tbody>
             <tfoot className="border-t-2 border-line bg-white font-bold">
               <tr>
-                <td className="px-4 py-2.5" colSpan={2}>{needle ? `${found.length} found` : `Total · ${rows.length} order${rows.length === 1 ? '' : 's'}`}</td>
+                <td className="px-4 py-2.5" colSpan={2}>{search ? `${found.length} found on any date` : needle ? `${found.length} found` : `Total · ${rows.length} order${rows.length === 1 ? '' : 's'}`}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-right">{formatMoney(totals.income)}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-right">{formatMoney(-totals.productCost)}</td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-right">{formatMoney(-totals.courierCharge)}</td>
