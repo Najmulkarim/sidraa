@@ -27,6 +27,8 @@ export type CostOrder = {
 
 export type CostRow = CostOrder & {
   income: number;
+  /** Of the income, what the customer paid the shop in advance (bKash, Nagad…): never billed by the courier. */
+  advance: number;
   productCost: number;
   /** Pieces with no cost price yet (their cost counts as 0). */
   missingCost: number;
@@ -73,8 +75,9 @@ export function costRow(o: CostOrder, rates: Record<string, FeeRate[]>): CostRow
       codFromRate = savedCod === null;
     }
   }
+  const advance = o.status === 'delivered' ? r2(Math.min(n(o.paid_before_delivery) ?? 0, income)) : 0;
   income = r2(income); productCost = r2(productCost); courierCharge = r2(courierCharge); codFee = r2(codFee);
-  return { ...o, income, productCost, missingCost, courierCharge, chargeMissing, codFee, codFromRate, net: r2(income - productCost - courierCharge - codFee) };
+  return { ...o, income, advance, productCost, missingCost, courierCharge, chargeMissing, codFee, codFromRate, net: r2(income - productCost - courierCharge - codFee) };
 }
 
 export function costTotals(rows: CostRow[]) {

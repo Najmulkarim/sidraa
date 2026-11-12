@@ -89,7 +89,15 @@ export function AccountingOrders({ rows, search = '', keep }: {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-muted">{formatDateTime(r.counted_at)}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-right">{formatMoney(r.income)}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      {formatMoney(r.income)}
+                      {/* An advance (bKash, Nagad…) is the shop's own collection: the courier never bills it. */}
+                      {r.status === 'delivered' && r.advance > 0 && (
+                        <span className="block text-[11px] font-medium text-muted">
+                          advance {formatMoney(r.advance)}{r.income - r.advance > 0 ? ` · courier ${formatMoney(Math.round((r.income - r.advance) * 100) / 100)}` : ''}
+                        </span>
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right">
                       {r.status === 'delivered' ? (
                         <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}
