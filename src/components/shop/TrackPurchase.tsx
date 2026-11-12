@@ -3,13 +3,17 @@
 import { useEffect } from 'react';
 import { trackPixel, type PixelContent } from '@/lib/facebook/pixel';
 
-/** Browser Purchase event on the confirmation page, once per order (event id = order reference). */
+/**
+ * Browser Purchase event on the confirmation page, once per order on this
+ * browser — even if the customer opens the order page again later in a new tab
+ * (event id = order reference, so Meta can also match it to the server event).
+ */
 export function TrackPurchase({ orderRef, value, contents }: { orderRef: string; value: number; contents: PixelContent[] }) {
   useEffect(() => {
     const key = `fbp-purchase:${orderRef}`;
     try {
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, '1');
+      if (localStorage.getItem(key) || sessionStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
     } catch {
       /* storage blocked: send anyway; Meta de-duplicates by event id */
     }
