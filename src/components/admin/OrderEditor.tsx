@@ -312,14 +312,25 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
           </select>
         </div>
         <div className="field">
-          <span className="label flex items-center justify-between">
-            <label htmlFor="oe-delivery">Delivery charge ৳</label>
-            <label className="flex items-center gap-1.5 text-[12px] font-normal text-muted">
-              <input type="checkbox" checked={overrideDelivery} onChange={(e) => { setOverrideDelivery(e.target.checked); if (e.target.checked && delivery === '') setDelivery(String(totals.delivery)); }} className="h-3.5 w-3.5 accent-[var(--brand)]" />
-              Set by hand
-            </label>
-          </span>
-          <input id="oe-delivery" inputMode="decimal" className={`input ${overrideDelivery ? '' : 'bg-soft text-muted'}`} readOnly={!overrideDelivery} value={overrideDelivery ? delivery : String(totals.delivery)} onChange={(e) => setDelivery(e.target.value)} />
+          <label htmlFor="oe-delivery" className="label">
+            Delivery charge ৳ <span className="font-normal text-muted">{overrideDelivery ? '(set by hand)' : `(from ${zone?.name ?? 'the area'})`}</span>
+          </label>
+          {/* The area's charge by default; "Change" lets staff type their own, "Auto" goes back to the area's. */}
+          <div className="relative">
+            <input id="oe-delivery" inputMode="decimal" className={`input pr-24 ${overrideDelivery ? 'border-brand/50' : 'bg-soft text-muted'}`} readOnly={!overrideDelivery}
+              value={overrideDelivery ? delivery : String(totals.delivery)} onChange={(e) => setDelivery(e.target.value)} />
+            <button type="button"
+              onClick={() => {
+                if (overrideDelivery) { setOverrideDelivery(false); return; }
+                setOverrideDelivery(true);
+                if (delivery === '') setDelivery(String(totals.delivery));
+                setTimeout(() => document.getElementById('oe-delivery')?.focus(), 0);
+              }}
+              className={`absolute right-1.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${overrideDelivery ? 'bg-soft text-muted hover:text-ink' : 'bg-white text-brand shadow-sm ring-1 ring-line hover:ring-brand/40'}`}
+              title={overrideDelivery ? 'Use the delivery area\'s charge again' : 'Type a different delivery charge'}>
+              <Icon name={overrideDelivery ? 'refresh' : 'pencil'} size={12} /> {overrideDelivery ? 'Auto' : 'Change'}
+            </button>
+          </div>
           <FieldError state={state} name="deliveryCharge" />
         </div>
         <div className="field">
