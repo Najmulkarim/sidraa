@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react';
 import { saveOrderFull } from '@/actions/admin-orders';
-import { formatTaka, toNumber } from '@/lib/format';
+import { formatDate, formatTaka, toNumber } from '@/lib/format';
 import { addLine, availableFor, editorTotals, sellsWhenOut, type EditorLine } from '@/lib/order-editor';
 import { normalizeBdPhone } from '@/lib/phone';
 import { lastCustomerDetails, type LastCustomer } from '@/actions/admin-orders';
@@ -65,39 +65,33 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
     () => order?.items.filter((i) => i.variant_id).map((i) => ({ variantId: i.variant_id!, quantity: i.quantity, unitPrice: i.unit_price })) ?? prefill?.lines ?? [],
   );
   const [query, setQuery] = useState('');
-  // A known mobile number fills the empty customer fields from that customer's latest order (new orders only).
+  // A mobile number that has ordered before shows that order's name and address; one button fills them (new orders only).
   const [known, setKnown] = useState<LastCustomer | null>(null);
   const [filled, setFilled] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     if (!isNew) return;
     const p = normalizeBdPhone(customer.customerPhone);
-    if (!p) { setKnown(null); setFilled(false); return; }
+    if (!p) { setKnown(null); setFilled(false); setDismissed(false); return; }
     let live = true;
     const t = setTimeout(async () => {
       const last = await lastCustomerDetails(p).catch(() => null);
       if (!live) return;
       setKnown(last);
-      if (!last) { setFilled(false); return; }
-      setCustomer((s) => ({
-        ...s,
-        customerName: s.customerName.trim() ? s.customerName : last.customerName,
-        address: s.address.trim() ? s.address : last.address,
-        district: s.district.trim() ? s.district : last.district,
-        area: s.area.trim() ? s.area : last.area,
-      }));
-      if (last.zoneId && zones.some((z) => z.id === last.zoneId && z.is_active)) setZoneId(last.zoneId);
-      setFilled(true);
+      setFilled(false);
+      setDismissed(false);
     }, 350);
     return () => { live = false; clearTimeout(t); };
     // Only a new number should look the customer up again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer.customerPhone, isNew]);
+  const knownZone = known?.zoneId ? zones.find((z) => z.id === known.zoneId && z.is_active) : undefined;
   const useAllKnown = () => {
     if (!known) return;
     setCustomer((s) => ({ ...s, customerName: known.customerName, address: known.address, district: known.district, area: known.area }));
-    if (known.zoneId && zones.some((z) => z.id === known.zoneId && z.is_active)) setZoneId(known.zoneId);
+    if (knownZone) setZoneId(knownZone.id);
+    setFilled(true);
   };
-  const differsFromKnown = !!known && (customer.customerName !== known.customerName || customer.address !== known.address || customer.district !== known.district || customer.area !== known.area);
 
   // If the order's delivery charge differs from the area's, it was set by hand — keep it.
   const byId = useMemo(() => new Map(options.map((o) => [o.variant_id, o])), [options]);
@@ -265,12 +259,32 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
             <FieldError state={state} name="customerPhone" />
           </div>
         </div>
-        {isNew && known && filled && (
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ok/10 px-3 py-2 text-[12.5px] text-ok">
-            <Icon name="check" size={14} />
-            <span>Returning customer — details filled from <b>{known.publicRef}</b>. Change anything that is different.</span>
-            {differsFromKnown && <button type="button" onClick={useAllKnown} className="font-semibold underline">Use all from {known.publicRef}</button>}
-          </p>
+        {isNew && known && !dismissed && (
+          filled ? (
+            <p className="flex flex-wrap items-center gap-2 rounded-xl bg-ok/10 px-3.5 py-2.5 text-[13px] text-ok">
+              <Icon name="check" size={15} />
+              <span><b>Filled from {known.publicRef}.</b> Check the address and change anything that is different. · তথ্য বসানো হয়েছে, দরকার হলে বদলান।</span>
+            </p>
+          ) : (
+            <div className="rounded-xl border-2 border-brand/30 bg-tint/60 p-3.5">
+              <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
+                <Icon name="user" size={16} className="text-brand" />
+                This number has ordered before · এই নম্বরে আগে অর্ডার আছে ({known.publicRef}, {formatDate(known.createdAt)})
+              </p>
+              <dl className="mt-2 grid gap-x-4 gap-y-1 rounded-lg bg-white px-3 py-2 text-[13px] sm:grid-cols-[auto_minmax(0,1fr)]">
+                <dt className="text-muted">Name</dt><dd className="font-medium">{known.customerName || '—'}</dd>
+                <dt className="text-muted">Address</dt><dd className="font-medium">{known.address || '—'}</dd>
+                <dt className="text-muted">District / area</dt><dd className="font-medium">{[known.district, known.area].filter(Boolean).join(', ') || '—'}</dd>
+                {knownZone && <><dt className="text-muted">Delivery area</dt><dd className="font-medium">{knownZone.name}</dd></>}
+              </dl>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <button type="button" onClick={useAllKnown} className="btn btn-primary btn-sm inline-flex items-center gap-1.5">
+                  <Icon name="check" size={14} /> Fill these details · এই তথ্য বসান
+                </button>
+                <button type="button" onClick={() => setDismissed(true)} className="text-[12.5px] font-semibold text-muted underline hover:text-ink">No, new address</button>
+              </div>
+            </div>
+          )
         )}
         {c('address', 'Address (house, road, area)', { maxLength: 300 })}
         <div className="grid gap-3 sm:grid-cols-2">
