@@ -16,8 +16,11 @@ export function zoneCharge(zone: EditorZone | undefined, goods: number): number 
 
 export function editorTotals(lines: EditorLine[], discount: number, zone: EditorZone | undefined, deliveryOverride: number | null) {
   const subtotal = round2(lines.reduce((s, l) => s + (Number.isFinite(l.unitPrice) ? l.unitPrice : 0) * (Number.isFinite(l.quantity) ? l.quantity : 0), 0));
-  const d = Math.min(Math.max(0, Number.isFinite(discount) ? discount : 0), subtotal);
-  const delivery = deliveryOverride !== null && Number.isFinite(deliveryOverride) ? Math.max(0, deliveryOverride) : zoneCharge(zone, subtotal - d);
+  const asked = Math.max(0, Number.isFinite(discount) ? discount : 0);
+  // The delivery area's free-delivery threshold looks at the goods after discount (never below 0).
+  const delivery = deliveryOverride !== null && Number.isFinite(deliveryOverride) ? Math.max(0, deliveryOverride) : zoneCharge(zone, Math.max(0, subtotal - asked));
+  // A discount can cover the products and the delivery charge: the order can be free, never below 0.
+  const d = Math.min(asked, round2(subtotal + delivery));
   return { subtotal, discount: d, delivery, total: round2(subtotal - d + delivery) };
 }
 

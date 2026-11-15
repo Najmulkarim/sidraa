@@ -337,7 +337,11 @@ export const orderEditSchema = z.object({
 }).superRefine((o, ctx) => {
   if (!o.orderId && !o.idempotencyKey) ctx.addIssue({ code: 'custom', path: ['_form'], message: 'Please reload the page and try again' });
   const subtotal = o.items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-  if (o.discount > subtotal) ctx.addIssue({ code: 'custom', path: ['discount'], message: 'Discount cannot be more than the items total' });
+  // The discount may cover the delivery charge too (the whole order). With the delivery
+  // charge set by hand we can check here; otherwise the database checks it with the area's charge.
+  if (o.deliveryCharge !== undefined && o.discount > subtotal + o.deliveryCharge) {
+    ctx.addIssue({ code: 'custom', path: ['discount'], message: 'Discount cannot be more than the order total (products + delivery)' });
+  }
 });
 export type OrderEditInput = z.infer<typeof orderEditSchema>;
 

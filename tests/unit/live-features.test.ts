@@ -40,7 +40,10 @@ describe('order editor arithmetic', () => {
     expect(editorTotals(lines, 100, zone, null)).toEqual({ subtotal: 3380, discount: 100, delivery: 0, total: 3280 });
     expect(editorTotals(lines, 500, zone, null).delivery).toBe(70);
     expect(editorTotals(lines, 0, zone, 0).total).toBe(3380);
-    expect(editorTotals(lines, 99999, zone, null).discount).toBe(3380);
+    // A discount can cover the delivery charge too, down to a free order (never below 0).
+    expect(editorTotals(lines, 99999, zone, null)).toEqual({ subtotal: 3380, discount: 3450, delivery: 70, total: 0 });
+    expect(editorTotals([{ variantId: V(1), quantity: 1, unitPrice: 350 }], 420, zone, null)).toEqual({ subtotal: 350, discount: 420, delivery: 70, total: 0 });
+    expect(editorTotals([{ variantId: V(1), quantity: 1, unitPrice: 350 }], 400, zone, 70).total).toBe(20);
   });
   it('adding the same size bumps the quantity', () => {
     const one = addLine([], V(1), 500);
@@ -67,8 +70,12 @@ describe('orderEditSchema', () => {
       expect(r.data.deliveryCharge).toBeUndefined();
     }
   });
-  it('refuses a discount above the items total', () => {
-    expect(orderEditSchema.safeParse({ ...base, discount: '5000' }).success).toBe(false);
+  it('allows a discount that covers the delivery charge, not more than the whole order', () => {
+    // Items 2580 + hand-set delivery 70 = 2650.
+    expect(orderEditSchema.safeParse({ ...base, deliveryCharge: '70', discount: '2650' }).success).toBe(true);
+    expect(orderEditSchema.safeParse({ ...base, deliveryCharge: '70', discount: '2651' }).success).toBe(false);
+    // Delivery from the area: the database checks the upper limit with the area's charge.
+    expect(orderEditSchema.safeParse({ ...base, discount: '2600' }).success).toBe(true);
   });
   it('needs an order id or an idempotency key', () => {
     const { orderId: _drop, ...rest } = base;
