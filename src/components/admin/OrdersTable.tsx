@@ -273,7 +273,8 @@ export function OrdersTable({
                       <Link href={`/admin/orders/${o.id}`} className="grid h-5 w-5 place-items-center rounded border border-line text-muted hover:border-brand hover:text-brand" title="Open this order" aria-label={`Open order ${o.public_ref}`}><Icon name="eye" size={12} /></Link></span>
                     <p className="mt-1 whitespace-nowrap font-mono text-[11px] text-muted">{formatDateTime(o.created_at)}</p>
                     {o.landing_slug && <span className="mt-1 mr-1 inline-block rounded bg-[#fce7f3] px-1.5 text-[10.5px] font-semibold text-[#be185d]" title={`Ordered from sidraabd.com/offer/${o.landing_slug}`}>Offer page</span>}
-                    {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]">{SOURCE_SHORT[o.source] ?? o.source}</span>}
+                    {/* Made by staff (not the website): "Manual order"; where it came from shows on hover. */}
+                    {o.source !== 'website' && <span className="mt-1 inline-block rounded bg-[#eef2ff] px-1.5 text-[10.5px] font-semibold text-[#4338ca]" title={`Manual order · came from ${SOURCE_SHORT[o.source] ?? o.source}`}>Manual order</span>}
                   </td>
                   <td className="max-w-[270px] px-3 py-4">
                     <p className="flex items-center gap-1.5 font-semibold"><Icon name="user" size={13} className="text-muted" /><Copy text={o.customer_name} what="name">{o.customer_name}</Copy>
