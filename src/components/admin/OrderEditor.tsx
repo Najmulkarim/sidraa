@@ -5,6 +5,7 @@ import { saveOrderFull } from '@/actions/admin-orders';
 import { formatTaka, toNumber } from '@/lib/format';
 import { addLine, availableFor, editorTotals, sellsWhenOut, type EditorLine } from '@/lib/order-editor';
 import { normalizeBdPhone } from '@/lib/phone';
+import { lastCustomerDetails, type LastCustomer } from '@/actions/admin-orders';
 import type { ActionState, DeliveryZone, EditableOrder, VariantOption } from '@/lib/types';
 import { ORDER_SOURCES } from '@/lib/validation';
 import { Icon } from '../icons';
@@ -64,6 +65,39 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
     () => order?.items.filter((i) => i.variant_id).map((i) => ({ variantId: i.variant_id!, quantity: i.quantity, unitPrice: i.unit_price })) ?? prefill?.lines ?? [],
   );
   const [query, setQuery] = useState('');
+  // A known mobile number fills the empty customer fields from that customer's latest order (new orders only).
+  const [known, setKnown] = useState<LastCustomer | null>(null);
+  const [filled, setFilled] = useState(false);
+  useEffect(() => {
+    if (!isNew) return;
+    const p = normalizeBdPhone(customer.customerPhone);
+    if (!p) { setKnown(null); setFilled(false); return; }
+    let live = true;
+    const t = setTimeout(async () => {
+      const last = await lastCustomerDetails(p).catch(() => null);
+      if (!live) return;
+      setKnown(last);
+      if (!last) { setFilled(false); return; }
+      setCustomer((s) => ({
+        ...s,
+        customerName: s.customerName.trim() ? s.customerName : last.customerName,
+        address: s.address.trim() ? s.address : last.address,
+        district: s.district.trim() ? s.district : last.district,
+        area: s.area.trim() ? s.area : last.area,
+      }));
+      if (last.zoneId && zones.some((z) => z.id === last.zoneId && z.is_active)) setZoneId(last.zoneId);
+      setFilled(true);
+    }, 350);
+    return () => { live = false; clearTimeout(t); };
+    // Only a new number should look the customer up again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.customerPhone, isNew]);
+  const useAllKnown = () => {
+    if (!known) return;
+    setCustomer((s) => ({ ...s, customerName: known.customerName, address: known.address, district: known.district, area: known.area }));
+    if (known.zoneId && zones.some((z) => z.id === known.zoneId && z.is_active)) setZoneId(known.zoneId);
+  };
+  const differsFromKnown = !!known && (customer.customerName !== known.customerName || customer.address !== known.address || customer.district !== known.district || customer.area !== known.area);
 
   // If the order's delivery charge differs from the area's, it was set by hand — keep it.
   const byId = useMemo(() => new Map(options.map((o) => [o.variant_id, o])), [options]);
@@ -231,6 +265,13 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
             <FieldError state={state} name="customerPhone" />
           </div>
         </div>
+        {isNew && known && filled && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-ok/10 px-3 py-2 text-[12.5px] text-ok">
+            <Icon name="check" size={14} />
+            <span>Returning customer — details filled from <b>{known.publicRef}</b>. Change anything that is different.</span>
+            {differsFromKnown && <button type="button" onClick={useAllKnown} className="font-semibold underline">Use all from {known.publicRef}</button>}
+          </p>
+        )}
         {c('address', 'Address (house, road, area)', { maxLength: 300 })}
         <div className="grid gap-3 sm:grid-cols-2">
           {c('district', 'District', { maxLength: 60 })}

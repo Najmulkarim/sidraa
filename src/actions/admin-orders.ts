@@ -7,6 +7,7 @@ import { requirePermission } from '@/lib/auth';
 import { loadEditableOrder, loadVariantOptions } from '@/lib/admin-data';
 import { DB_FIELD_TO_FORM, mapDbError } from '@/lib/db-errors';
 import { toNumber } from '@/lib/format';
+import { normalizeBdPhone } from '@/lib/phone';
 import { RESTOCKING, STATUS_LABEL, isOrderStatus } from '@/lib/order-status';
 import type { ActionState, DeliveryZone, EditableOrder, OrderHistory, OrderNote, VariantOption } from '@/lib/types';
 import { bulkStatusSchema, editCustomerSchema, fieldErrors, formToObject, noteSchema, orderEditSchema, statusChangeSchema } from '@/lib/validation';
@@ -303,4 +304,19 @@ export async function setShippedDone(ids: string[], done: boolean): Promise<Acti
   if (n === 0) return { ok: false, message: done ? 'Nothing changed: only In courier orders can be marked Shipped done.' : 'Nothing changed.' };
   const skipped = parsed.data.length - n;
   return { ok: true, message: `${n} order${n === 1 ? '' : 's'} ${done ? 'marked Shipped done' : 'moved back to In courier'}.${skipped ? ` ${skipped} skipped.` : ''}` };
+}
+
+export type LastCustomer = { publicRef: string; createdAt: string; customerName: string; address: string; district: string; area: string; zoneId: string | null };
+
+/** The name and address on this phone number's latest order, to fill a new order. Staff only. */
+export async function lastCustomerDetails(phone: string): Promise<LastCustomer | null> {
+  const { supabase } = await requirePermission('orders');
+  const p = normalizeBdPhone(phone);
+  if (!p) return null;
+  const { data } = await supabase.from('orders')
+    .select('public_ref, created_at, customer_name, address, district, area, zone_id')
+    .eq('customer_phone', p).is('deleted_at', null)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (!data) return null;
+  return { publicRef: data.public_ref, createdAt: data.created_at, customerName: data.customer_name ?? '', address: data.address ?? '', district: data.district ?? '', area: data.area ?? '', zoneId: data.zone_id ?? null };
 }
