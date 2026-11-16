@@ -23,9 +23,13 @@ export async function GET() {
   ]);
   if (error) return new Response('Feed unavailable', { status: 503 });
 
+  // Facebook downloads catalogue photos again and again: give it the site's resized, cached copy
+  // (1080 px, served by Vercel) instead of the full original from Supabase storage.
   const abs = (p: string | null) => {
     const u = imageUrl(p);
-    return !u ? '' : u.startsWith('/') ? `${SITE_URL}${u}` : u;
+    if (!u) return '';
+    if (u.startsWith('/')) return `${SITE_URL}${u}`;
+    return `${SITE_URL}/_next/image?url=${encodeURIComponent(u)}&w=1080&q=75`;
   };
   const rows = ((data ?? []) as unknown as ProductWithRelations[])
     // Hidden variations stay out: price, stock and photos come from the shown ones only,

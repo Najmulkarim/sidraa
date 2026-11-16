@@ -48,6 +48,10 @@ const nextConfig: NextConfig = {
     dangerouslyAllowLocalIP: isDev,
     // 90 for hero banners (HD), 75 everywhere else.
     qualities: [75, 90],
+    // Keep each resized photo for 31 days instead of 4 hours. Uploads never overwrite a file
+    // (new name every time), so this is safe, and it stops the optimiser re-downloading the
+    // originals from Supabase every few hours (Supabase "cached egress").
+    minimumCacheTTL: 2678400,
     // Fewer sizes to choose from: smaller pages (each photo lists every size) and fewer
     // resized copies, still sharp on phones (2x) and full-width banners.
     deviceSizes: [640, 828, 1080, 1440, 1920],
