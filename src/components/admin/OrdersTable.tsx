@@ -98,6 +98,8 @@ function courierRate(c: CourierRate | undefined, own: { text: string; tone: stri
   };
 }
 
+const LOOKUP_STATUSES = new Set(['pending', 'confirmed', 'processing', 'hold', 'ship_later']);
+
 const waLink = (phone: string) => `https://wa.me/88${phone}`;
 
 /** Click to copy (order number, name, phone, address); a short note says it worked. */
@@ -145,9 +147,10 @@ export function OrdersTable({
   const leaving = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && !o.dispatched_at).map((o) => o.id);
   const gone = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && o.dispatched_at).map((o) => o.id);
   const [busy, startTransition] = useTransition();
-  // All-courier % for the numbers on this page (kept on the server for 7 days per number).
+  // All-courier % (BD Courier) only for orders not yet sent to a courier: that is when it
+  // helps decide, and it keeps the daily search limit for them. Others show this shop's %.
   const [courierRates, setCourierRates] = useState<Record<string, CourierRate>>({});
-  const phoneKey = [...new Set(orders.map((o) => o.customer_phone))].join(',');
+  const phoneKey = [...new Set(orders.filter((o) => !o.deleted_at && LOOKUP_STATUSES.has(o.status)).map((o) => o.customer_phone))].join(',');
   useEffect(() => {
     if (!SHOW_DELIVERY_RECORD || !phoneKey) return;
     let live = true;

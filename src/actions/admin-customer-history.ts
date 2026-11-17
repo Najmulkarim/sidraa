@@ -59,6 +59,9 @@ export async function getCustomerHistory(phone: string): Promise<CustomerHistory
   }
 }
 
+/** Set when BD Courier refuses (daily limit used up): no more automatic lookups for an hour. */
+let pausedUntil = 0;
+
 export type CourierRate = { pct: number | null; total: number; delivered: number; failed: number };
 
 /**
@@ -69,13 +72,18 @@ export type CourierRate = { pct: number | null; total: number; delivered: number
  */
 export async function getCourierRates(phones: string[]): Promise<Record<string, CourierRate>> {
   await requirePermission('orders');
-  if (!process.env.BD_COURIER_API_KEY) return {};
+  if (!process.env.BD_COURIER_API_KEY || Date.now() < pausedUntil) return {};
   const list = [...new Set(phones)].filter((p) => /^01[0-9]{9}$/.test(p)).slice(0, 100);
   const out: Record<string, CourierRate> = {};
   // A few at a time, so BD Courier is not hit with a whole page at once.
   for (let i = 0; i < list.length; i += 5) {
+    if (Date.now() < pausedUntil) break;
     const part = list.slice(i, i + 5);
     const got = await Promise.allSettled(part.map((p) => lookup(p)));
+    if (got.some((g) => g.status === 'rejected' && /answered (402|403|429)/.test(String(g.reason)))) {
+      pausedUntil = Date.now() + 3600_000;
+      console.error('[admin] BD Courier limit reached: automatic lookups paused for an hour');
+    }
     got.forEach((g, j) => {
       if (g.status !== 'fulfilled') return;
       const s = g.value.summary;
