@@ -72,8 +72,8 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   fake: 'bg-[#1f1d2b] text-white',
 };
 
-// Off until a courier API is connected; turn on to show the % beside the phone again.
-const SHOW_DELIVERY_RECORD = false;
+// The % beside the phone (own orders); click for the record by courier.
+const SHOW_DELIVERY_RECORD = true;
 
 function successRate(s: Stat | undefined): { text: string; tone: string; title: string } {
   const finished = (s?.delivered ?? 0) + (s?.failed ?? 0);
