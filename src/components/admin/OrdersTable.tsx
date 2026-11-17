@@ -14,6 +14,7 @@ import { ProductImage } from '../shop/ProductImage';
 import { OrderEditDialog } from './OrderEditDialog';
 import { OrderItemsDialog } from './OrderItemsDialog';
 import { CustomerRateButton } from './CustomerRateButton';
+import { getCourierRates, type CourierRate } from '@/actions/admin-customer-history';
 import { DuplicateOrderButton } from './DuplicateOrderButton';
 import { CopyId } from './CourierParcels';
 import { SendCourierDialog } from './SendCourierDialog';
@@ -86,6 +87,17 @@ function successRate(s: Stat | undefined): { text: string; tone: string; title: 
   };
 }
 
+/** The % from all couriers (BD Courier); falls back to this shop's own % while loading or when the lookup fails. */
+function courierRate(c: CourierRate | undefined, own: { text: string; tone: string; title: string }) {
+  if (!c) return own;
+  if (c.pct === null) return { text: 'New', tone: 'text-muted', title: `No finished parcels with any courier yet (${c.total} in total)` };
+  return {
+    text: `${c.pct}%`,
+    tone: c.pct >= 80 ? 'text-ok' : c.pct >= 50 ? 'text-warn' : 'text-bad',
+    title: `All couriers: ${c.delivered} delivered, ${c.failed} returned out of ${c.total} parcels`,
+  };
+}
+
 const waLink = (phone: string) => `https://wa.me/88${phone}`;
 
 /** Click to copy (order number, name, phone, address); a short note says it worked. */
@@ -133,6 +145,15 @@ export function OrdersTable({
   const leaving = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && !o.dispatched_at).map((o) => o.id);
   const gone = orders.filter((o) => selected.has(o.id) && !o.deleted_at && o.status === 'shipped' && o.dispatched_at).map((o) => o.id);
   const [busy, startTransition] = useTransition();
+  // All-courier % for the numbers on this page (kept on the server for 7 days per number).
+  const [courierRates, setCourierRates] = useState<Record<string, CourierRate>>({});
+  const phoneKey = [...new Set(orders.map((o) => o.customer_phone))].join(',');
+  useEffect(() => {
+    if (!SHOW_DELIVERY_RECORD || !phoneKey) return;
+    let live = true;
+    getCourierRates(phoneKey.split(',')).then((r) => { if (live) setCourierRates((old) => ({ ...old, ...r })); }).catch(() => {});
+    return () => { live = false; };
+  }, [phoneKey]);
   const [editing, setEditing] = useState<OrderRow | null>(null);
   const [sending, setSending] = useState<OrderRow | null>(null);
   const readyCouriers = (['steadfast', 'pathao'] as CourierName[]).filter((c) => couriers?.[c]);
@@ -257,7 +278,7 @@ export function OrdersTable({
               <tr><td colSpan={10} className="py-16 text-center text-muted">No orders match these filters.</td></tr>
             )}
             {orders.map((o) => {
-              const rate = successRate(stats[o.customer_phone]);
+              const rate = courierRate(courierRates[o.customer_phone], successRate(stats[o.customer_phone]));
               const total = toNumber(o.total);
               const paid = toNumber(o.paid_amount);
               const due = Math.max(0, total - paid);

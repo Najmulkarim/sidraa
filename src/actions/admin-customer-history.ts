@@ -3,7 +3,7 @@
 import { unstable_cache } from 'next/cache';
 import { requirePermission } from '@/lib/auth';
 import { directHistory } from '@/lib/courier/direct-history';
-import { ownHistory, parseCourierHistory, type CourierRow, type DirectResult, type OwnOrder } from '@/lib/courier/history';
+import { ownHistory, parseCourierHistory, successPercent, type CourierRow, type DirectResult, type OwnOrder } from '@/lib/courier/history';
 import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 
 const API = 'https://api.bdcourier.com/courier-check';
@@ -57,4 +57,30 @@ export async function getCustomerHistory(phone: string): Promise<CustomerHistory
     console.error('[admin] BD Courier', e);
     return { ok: true, own, all: null, external: 'failed', direct: await directHistory(phone) };
   }
+}
+
+export type CourierRate = { pct: number | null; total: number; delivered: number; failed: number };
+
+/**
+ * The all-courier % for the numbers on one page of the orders list (BD Courier).
+ * Each number is looked up once and kept for seven days, so reloading or paging
+ * back does not use up searches. Numbers that fail are left out: the list then
+ * shows this shop's own % for them.
+ */
+export async function getCourierRates(phones: string[]): Promise<Record<string, CourierRate>> {
+  await requirePermission('orders');
+  if (!process.env.BD_COURIER_API_KEY) return {};
+  const list = [...new Set(phones)].filter((p) => /^01[0-9]{9}$/.test(p)).slice(0, 100);
+  const out: Record<string, CourierRate> = {};
+  // A few at a time, so BD Courier is not hit with a whole page at once.
+  for (let i = 0; i < list.length; i += 5) {
+    const part = list.slice(i, i + 5);
+    const got = await Promise.allSettled(part.map((p) => lookup(p)));
+    got.forEach((g, j) => {
+      if (g.status !== 'fulfilled') return;
+      const s = g.value.summary;
+      out[part[j]!] = { pct: successPercent(s), total: s.total, delivered: s.delivered, failed: s.failed };
+    });
+  }
+  return out;
 }
