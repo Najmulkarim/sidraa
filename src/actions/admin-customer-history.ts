@@ -1,6 +1,6 @@
 'use server';
 
-import { unstable_cache } from 'next/cache';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requirePermission } from '@/lib/auth';
 import { directHistory } from '@/lib/courier/direct-history';
 import { ownHistory, parseCourierHistory, successPercent, type CourierRow, type DirectResult, type OwnOrder } from '@/lib/courier/history';
@@ -8,9 +8,26 @@ import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 
 const API = 'https://api.bdcourier.com/courier-check';
 
-/** Thrown, not returned, so a failed lookup is never cached. */
-const lookup = unstable_cache(
-  async (phone: string) => {
+const KEEP_MS = 7 * 24 * 3600_000;
+/** Lookups already on their way, so two calls for one number at once search only once. */
+const inFlight = new Map<string, Promise<{ couriers: CourierRow[]; summary: CourierRow }>>();
+
+/**
+ * BD Courier's record for a number. Every answer is saved in courier_checks and
+ * reused for seven days, so a number is searched (and charged) at most once a
+ * week. Failures throw and are never saved.
+ */
+function lookup(phone: string) {
+  const running = inFlight.get(phone);
+  if (running) return running;
+  const job = (async () => {
+    const db = createAdminClient();
+    const { data: saved, error } = await db.from('courier_checks').select('result, checked_at').eq('phone', phone).maybeSingle();
+    if (error) throw new Error(`courier_checks: ${error.message}`); // never search when the saved answers cannot be read
+    if (saved && Date.now() - new Date(saved.checked_at).getTime() < KEEP_MS) {
+      const again = parseCourierHistory(saved.result);
+      if (again) return again;
+    }
     const res = await fetch(API, {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.BD_COURIER_API_KEY}`, 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -19,13 +36,16 @@ const lookup = unstable_cache(
       cache: 'no-store',
     });
     if (!res.ok) throw new Error(`BD Courier answered ${res.status}`);
-    const parsed = parseCourierHistory(await res.json());
+    const body = await res.json();
+    const parsed = parseCourierHistory(body);
     if (!parsed) throw new Error('BD Courier sent an answer we could not read');
+    const { error: saveError } = await db.from('courier_checks').upsert({ phone, result: body, checked_at: new Date().toISOString() });
+    if (saveError) console.error('[admin] courier_checks save', saveError.message);
     return parsed;
-  },
-  ['bd-courier-history'],
-  { revalidate: 7 * 24 * 3600 },
-);
+  })().finally(() => inFlight.delete(phone));
+  inFlight.set(phone, job);
+  return job;
+}
 
 export type CustomerHistory = {
   ok: boolean;
@@ -80,7 +100,7 @@ export async function getCourierRates(phones: string[]): Promise<Record<string, 
     if (Date.now() < pausedUntil) break;
     const part = list.slice(i, i + 5);
     const got = await Promise.allSettled(part.map((p) => lookup(p)));
-    if (got.some((g) => g.status === 'rejected' && /answered (402|403|429)/.test(String(g.reason)))) {
+    if (got.some((g) => g.status === 'rejected' && /answered (402|403|429)|could not read/.test(String(g.reason)))) {
       pausedUntil = Date.now() + 3600_000;
       console.error('[admin] BD Courier limit reached: automatic lookups paused for an hour');
     }
