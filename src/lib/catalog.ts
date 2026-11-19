@@ -391,7 +391,16 @@ async function readProductList(params: ListParams): Promise<ProductList> {
 
   let query = createPublicClient().from('products').select(select, { count: 'exact' });
   const q = params.q?.trim().slice(0, 80);
-  if (q) query = query.ilike('name', `%${escapeLike(q)}%`);
+  if (q) {
+    // Name, the product's SKU, or any of its variants' SKUs (e.g. SKU-0035-01).
+    const plain = q.replace(/[*%_\\"]/g, '');
+    const quoted = (v: string) => `"${v.replace(/[\\"]/g, (c) => `\\${c}`)}"`;
+    const { data: bySku } = plain
+      ? await createPublicClient().from('product_variants').select('product_id').ilike('sku', `%${plain}%`).limit(100)
+      : { data: [] };
+    const ids = [...new Set(((bySku ?? []) as { product_id: string }[]).map((r) => r.product_id))];
+    query = query.or([`name.ilike.${quoted(`*${plain}*`)}`, `sku.ilike.${quoted(`*${plain}*`)}`, ...(ids.length ? [`id.in.(${ids.join(',')})`] : [])].join(','));
+  }
   if (params.category) query = query.or(inCategory(await categoryFamily(params.category)));
   if (params.tags?.length) query = query.overlaps('tags', params.tags);
   if (params.filter) query = query.or(params.filter);
