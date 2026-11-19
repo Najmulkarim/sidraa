@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getOrderEditor, type EditorData } from '@/actions/admin-orders';
+import { COURIER_LABEL, type CourierName } from '@/lib/courier/types';
 import { isEditable } from '@/lib/order-status';
 import type { ActionState } from '@/lib/types';
 import { Icon } from '../icons';
@@ -12,8 +13,8 @@ import type { OrderRow } from './OrdersTable';
 /**
  * Edit button in the orders table. Staff with "orders_edit" get the full
  * editor (items, sizes, prices, delivery, discount) while the order is
- * open and not yet booked with a courier; everyone else gets customer
- * details and the paid amount.
+ * open, even once booked with a courier (the amount there is then fixed by
+ * hand); everyone else gets customer details and the paid amount.
  */
 export function OrderEditDialog({ order, onClose, onSaved }: { order: OrderRow; onClose: () => void; onSaved: (r: ActionState) => void }) {
   const [data, setData] = useState<EditorData | null>(null);
@@ -29,8 +30,8 @@ export function OrderEditDialog({ order, onClose, onSaved }: { order: OrderRow; 
     };
   }, [order.id, onClose]);
 
-  const full = data?.ok && data.canEditItems && data.order && isEditable(data.order.status) && !data.order.courier_consignment_id;
-  if (data && !full) return <EditOrderDialog order={order} editable={isEditable(order.status) && !data.order?.courier_consignment_id} onClose={onClose} onSaved={onSaved} />;
+  const full = data?.ok && data.canEditItems && data.order && isEditable(data.order.status);
+  if (data && !full) return <EditOrderDialog order={order} editable={isEditable(order.status)} onClose={onClose} onSaved={onSaved} />;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-night/40 p-4" onClick={onClose}>
@@ -42,6 +43,12 @@ export function OrderEditDialog({ order, onClose, onSaved }: { order: OrderRow; 
           </div>
           <button type="button" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-soft" onClick={onClose} aria-label="Close"><Icon name="x" size={18} /></button>
         </header>
+        {order.courier_consignment_id && (
+          <p className="mb-4 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-[13px] text-ink">
+            Already booked with {order.courier ? (COURIER_LABEL[order.courier as CourierName] ?? order.courier) : 'the courier'} (<span className="font-mono">{order.courier_consignment_id}</span>).
+            {' '}If the amount changes, change the COD amount in the courier panel too.
+          </p>
+        )}
         {!data ? (
           <p className="py-10 text-center text-sm text-muted">Loading…</p>
         ) : (
