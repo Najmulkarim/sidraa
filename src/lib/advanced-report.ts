@@ -5,7 +5,9 @@
  * page only loads data and draws it.
  */
 
-export type ReportItem = { product_id: string | null; product_name: string; quantity: number; line_total: number | string; unit_cost: number | string | null };
+import { deliveredQuantities } from './delivered-items';
+
+export type ReportItem = { product_id: string | null; product_name: string; quantity: number; unit_price?: number | string | null; line_total: number | string; unit_cost: number | string | null };
 
 export type ReportOrder = {
   id: string;
@@ -24,6 +26,11 @@ export type ReportOrder = {
   courier_consignment_id: string | null;
   assigned_to: string | null;
   customer_phone: string;
+  /** For partial deliveries and exchanges: only the pieces that reached the customer count as sold. */
+  paid_amount?: number | string | null;
+  delivery_charge?: number | string | null;
+  discount?: number | string | null;
+  courier_outcome?: string | null;
   items: ReportItem[];
 };
 
@@ -127,7 +134,8 @@ export function buildReport(
     if (o.coupon_code) addTo(sources.coupon, o, out);
 
     const seen = new Set<string>();
-    for (const i of o.items) {
+    const sold = deliveredQuantities(o, o.items);
+    for (const [k, i] of o.items.entries()) {
       const key = i.product_id ?? `name:${i.product_name}`;
       const meta = i.product_id ? opts.products?.get(i.product_id) : undefined;
       if (!products.has(key)) {
@@ -138,11 +146,13 @@ export function buildReport(
       p.units += i.quantity;
       p.value += n(i.line_total);
       if (out === 'delivered') {
-        p.deliveredUnits += i.quantity;
-        p.revenue += n(i.line_total);
-        deliveredRevenue += n(i.line_total);
-        if (i.unit_cost === null || i.unit_cost === undefined || i.unit_cost === '') { p.missingCost += i.quantity; missingCostUnits += i.quantity; }
-        else { p.cost += i.quantity * n(i.unit_cost); deliveredCost += i.quantity * n(i.unit_cost); }
+        const q = sold[k]!;
+        const revenue = i.quantity > 0 ? (n(i.line_total) * q) / i.quantity : 0;
+        p.deliveredUnits += q;
+        p.revenue += revenue;
+        deliveredRevenue += revenue;
+        if (i.unit_cost === null || i.unit_cost === undefined || i.unit_cost === '') { p.missingCost += q; missingCostUnits += q; }
+        else { p.cost += q * n(i.unit_cost); deliveredCost += q * n(i.unit_cost); }
       } else if (out === 'returned') p.returnedUnits += i.quantity;
     }
   }

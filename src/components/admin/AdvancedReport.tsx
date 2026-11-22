@@ -10,7 +10,7 @@ import type { createClient } from '@/lib/supabase/server';
 
 
 type Db = Awaited<ReturnType<typeof createClient>>;
-const SELECT = 'id, status, total, created_at, confirmed_at, shipped_at, delivered_at, courier_sent_at, source, landing_slug, coupon_code, district, courier, courier_consignment_id, assigned_to, customer_phone, items:order_items(product_id, product_name, quantity, line_total, unit_cost)';
+const SELECT = 'id, status, total, created_at, confirmed_at, shipped_at, delivered_at, courier_sent_at, source, landing_slug, coupon_code, district, courier, courier_consignment_id, assigned_to, customer_phone, paid_amount, delivery_charge, discount, courier_outcome, items:order_items(product_id, product_name, quantity, unit_price, line_total, unit_cost)';
 const MAX = 30_000;
 
 /** Every order placed in the period (deleted ones never count), read 1,000 at a time. */

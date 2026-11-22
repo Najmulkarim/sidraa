@@ -47,7 +47,7 @@ export default async function CourierInsightPage({ params, searchParams }: {
     const all: InsightOrder[] = [];
     for (let from = 0; from < MAX_PARCELS; from += 1000) {
       const q0 = supabase.from('orders')
-        .select('id, public_ref, status, courier_status, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name, courier_paid_at, courier_invoice_id')
+        .select('id, public_ref, status, courier_status, courier_outcome, courier_charge, courier_collected, courier_cod_fee, total, paid_amount, paid_before_delivery, courier_sent_at, courier_consignment_id, payment_checked_at, payment_checked_by_name, courier_paid_at, courier_invoice_id')
         .eq('courier', courier).is('deleted_at', null).not('courier_consignment_id', 'is', null)
         .order('courier_sent_at', { ascending: false }).order('id').range(from, from + 999);
       // A search (order or consignment ID) looks through every date; otherwise the picked period.

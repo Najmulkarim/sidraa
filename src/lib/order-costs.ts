@@ -4,8 +4,9 @@
  * (accounting_pnl), so the rows add up to its totals.
  */
 import { codFeeAt, rateFor, type FeeRate } from './courier-insight';
+import { deliveredQuantities } from './delivered-items';
 
-export type CostItem = { id: string; product_name: string; variant_label: string | null; quantity: number; unit_cost: number | string | null };
+export type CostItem = { id: string; product_name: string; variant_label: string | null; quantity: number; unit_price?: number | string | null; unit_cost: number | string | null };
 
 export type CostOrder = {
   id: string;
@@ -17,6 +18,9 @@ export type CostOrder = {
   paid_amount: number | string;
   paid_before_delivery: number | string | null;
   delivery_charge: number | string;
+  discount?: number | string | null;
+  /** 'partial' or 'exchange' when the courier said so: only the pieces that reached the customer cost anything. */
+  courier_outcome?: string | null;
   courier: string | null;
   courier_consignment_id: string | null;
   courier_charge: number | string | null;
@@ -53,11 +57,13 @@ export function costRow(o: CostOrder, rates: Record<string, FeeRate[]>): CostRow
 
   if (o.status === 'delivered') {
     income = total - Math.max(total - paid, 0);
-    for (const i of o.items) {
+    const qty = deliveredQuantities(o, o.items);
+    o.items.forEach((i, k) => {
+      const q = qty[k]!;
       const c = n(i.unit_cost);
-      if (c === null) missingCost += i.quantity;
-      else productCost += i.quantity * c;
-    }
+      if (c === null) missingCost += q;
+      else productCost += q * c;
+    });
     if (byCourier) {
       const charge = n(o.courier_charge);
       courierCharge = charge ?? 0;

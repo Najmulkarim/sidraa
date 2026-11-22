@@ -295,7 +295,7 @@ function Total({ label, children, strong = false, negative = false }: { label: s
   );
 }
 
-const COST_SELECT = 'id, public_ref, status, delivered_at, returned_at, total, paid_amount, paid_before_delivery, delivery_charge, courier, courier_consignment_id, courier_charge, courier_cod_fee, courier_sent_at, items:order_items(id, product_name, variant_label, quantity, unit_cost)';
+const COST_SELECT = 'id, public_ref, status, delivered_at, returned_at, total, paid_amount, paid_before_delivery, delivery_charge, discount, courier_outcome, courier, courier_consignment_id, courier_charge, courier_cod_fee, courier_sent_at, items:order_items(id, product_name, variant_label, quantity, unit_price, unit_cost)';
 
 /** The orders the statement counts in the period: delivered in it, or returned in it (read 1,000 at a time). */
 async function loadCostOrders(supabase: Awaited<ReturnType<typeof createClient>>, from: string, to: string, search = ''): Promise<CostOrder[]> {

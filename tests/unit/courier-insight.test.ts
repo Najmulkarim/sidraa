@@ -16,6 +16,9 @@ describe('courier insight', () => {
     expect(insightGroup({ status: 'delivered', courier_status: 'order.return-in-transit' })).toBe('partial');
     expect(insightGroup({ status: 'delivered', courier_status: 'order.returned' })).toBe('partial');
     expect(insightGroup({ status: 'shipped', courier_status: 'order.return-id-created' })).toBe('regular_return');
+    // Kept from the courier's first word, whatever return message follows.
+    expect(insightGroup({ status: 'delivered', courier_status: 'order.returned-to-merchant', courier_outcome: 'exchange' })).toBe('exchange');
+    expect(insightGroup({ status: 'delivered', courier_status: 'partial_delivery', courier_outcome: 'partial' })).toBe('partial');
     expect(insightGroup({ status: 'cancelled', courier_status: 'Pickup_Cancelled' })).toBeNull();
     expect(insightGroup({ status: 'shipped', courier_status: 'In_Transit' })).toBe('active');
     expect(insightGroup({ status: 'hold', courier_status: 'On_Hold' })).toBe('hold');

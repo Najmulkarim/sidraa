@@ -41,6 +41,8 @@ export type InsightOrder = {
   public_ref: string;
   status: string;
   courier_status: string | null;
+  /** 'partial' or 'exchange' once the courier has said so (kept when later return messages arrive). */
+  courier_outcome?: string | null;
   courier_charge: number | string | null;
   courier_collected: number | string | null;
   courier_cod_fee: number | string | null;
@@ -60,10 +62,12 @@ const num = (v: number | string | null | undefined) => (v === null || v === unde
 const slug = (s: string | null) => (s ?? '').toLowerCase().replace(/[^a-z]+/g, '_').replace(/^order_|_$/g, '');
 
 /** Which group a parcel is in, from the courier's own word first, then the order's status. Null = not counted (pickup cancelled). */
-export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status'> & { paid_amount?: number | string }): InsightKey | null {
+export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status' | 'courier_outcome'> & { paid_amount?: number | string }): InsightKey | null {
   // "order.paid" is the courier paying you, not where the parcel is: judge by the order's own status.
   const s = /^paid$/.test(slug(o.courier_status)) ? '' : slug(o.courier_status);
   if (/pickup_cancel/.test(s)) return null;
+  if (o.courier_outcome === 'exchange') return 'exchange';
+  if (o.courier_outcome === 'partial') return 'partial';
   if (/paid_return/.test(s)) return 'paid_return';
   if (/partial/.test(s)) return 'partial';
   if (/exchange/.test(s)) return 'exchange';
