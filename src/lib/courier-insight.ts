@@ -68,7 +68,9 @@ export function insightGroup(o: Pick<InsightOrder, 'status' | 'courier_status'> 
   if (/partial/.test(s)) return 'partial';
   if (/exchange/.test(s)) return 'exchange';
   if (/^delivered/.test(s)) return 'delivered';
-  if (/return|cancel/.test(s)) return 'regular_return';
+  // A delivered order the courier then reports as a return is a partial delivery:
+  // the customer kept part and paid for it, and the rest is coming back (Pathao SD0128).
+  if (/return|cancel/.test(s)) return o.status === 'delivered' ? 'partial' : 'regular_return';
   if (/hold/.test(s)) return 'hold';
   switch (o.status) {
     case 'delivered': return 'delivered';

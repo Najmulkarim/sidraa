@@ -12,6 +12,10 @@ describe('courier insight', () => {
     expect(insightGroup({ status: 'returned', courier_status: 'Return' })).toBe('regular_return');
     expect(insightGroup({ status: 'delivered', courier_status: 'Delivered' })).toBe('delivered');
     expect(insightGroup({ status: 'delivered', courier_status: 'partial_delivered' })).toBe('partial');
+    // Pathao: after a partial delivery the rest of the parcel comes back as a return.
+    expect(insightGroup({ status: 'delivered', courier_status: 'order.return-in-transit' })).toBe('partial');
+    expect(insightGroup({ status: 'delivered', courier_status: 'order.returned' })).toBe('partial');
+    expect(insightGroup({ status: 'shipped', courier_status: 'order.return-id-created' })).toBe('regular_return');
     expect(insightGroup({ status: 'cancelled', courier_status: 'Pickup_Cancelled' })).toBeNull();
     expect(insightGroup({ status: 'shipped', courier_status: 'In_Transit' })).toBe('active');
     expect(insightGroup({ status: 'hold', courier_status: 'On_Hold' })).toBe('hold');
