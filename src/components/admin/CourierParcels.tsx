@@ -9,6 +9,9 @@ import { Icon } from '@/components/icons';
 import { codFeeAt, FINISHED, INSIGHT_GROUPS, paidAfterCheck, type InsightRow } from '@/lib/courier-insight';
 import { formatDateTime, formatMoney } from '@/lib/format';
 
+/** A payment can be checked once the order itself is Delivered or Returned (not while the parcel is still coming back). */
+const canCheck = (r: InsightRow) => FINISHED.includes(r.group) && (r.status === 'delivered' || r.status === 'returned');
+
 type View = 'todo' | 'done' | 'all';
 const LABEL = Object.fromEntries(INSIGHT_GROUPS.map((g) => [g.key, g])) as Record<InsightRow['group'], (typeof INSIGHT_GROUPS)[number]>;
 const nf = new Intl.NumberFormat('en-US');
@@ -44,7 +47,7 @@ export function CourierParcels({ rows, name, checked, unchecked, all, view, q, p
     { key: 'done', label: 'Checked', count: checked },
     { key: 'all', label: 'All parcels', count: all },
   ];
-  const pending = rows.filter((r) => FINISHED.includes(r.group) && !r.payment_checked_at);
+  const pending = rows.filter((r) => canCheck(r) && !r.payment_checked_at);
   const first = matched ? (page - 1) * perPage + 1 : 0;
   const last = Math.min(matched, page * perPage);
 
@@ -167,7 +170,9 @@ function Row({ r, canEditChecked }: { r: InsightRow; canEditChecked: boolean }) 
   const [codInput, setCodInput] = useState(String(r.codFee));
   const [reopened, setReopened] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const finished = FINISHED.includes(r.group);
+  const finished = canCheck(r);
+  // The courier has started the return, but the parcel has not reached the shop yet.
+  const comingBack = FINISHED.includes(r.group) && !finished;
   const noCash = r.group === 'regular_return';
   const isChecked = !!r.payment_checked_at;
   // A checked payment is locked; a super admin can open it again to correct it.
@@ -274,6 +279,10 @@ function Row({ r, canEditChecked }: { r: InsightRow; canEditChecked: boolean }) 
             )}
             {err && <span className="text-[12px] text-bad">{err}</span>}
           </div>
+        ) : comingBack ? (
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-warn/10 px-2.5 py-1.5 text-[12.5px] font-semibold text-warn" title="The courier has started the return. Check it once the parcel is back with you and the order shows Returned.">
+            <Icon name="clock" size={13} /> On its way back · check when it reaches you
+          </span>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             {noCash ? (
