@@ -11,6 +11,7 @@ import { ProductImage } from '../shop/ProductImage';
 import { IncompleteActions } from './IncompleteActions';
 import { OrderItemsDialog } from './OrderItemsDialog';
 import { notify } from './Toaster';
+import { DISTRICT_LIST_ID, DistrictList } from '@/components/admin/DistrictList';
 
 export type IncompleteRow = {
   id: string; status: 'open' | 'converted' | 'cancelled'; phone: string; phoneText: string; name: string | null;
@@ -131,7 +132,7 @@ function EditDialog({ row, options, byId, zones, onClose }: { row: IncompleteRow
             <label className="field"><span className="label">Mobile number</span><input value={f.customerPhone} onChange={set('customerPhone')} inputMode="tel" maxLength={20} className={`${input} font-mono`} /></label>
             <label className="field sm:col-span-2"><span className="label">Address</span><textarea value={f.address} onChange={set('address')} maxLength={500} rows={2} className="input text-[14px]" /></label>
             <label className="field"><span className="label">Area / thana</span><input value={f.area} onChange={set('area')} maxLength={80} className={input} /></label>
-            <label className="field"><span className="label">District</span><input value={f.district} onChange={set('district')} maxLength={80} className={input} /></label>
+            <label className="field"><span className="label">District</span><input value={f.district} onChange={set('district')} maxLength={80} list={DISTRICT_LIST_ID} autoComplete="off" className={input} /><DistrictList /></label>
             <label className="field"><span className="label">Delivery area</span>
               <select value={f.zoneId} onChange={set('zoneId')} className={input}>
                 <option value="">Not chosen</option>
