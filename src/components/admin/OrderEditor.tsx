@@ -11,7 +11,8 @@ import { ORDER_SOURCES } from '@/lib/validation';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { FieldError, FormMessage } from './ui';
-import { DistrictInput } from '@/components/admin/DistrictList';
+import { DISTRICTS, DistrictInput } from '@/components/admin/DistrictList';
+import { zoneForDistrict } from '@/lib/delivery';
 
 const SOURCE_LABEL: Record<(typeof ORDER_SOURCES)[number], string> = {
   website: 'Website',
@@ -292,7 +293,12 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
           <div className="field">
             <label htmlFor="oe-district" className="label">District</label>
             <DistrictInput id="oe-district" className="input" maxLength={60} placeholder="Type 2–3 letters, e.g. Din"
-              value={customer.district} onValueChange={(v) => setCustomer((s) => ({ ...s, district: v }))} />
+              value={customer.district} onValueChange={(v) => {
+                setCustomer((s) => ({ ...s, district: v }));
+                // A known district picks the delivery area (Dhaka → Inside Dhaka, else Outside Dhaka); staff can still change it.
+                const z = zoneForDistrict(v, zones, DISTRICTS, zoneId);
+                if (z) setZoneId(z);
+              }} />
             <FieldError state={state} name="district" />
           </div>
           {c('area', 'Area / thana', { maxLength: 60 })}
