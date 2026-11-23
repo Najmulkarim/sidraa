@@ -11,7 +11,7 @@ import { ORDER_SOURCES } from '@/lib/validation';
 import { Icon } from '../icons';
 import { ProductImage } from '../shop/ProductImage';
 import { FieldError, FormMessage } from './ui';
-import { DISTRICT_LIST_ID, DistrictList } from '@/components/admin/DistrictList';
+import { DistrictInput } from '@/components/admin/DistrictList';
 
 const SOURCE_LABEL: Record<(typeof ORDER_SOURCES)[number], string> = {
   website: 'Website',
@@ -289,8 +289,12 @@ export function OrderEditor({ order, prefill, options, zones, onSaved, onCancel 
         )}
         {c('address', 'Address (house, road, area)', { maxLength: 300 })}
         <div className="grid gap-3 sm:grid-cols-2">
-          {c('district', 'District', { maxLength: 60, list: DISTRICT_LIST_ID, autoComplete: 'off', placeholder: 'Type 2–3 letters, e.g. Din' })}
-          <DistrictList />
+          <div className="field">
+            <label htmlFor="oe-district" className="label">District</label>
+            <DistrictInput id="oe-district" className="input" maxLength={60} placeholder="Type 2–3 letters, e.g. Din"
+              value={customer.district} onValueChange={(v) => setCustomer((s) => ({ ...s, district: v }))} />
+            <FieldError state={state} name="district" />
+          </div>
           {c('area', 'Area / thana', { maxLength: 60 })}
         </div>
         {c('note', 'Note for this order', { maxLength: 500 })}

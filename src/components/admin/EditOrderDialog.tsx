@@ -7,7 +7,7 @@ import type { ActionState } from '@/lib/types';
 import { Icon } from '../icons';
 import type { OrderRow } from './OrdersTable';
 import { FieldError, FormMessage, PendingButton, useKeepValuesAction } from './ui';
-import { DISTRICT_LIST_ID, DistrictList } from '@/components/admin/DistrictList';
+import { DistrictInput } from '@/components/admin/DistrictList';
 
 /** Edit customer details (until the parcel goes to the courier) and the paid amount. */
 export function EditOrderDialog({ order: o, editable, onClose, onSaved }: { order: OrderRow; editable: boolean; onClose: () => void; onSaved: (r: ActionState) => void }) {
@@ -57,8 +57,12 @@ export function EditOrderDialog({ order: o, editable, onClose, onSaved }: { orde
         </div>
         {field('address', 'Address', o.address, { maxLength: 300 })}
         <div className="grid gap-3 sm:grid-cols-2">
-          {field('district', 'District', o.district, { maxLength: 60, list: DISTRICT_LIST_ID, autoComplete: 'off' })}
-          <DistrictList />
+          <div className="field">
+            <label htmlFor="eo-district" className="label">District</label>
+            <DistrictInput id="eo-district" name="district" defaultValue={o.district} maxLength={60} readOnly={!editable}
+              className={`input ${!editable ? 'bg-soft text-muted' : ''}`} />
+            <FieldError state={state} name="district" />
+          </div>
           {field('area', 'Area / thana', o.area, { maxLength: 60 })}
         </div>
         {field('note', 'Customer note', o.note, { maxLength: 500 })}
